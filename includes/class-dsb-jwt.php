@@ -1,12 +1,16 @@
 <?php
 // includes/class-dsb-jwt.php
-
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 class DSB_JWT {
     private $secret_key;
     private $jwt = null;
     
     public function __construct() {
-        $this->secret_key = defined('JWT_AUTH_SECRET_KEY') ? JWT_AUTH_SECRET_KEY : 'your-secret-key-here';
+        if (!defined('JWT_AUTH_SECRET_KEY')) {
+            throw new Exception('JWT_AUTH_SECRET_KEY must be defined');
+        }
+        $this->secret_key = JWT_AUTH_SECRET_KEY;
     }
 
     public function generate_token($user) {

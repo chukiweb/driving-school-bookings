@@ -1,0 +1,18 @@
+@baseUrl = http://drivingapp.local/wp-json/driving-school/v1
+
+### Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "Nicolas",
+    "password": "23061981"
+}
+
+###
+@authToken = {{login.response.body.token}}
+
+### Get Bookings
+GET {{baseUrl}}/bookings
+Authorization: Bearer {{authToken}}
