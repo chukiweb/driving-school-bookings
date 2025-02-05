@@ -15,7 +15,7 @@ class DSB_Notification {
             ],
             'public' => false,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => 'driving-bookings', // Cambio aquí
             'capability_type' => 'post',
             'hierarchical' => false,
             'menu_position' => 6,

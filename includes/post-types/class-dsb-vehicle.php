@@ -28,7 +28,7 @@ class DSB_Vehicle {
             'public' => true,
             'publicly_queryable' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => 'driving-bookings', // Cambio aquí
             'query_var' => true,
             'rewrite' => ['slug' => 'vehicles'],
             'capability_type' => 'post',

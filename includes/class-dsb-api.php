@@ -1,6 +1,7 @@
 <?php
 // includes/class-dsb-api.php
-
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
 class DSB_API {
     private $namespace = 'driving-school/v1';
 
@@ -125,11 +126,14 @@ class DSB_API {
     }
 
     private function generate_jwt($user) {
-        // Implementar generación de JWT
-        return 'token_placeholder';
+        return DSB()->jwt->generate_token($user);
     }
-
-    public function check_permission() {
-        return is_user_logged_in();
+    
+    public function check_permission($request) {
+        $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
+        if (!$token) {
+            return false;
+        }
+        return DSB()->jwt->validate_token($token);
     }
 }

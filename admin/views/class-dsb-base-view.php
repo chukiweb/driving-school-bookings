@@ -1,0 +1,40 @@
+<?php
+abstract class DSB_Base_View {
+    protected $title;
+    protected $nonce_action;
+    protected $nonce_name;
+
+    abstract protected function get_data();
+    abstract protected function handle_form_submission();
+    abstract protected function render_form();
+    abstract protected function render_table();
+
+    public function render() {
+        echo '<div class="wrap">';
+        echo '<h1>' . esc_html($this->title) . '</h1>';
+
+        if (isset($_POST['submit'])) {
+            $this->handle_form_submission();
+        }
+
+        $this->render_table();
+        $this->render_form();
+       
+        echo '</div>';
+    }
+
+    protected function render_notice($message, $type = 'success') {
+        printf(
+            '<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+            esc_attr($type),
+            esc_html($message)
+        );
+    }
+
+    protected function verify_nonce() {
+        if (!isset($_POST[$this->nonce_name]) || 
+            !wp_verify_nonce($_POST[$this->nonce_name], $this->nonce_action)) {
+            wp_die('Acción no autorizada');
+        }
+    }
+}
