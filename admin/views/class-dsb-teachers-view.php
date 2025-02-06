@@ -19,7 +19,7 @@ class DSB_Teachers_View extends DSB_Base_View {
             'user_email' => sanitize_email($_POST['email']),
             'first_name' => sanitize_text_field($_POST['first_name']),
             'last_name' => sanitize_text_field($_POST['last_name']),
-            'role' => 'profesor'
+            'role' => 'teacher'
         ];
         
         $user_id = wp_insert_user($user_data);

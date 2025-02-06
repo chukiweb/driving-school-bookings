@@ -69,7 +69,7 @@ class DSB_Notifications_View extends DSB_Base_View {
                             <option value="">Seleccionar destinatario</option>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?php echo esc_attr($user->ID); ?>">
-                                    <?php echo esc_html($user->display_name . ' (' . ucfirst($user->roles[0]) . ')'); ?>
+                                    <?php echo esc_html($user->display_name . ' (' . ucfirst($user->roles[0]) . ')'); ?> -->
                                 </option>
                             <?php endforeach; ?>
                         </select>

@@ -10,39 +10,43 @@ class DSB_API {
     }
 
     public function register_routes() {
+        error_log("Registrando rutas en API...");
         // Auth endpoints
         register_rest_route($this->namespace, '/auth/login', [
             'methods' => 'POST',
             'callback' => [$this, 'login'],
             'permission_callback' => '__return_true'
         ]);
-
+    
         // Bookings endpoints
         register_rest_route($this->namespace, '/bookings', [
             'methods' => 'GET',
             'callback' => [$this, 'get_bookings'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-
+    
         register_rest_route($this->namespace, '/bookings', [
             'methods' => 'POST',
             'callback' => [$this, 'create_booking'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-
+    
         // Vehicles endpoints
         register_rest_route($this->namespace, '/vehicles', [
             'methods' => 'GET',
             'callback' => [$this, 'get_vehicles'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-
+    
         // Users endpoints
         register_rest_route($this->namespace, '/users/me', [
             'methods' => 'GET',
             'callback' => [$this, 'get_current_user'],
             'permission_callback' => [$this, 'check_permission']
         ]);
+
+       
+        
     }
 
     public function login($request) {
@@ -136,4 +140,7 @@ class DSB_API {
         }
         return DSB()->jwt->validate_token($token);
     }
+   
+  
+    
 }

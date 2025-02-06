@@ -18,6 +18,12 @@ class DSB_Init {
         $this->loadDependencies();
         $this->initHooks();
         $this->initClasses();
+        add_action('rest_api_init', function() {
+            add_filter('rest_pre_serve_request', function($value) {
+                $this->dsb_add_cors_headers();
+                return $value;
+            });
+        });
     }
 
     private function defineConstants() {
@@ -33,6 +39,7 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . 'includes/class-dsb-api.php';
         require_once DSB_PLUGIN_DIR . 'includes/class-dsb-roles.php';
         require_once DSB_PLUGIN_DIR . 'includes/class-dsb-jwt.php';
+        require_once DSB_PLUGIN_DIR . 'includes/class-dsb-template.php';
 
         require_once DSB_PLUGIN_DIR . 'admin/class-dsb-admin.php';
         require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-base-view.php';
@@ -42,8 +49,6 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-vehicles-view.php';
         require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-students-view.php';
         require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-bookings-view.php';
-
-        require_once DSB_PLUGIN_DIR . 'includes/pwa/class-dsb-pwa.php';
     }
 
     private function initClasses() {
@@ -54,17 +59,21 @@ class DSB_Init {
         new DSB_Vehicle();
         new DSB_Booking();
         new DSB_Notification();
+        new DSB_Template();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
 
-        new DSB_PWA();
     }
 
     private function initHooks() {
         register_activation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'activate']);
         register_deactivation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'deactivate']);
+
+        
+   
     }
+
     public function activate() {
         flush_rewrite_rules();
     }
@@ -72,4 +81,13 @@ class DSB_Init {
     public function deactivate() {
         flush_rewrite_rules();
     }
+
+    
+    function dsb_add_cors_headers() {
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+        header("Access-Control-Allow-Headers: Authorization, Content-Type");
+    }
+
+
 }
