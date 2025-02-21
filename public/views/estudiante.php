@@ -1,22 +1,22 @@
 <?php
 /**
- * Template Name: Vista Profesor
+ * Template Name: Vista Estudiante
  */
 if (!defined('ABSPATH')) {
     exit;
 }
 
 // Incluir estilos y scripts específicos para esta vista
-function dsb_enqueue_acceso_assets() {
-    wp_enqueue_style('dsb-acceso-css', plugin_dir_url(__FILE__) . '../css/estudiante.css', [], '1.0.0', 'all');
-    wp_enqueue_script('dsb-acceso-js', plugin_dir_url(__FILE__) . '../js/estudiante.js', [], '1.0.0', true);
+function dsb_enqueue_estudiante_assets() {
+    wp_enqueue_style('dsb-estudiante-css', plugin_dir_url(__FILE__) . '../css/estudiante.css', [], '1.0.0', 'all');
+    wp_enqueue_script('dsb-estudiante-js', plugin_dir_url(__FILE__) . '../js/estudiante.js', [], '1.0.0', true);
 }
-add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
+add_action('wp_enqueue_scripts', 'dsb_enqueue_estudiante_assets');
 ?>
 <!DOCTYPE html>
 <html lang="es">
     <head>
-        <title>Bienvenido </title>
+        <title>Profesor</title>
         <?php wp_head(); ?> 
         <!--CODIFICACION DE CARACTERES-->
         <meta charset="utf-8">
@@ -34,45 +34,44 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
     </head>
 
     <body>
-        <div class="container-fluid">
-            <!--DIV DE ICONOS DE MENU Y CIERRE DE SESION-->
-            <div class="row justify-content-between iconosarriba">
-                <div class="col-6 iconomenu"><i class="bi bi-list"></i></div>
-                <div class="col-6 cerrarsesion"><i class="bi bi-person-fill-lock"></i></div>
-            </div>
-            <!--DIV DE DATOS DE CREDITOS Y CLASES-->
-            <div id="creditos">
+    <body class="bg-light">
+            <div class="container">
+                <!-- Encabezado con imagen y datos del profesor -->
+                <div class="text-center mt-4">
+                    <img id="estudiante-avatar" src="../img/default-avatar.png" alt="Foto de perfil" class="rounded-circle border" width="100">
+                    <h2 id="estudiante-name" class="mt-2">Cargando...</h2>
+                    <h3 id="estudiante-email"  class="mt-2"></h3>
+                    <h3 id="estudiante-licencia"  class="mt-2"></h3>
+                    <p id="estudiante-car"><i class="fas fa-car"></i> <span>Vehículo: </span> <span id="estudiante-car">Cargando...</span></p>
+                </div>
 
+                <!-- Estado de citas -->
+                <div class="text-center mt-3">
+                    <p id="estudiante-clases" class="font-weight-bold">Hoy no tienes citas</p>
+                    <div class="spinner-border text-success d-none" role="status" id="loading-spinner">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+
+                <!-- Botones de acceso rápido -->
+                <div class="row text-center mt-4">
+                    <div class="col-12">
+                        <button class="btn btn-warning w-100 py-3" id="appointments-btn">
+                            <i class="fas fa-calendar-check"></i> Citas con alumnos
+                        </button>
+                    </div>
+                    <div class="col-6 mt-3">
+                        <button class="btn btn-warning w-100 py-3" id="students-btn">
+                            <i class="fas fa-user-graduate"></i> Alumnos
+                        </button>
+                    </div>
+                    <div class="col-6 mt-3">
+                        <button class="btn btn-warning w-100 py-3" id="profile-btn">
+                            <i class="fas fa-user"></i> Mis datos
+                        </button>
+                    </div>
+                </div>
             </div>
-            <!--CAJA DE PERFIL DE USUARIO FOTOGRAFIA, CNOMBRE Y VEHICULO-->
-            <div class="row justify-content-between perfilusuario">
-                <div class="col-3 col-lg-6 col-xl-1 fotousuario"></div>
-                <div class="col-9  col-lg-6 col-xl-11 informacionusuario"><span><h1 class="nombredealumno">Estefania Garcia Soto</h1>
-                                                       <br><h2  class="nombredecoche" ><i class="bi bi-car-front-fill"></i>Volkswagen Golf</h2></span></div>
-            </div>
-            <!--INFORMACION SOBRE LAS CLASES-->
-            <div class="row informacionclases ">
-                <div class="col-12 informaciondeclase"><p style="">No tienes clases disponibles <i class="bi bi-hourglass-split"></i></div>
-                <div class="col-12 fecha">03 de Marzo de 2025</div>    
-            </div>
-            <!--DIV DE RESERVAR CITA-->
-            <div class="row justify-content-start citas">
-                <div class="col-2 col-xl-1 iconocitas"><i class="bi bi-calendar-date-fill"></i></div>
-                <div class="col-10 col-xl-11 reservacitas"><p class="reservarcitaletras" style="margin-left: 10px;margin-top: 33px; font-weight: bold;">Consultar citas de alumnos</p></div>
-            </div>
-            <!--DATOS-->
-            <div class="row justify-content-start datos">
-                <div class="col-6 col-xl-2 alumno"><p style="text-align: center;font-weight: bold;margin-top: 30px;">Alumnos</p><br><i class="bi bi-person-lines-fill"></i></div>
-                <div class="col-6 col-xl-2 verdatos"><p style="text-align: center;font-weight: bold;margin-top: 30px;">Mis datos</p><br><i class="bi bi-bar-chart-steps"></i></div>
-            </div>
-            <!--FAQ Y ACCESO A AGENDA-->
-            <div class="row justify-content-start faq">
-                <div class="col-sm-10 preguntas"><img src=" <?php plugin_dir_url(__FILE__) . '../images/AlGUNADUDA.png' ?> " alt="faq" description="preguntas frecuentes" width="220px"></div>
-                <div class="col-sm-2 agenda"><img src="<?php plugin_dir_url(__FILE__) . '../images/llamar.gif' ?> " alt="numero autoescuela" description="llamar" width="160px"></div>
-            <!--</div class="container-fluid" >
-            <div class="row justify-content-end datosusuariopantalla"> 
-            </div>-->
-        </div>
         <?php wp_footer(); ?> 
     </body>
 </html>

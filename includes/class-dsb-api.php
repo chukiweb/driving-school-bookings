@@ -2,14 +2,20 @@
 // includes/class-dsb-api.php
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
-class DSB_API {
+require_once plugin_dir_path(__FILE__) . 'models/class-dsb-teacher-service.php';
+require_once plugin_dir_path(__FILE__) . 'models/class-dsb-student-service.php';
+
+class DSB_API
+{
     private $namespace = 'driving-school/v1';
 
-    public function __construct() {
+    public function __construct()
+    {
         add_action('rest_api_init', [$this, 'register_routes']);
     }
 
-    public function register_routes() {
+    public function register_routes()
+    {
         error_log("Registrando rutas en API...");
         // Auth endpoints
         register_rest_route($this->namespace, '/auth/login', [
@@ -19,40 +25,32 @@ class DSB_API {
         ]);
 
         register_rest_route($this->namespace, '/auth/refresh', [
-            'methods'  => 'POST',
+            'methods' => 'POST',
             'callback' => [$this, 'refresh_token'],
             'permission_callback' => '__return_true'
         ]);
-        
-    
+
+
         // Bookings endpoints
         register_rest_route($this->namespace, '/bookings', [
             'methods' => 'GET',
             'callback' => [$this, 'get_bookings'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-    
+
         register_rest_route($this->namespace, '/bookings/cancel/(?P<id>\d+)', [
-            'methods'  => 'POST',
+            'methods' => 'POST',
             'callback' => [$this, 'cancel_booking'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-        
 
-        register_rest_route($this->namespace, '/students/(?P<id>\d+)/bookings', [
-            'methods'  => 'GET',
-            'callback' => [$this, 'get_student_bookings'],
-            'permission_callback' => [$this, 'check_permission']
-        ]);
-        
-    
         // Vehicles endpoints
         register_rest_route($this->namespace, '/vehicles', [
             'methods' => 'GET',
             'callback' => [$this, 'get_vehicles'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-    
+
         // Users endpoints
         register_rest_route($this->namespace, '/users/me', [
             'methods' => 'GET',
@@ -61,92 +59,106 @@ class DSB_API {
         ]);
 
         register_rest_route($this->namespace, '/views/student', [
-            'methods'  => 'GET',
+            'methods' => 'GET',
             'callback' => [$this, 'get_student_view'],
             'permission_callback' => '__return_true'
         ]);
-        
+
         register_rest_route($this->namespace, '/views/teacher', [
-            'methods'  => 'GET',
+            'methods' => 'GET',
             'callback' => [$this, 'get_teacher_view'],
             'permission_callback' => '__return_true'
         ]);
 
         register_rest_route($this->namespace, '/views/(?P<view>[a-zA-Z0-9-]+)', [
-            'methods'  => 'GET',
+            'methods' => 'GET',
             'callback' => [$this, 'get_public_view'],
             'permission_callback' => '__return_true'
         ]);
-        
 
-       
-        
+        // Teachers endpoints
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_teacher'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
+        // Students endpoints
+        register_rest_route($this->namespace, '/students/(?P<id>\d+)', [
+        'methods'  => 'GET',
+        'callback' => [$this, 'get_student'],
+        'permission_callback' => [$this, 'check_permission']
+        ]);
+
+
     }
 
-    public function login($request) {
+    public function login($request)
+    {
         $username = $request->get_param('username');
         $password = $request->get_param('password');
-    
+
         $user = wp_authenticate($username, $password);
-    
+
         if (is_wp_error($user)) {
             return new WP_Error('invalid_credentials', 'Credenciales inválidas', ['status' => 401]);
         }
-    
+
         // Asegurar que obtenemos los datos completos del usuario
         $user = get_userdata($user->ID);
         if (!$user) {
             return new WP_Error('user_not_found', 'No se pudo recuperar la información del usuario', ['status' => 401]);
         }
-    
+
         // Generar JWT token
         $token = $this->generate_jwt($user);
-    
+
         return [
             'token' => $token,
             'user' => $this->format_user($user),
         ];
     }
 
-    
 
-    public function get_bookings($request) {
+    public function get_bookings($request)
+    {
         $page = isset($request['page']) ? intval($request['page']) : 1;
         $per_page = isset($request['per_page']) ? intval($request['per_page']) : 10;
-    
+
         $args = [
-            'post_type'      => 'dsb_booking',
+            'post_type' => 'dsb_booking',
             'posts_per_page' => $per_page,
-            'paged'          => $page,
+            'paged' => $page,
         ];
-    
+
         $query = new WP_Query($args);
         $bookings = [];
-    
+
         if ($query->have_posts()) {
             while ($query->have_posts()) {
                 $query->the_post();
                 $bookings[] = [
-                    'id'         => get_the_ID(),
-                    'title'      => get_the_title(),
-                    'date'       => get_post_meta(get_the_ID(), 'dsb_booking_date', true),
+                    'id' => get_the_ID(),
+                    'title' => get_the_title(),
+                    'date' => get_post_meta(get_the_ID(), 'dsb_booking_date', true),
                     'student_id' => get_post_meta(get_the_ID(), 'dsb_student_id', true),
-                    'status'     => get_post_meta(get_the_ID(), 'dsb_booking_status', true),
+                    'status' => get_post_meta(get_the_ID(), 'dsb_booking_status', true),
                 ];
             }
         }
-    
+
         wp_reset_postdata();
-    
+
         return rest_ensure_response([
-            'bookings'    => $bookings,
+            'bookings' => $bookings,
             'total_pages' => $query->max_num_pages,
             'current_page' => $page,
         ]);
     }
-    
 
-    public function create_booking($request) {
+
+    public function create_booking($request)
+    {
         $booking_data = [
             'post_type' => 'booking',
             'post_title' => sprintf('Reserva %s', date('Y-m-d H:i:s')),
@@ -170,68 +182,31 @@ class DSB_API {
         return $this->get_booking($booking_id);
     }
 
-    public function cancel_booking($request) {
+    public function cancel_booking($request)
+    {
         $booking_id = intval($request['id']);
-    
+
         if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
             return new WP_Error('invalid_booking', 'Reserva inválida', ['status' => 400]);
         }
-    
+
         $current_user = get_current_user_id();
         $student_id = get_post_meta($booking_id, 'dsb_student_id', true);
-    
+
         if ($current_user !== intval($student_id)) {
             return new WP_Error('unauthorized', 'No tienes permiso para cancelar esta reserva', ['status' => 403]);
         }
-    
+
         wp_update_post([
-            'ID'          => $booking_id,
+            'ID' => $booking_id,
             'post_status' => 'cancelled',
         ]);
-    
+
         return rest_ensure_response(['message' => 'Reserva cancelada correctamente']);
     }
-    
 
-    public function get_student_bookings($request) {
-        $student_id = intval($request['id']);
-    
-        if (!$student_id) {
-            return new WP_Error('invalid_student', 'ID de estudiante inválido', ['status' => 400]);
-        }
-    
-        $args = [
-            'post_type'  => 'dsb_booking',
-            'meta_query' => [
-                [
-                    'key'   => 'dsb_student_id',
-                    'value' => $student_id,
-                    'compare' => '='
-                ]
-            ]
-        ];
-    
-        $query = new WP_Query($args);
-        $bookings = [];
-    
-        if ($query->have_posts()) {
-            while ($query->have_posts()) {
-                $query->the_post();
-                $bookings[] = [
-                    'id'     => get_the_ID(),
-                    'title'  => get_the_title(),
-                    'date'   => get_post_meta(get_the_ID(), 'dsb_booking_date', true),
-                    'status' => get_post_meta(get_the_ID(), 'dsb_booking_status', true),
-                ];
-            }
-        }
-    
-        wp_reset_postdata();
-        return rest_ensure_response($bookings);
-    }
-    
-
-    private function format_booking($post) {
+    private function format_booking($post)
+    {
         return [
             'id' => $post->ID,
             'student' => get_field('student', $post->ID),
@@ -244,7 +219,8 @@ class DSB_API {
         ];
     }
 
-    private function format_user($user) {
+    private function format_user($user)
+    {
         return [
             'id' => $user->ID,
             'username' => $user->user_login,
@@ -253,30 +229,32 @@ class DSB_API {
         ];
     }
 
-    private function generate_jwt($user) {
+    private function generate_jwt($user)
+    {
         return DSB()->jwt->generate_token($user);
     }
 
-    public function refresh_token($request) {
+    public function refresh_token($request)
+    {
         $token = $request->get_param('token');
-    
+
         if (!$token) {
             return new WP_Error('missing_token', 'No se ha proporcionado un token', ['status' => 400]);
         }
-    
+
         try {
             $decoded = JWT::decode($token, new Key(JWT_AUTH_SECRET_KEY, 'HS256'));
             $user_id = $decoded->data->user_id;
-            
+
             $new_token = [
-                'iss'  => get_site_url(),
-                'iat'  => time(),
-                'exp'  => time() + 3600, // 1 horaA
+                'iss' => get_site_url(),
+                'iat' => time(),
+                'exp' => time() + 3600, // 1 horaA
                 'data' => [
                     'user_id' => $user_id
                 ]
             ];
-    
+
             return rest_ensure_response([
                 'token' => JWT::encode($new_token, JWT_AUTH_SECRET_KEY, 'HS256')
             ]);
@@ -284,9 +262,10 @@ class DSB_API {
             return new WP_Error('invalid_token', 'Token inválido o expirado', ['status' => 403]);
         }
     }
-    
-    
-    public function check_permission($request) {
+
+
+    public function check_permission($request)
+    {
         $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
         if (!$token) {
             return false;
@@ -294,39 +273,54 @@ class DSB_API {
         return DSB()->jwt->validate_token($token);
     }
 
-    public function get_student_view() {
+    public function get_student_view()
+    {
         return rest_ensure_response([
             'url' => plugins_url('public/views/estudiante.php', dirname(__FILE__))
         ]);
     }
-    
-    public function get_teacher_view() {
+
+    public function get_teacher_view()
+    {
         return rest_ensure_response([
             'url' => plugins_url('public/views/profesor.php', dirname(__FILE__))
         ]);
     }
 
-    public function get_public_view($request) {
+    public function get_teacher($request)
+    {
+        $teacher_id = intval($request['id']);
+        return DSB_Teacher_Service::get_teacher($teacher_id);
+    }
+
+    public function get_student($request) {
+        $user_id = intval($request['id']);
+        return DSB_Student_Service::get_student($user_id);
+    }
+
+
+    public function get_public_view($request)
+    {
         $view = sanitize_text_field($request['view']);
-    
+
         $allowed_views = ['acceso', 'estudiante', 'profesor'];
         if (!in_array($view, $allowed_views)) {
             return new WP_Error('invalid_view', 'Vista no permitida', ['status' => 403]);
         }
-    
+
         $file_path = plugin_dir_path(__FILE__) . "../public/views/{$view}.php";
-        
+
         if (!file_exists($file_path)) {
             return new WP_Error('not_found', 'Archivo no encontrado', ['status' => 404]);
         }
-    
+
         ob_start();
         include $file_path;
         return ob_get_clean();
     }
-    
-    
-   
-  
-    
+
+
+
+
+
 }

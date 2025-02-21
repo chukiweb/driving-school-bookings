@@ -83,31 +83,31 @@ class DSB_Init {
         flush_rewrite_rules();
     }
 
-    function dsb_add_cors_headers() {
+    public function dsb_add_cors_headers() {
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
         header("Access-Control-Allow-Headers: Authorization, Content-Type");
     }
 
-    function dsb_register_templates($templates) {
+    public function dsb_register_templates($templates) {
         $templates['public/views/estudiante.php'] = 'Vista Estudiante';
         $templates['public/views/profesor.php'] = 'Vista Profesor';
         $templates['public/views/acceso.php'] = 'Vista Acceso';
         return $templates;
     }
 
-    function dsb_add_rewrite_rules() {
+    public function dsb_add_rewrite_rules() {
         add_rewrite_rule('^acceso/?$', 'index.php?dsb_view=acceso', 'top');
         add_rewrite_rule('^estudiante/?$', 'index.php?dsb_view=estudiante', 'top');
         add_rewrite_rule('^profesor/?$', 'index.php?dsb_view=profesor', 'top');
     }
 
-    function dsb_add_query_vars($vars) {
+    public function dsb_add_query_vars($vars) {
         $vars[] = 'dsb_view';
         return $vars;
     }
 
-    function dsb_template_redirect() {
+    public function dsb_template_redirect() {
         $view = get_query_var('dsb_view');
         if ($view) {
             $file_path = DSB_PLUGIN_DIR . "public/views/{$view}.php";
