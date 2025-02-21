@@ -24,6 +24,11 @@ class DSB_Init {
                 return $value;
             });
         });
+        
+        // Agregar reglas de reescritura
+        add_action('init', [$this, 'dsb_add_rewrite_rules']);
+        add_filter('query_vars', [$this, 'dsb_add_query_vars']);
+        add_action('template_redirect', [$this, 'dsb_template_redirect']);
     }
 
     private function defineConstants() {
@@ -52,7 +57,6 @@ class DSB_Init {
     }
 
     private function initClasses() {
-
         if (is_admin()) {
             new DSB_Admin();
         }
@@ -63,15 +67,12 @@ class DSB_Init {
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
-
     }
 
     private function initHooks() {
         register_activation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'activate']);
         register_deactivation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'deactivate']);
-
-        
-   
+        add_filter('theme_page_templates', [$this, 'dsb_register_templates']);
     }
 
     public function activate() {
@@ -82,12 +83,40 @@ class DSB_Init {
         flush_rewrite_rules();
     }
 
-    
     function dsb_add_cors_headers() {
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
         header("Access-Control-Allow-Headers: Authorization, Content-Type");
     }
 
+    function dsb_register_templates($templates) {
+        $templates['public/views/estudiante.php'] = 'Vista Estudiante';
+        $templates['public/views/profesor.php'] = 'Vista Profesor';
+        $templates['public/views/acceso.php'] = 'Vista Acceso';
+        return $templates;
+    }
 
+    function dsb_add_rewrite_rules() {
+        add_rewrite_rule('^acceso/?$', 'index.php?dsb_view=acceso', 'top');
+        add_rewrite_rule('^estudiante/?$', 'index.php?dsb_view=estudiante', 'top');
+        add_rewrite_rule('^profesor/?$', 'index.php?dsb_view=profesor', 'top');
+    }
+
+    function dsb_add_query_vars($vars) {
+        $vars[] = 'dsb_view';
+        return $vars;
+    }
+
+    function dsb_template_redirect() {
+        $view = get_query_var('dsb_view');
+        if ($view) {
+            $file_path = DSB_PLUGIN_DIR . "public/views/{$view}.php";
+            if (file_exists($file_path)) {
+                include $file_path;
+                exit;
+            } else {
+                wp_die("Vista no encontrada", "Error 404", ['response' => 404]);
+            }
+        }
+    }
 }
