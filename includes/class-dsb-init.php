@@ -8,7 +8,7 @@ class DSB_Init {
 
     public static function getInstance() {
         if (self::$instance == null) {
-            self::$instance = new self();
+            self::$instance = new self(); 
         }
         return self::$instance;
     }
@@ -24,6 +24,9 @@ class DSB_Init {
                 return $value;
             });
         });
+
+        // Hook para cargar scripts y estilos en el frontend
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
         
         // Agregar reglas de reescritura
         add_action('init', [$this, 'dsb_add_rewrite_rules']);
@@ -119,4 +122,10 @@ class DSB_Init {
             }
         }
     }
+
+    public function enqueue_scripts() {
+        // Registrar y cargar jQuery desde WordPress
+        wp_enqueue_script('jquery');
+    }
+    
 }

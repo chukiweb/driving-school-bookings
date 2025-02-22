@@ -1,4 +1,4 @@
-<?php
+<p?php
 /**
  * Template Name: Vista Profesor
  */
@@ -38,10 +38,10 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
             <div class="container">
                 <!-- Encabezado con imagen y datos del profesor -->
                 <div class="text-center mt-4">
-                    <img id="teacher-avatar" src="../img/default-avatar.png" alt="Foto de perfil" class="rounded-circle border" width="100">
+                    <img id="teacher-avatar" src="" alt="Foto de perfil" class="rounded-circle border" width="100">
                     <h2 id="teacher-name" class="mt-2">Cargando...</h2>
-                    <h3 id="teacher-email"  class="mt-2"></h3>
-                    <h3 id="teacher-licencia"  class="mt-2"></h3>
+                    <p id="teacher-email"  class="mt-2"></p>
+                    <p id="teacher-licencia"  class="mt-2">456789</p>
                     <p id="teacher-car"><i class="fas fa-car"></i> <span>Vehículo: </span> <span id="teacher-vehicle">Cargando...</span></p>
                 </div>
 

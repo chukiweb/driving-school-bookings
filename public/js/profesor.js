@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (data.success) {
             document.getElementById("teacher-name").textContent = data.data.display_name;
+            document.getElementById("teacher-email").textContent = data.data.email;
             document.getElementById("teacher-vehicle").textContent = data.data.vehicle || "Sin vehículo";
             document.getElementById("teacher-avatar").src = data.data.avatar || "../img/default-avatar.png";
 

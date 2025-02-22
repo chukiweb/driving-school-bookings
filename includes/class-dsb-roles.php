@@ -25,6 +25,7 @@ class DSB_Roles {
             'edit_own_bookings' => true,
             'view_own_progress' => true,
             'make_payments' => true,
+            'upload_files' => true,
             'schedule_bookings' => true,
             'cancel_own_bookings' => true
         ]);

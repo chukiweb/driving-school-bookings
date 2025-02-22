@@ -44,8 +44,8 @@ class DSB_Bookings_View extends DSB_Base_View {
     }
 
     protected function render_form() {
-        $students = get_users(['role' => 'estudiante']);
-        $teachers = get_users(['role' => 'profesor']);
+        $students = get_users(['role' => 'student']);
+        $teachers = get_users(['role' => 'teacher']);
         $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
         ?>
         <form method="post" action="">

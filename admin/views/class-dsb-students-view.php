@@ -10,7 +10,7 @@ class DSB_Students_View extends DSB_Base_View
 
     protected function get_data()
     {
-        return get_users(['role' => 'estudiante']);
+        return get_users(['role' => 'student']);
     }
 
     protected function handle_form_submission()
@@ -80,7 +80,7 @@ class DSB_Students_View extends DSB_Base_View
 
     protected function render_form()
     {
-        $teachers = get_users(['role' => 'profesor']);
+        $teachers = get_users(['role' => 'teacher']);
         $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
         ?>
         <form method="post" action="">

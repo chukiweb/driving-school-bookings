@@ -7,7 +7,7 @@ class DSB_Teachers_View extends DSB_Base_View {
     }
 
     protected function get_data() {
-        return get_users(['role' => 'profesor']);
+        return get_users(['role' => 'teacher']);
     }
 
     protected function handle_form_submission() {

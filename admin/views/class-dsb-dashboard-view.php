@@ -6,8 +6,8 @@ class DSB_Dashboard_View extends DSB_Base_View {
 
     protected function get_data() {
         return [
-            'teachers' => get_users(['role' => 'profesor']),
-            'students' => get_users(['role' => 'estudiante']),
+            'teachers' => get_users(['role' => 'teacher']),
+            'students' => get_users(['role' => 'student']),
             'vehicles' => get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]),
             'bookings' => get_posts(['post_type' => 'reserva', 'posts_per_page' => -1])
         ];

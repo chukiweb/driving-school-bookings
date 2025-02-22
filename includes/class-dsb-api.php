@@ -16,7 +16,6 @@ class DSB_API
 
     public function register_routes()
     {
-        error_log("Registrando rutas en API...");
         // Auth endpoints
         register_rest_route($this->namespace, '/auth/login', [
             'methods' => 'POST',
@@ -28,6 +27,22 @@ class DSB_API
             'methods' => 'POST',
             'callback' => [$this, 'refresh_token'],
             'permission_callback' => '__return_true'
+        ]);
+
+
+          // Users endpoints
+          register_rest_route($this->namespace, '/users/me', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_current_user'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
+        
+        //Load images endpoint
+        register_rest_route($this->namespace, '/users/me/avatar', [
+            'methods' => 'POST',
+            'callback' => [$this, 'upload_user_avatar'],
+            'permission_callback' => [$this, 'check_permission'],
         ]);
 
 
@@ -48,13 +63,6 @@ class DSB_API
         register_rest_route($this->namespace, '/vehicles', [
             'methods' => 'GET',
             'callback' => [$this, 'get_vehicles'],
-            'permission_callback' => [$this, 'check_permission']
-        ]);
-
-        // Users endpoints
-        register_rest_route($this->namespace, '/users/me', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_current_user'],
             'permission_callback' => [$this, 'check_permission']
         ]);
 
@@ -119,7 +127,6 @@ class DSB_API
         ];
     }
 
-
     public function get_bookings($request)
     {
         $page = isset($request['page']) ? intval($request['page']) : 1;
@@ -155,7 +162,6 @@ class DSB_API
             'current_page' => $page,
         ]);
     }
-
 
     public function create_booking($request)
     {
@@ -225,7 +231,7 @@ class DSB_API
             'id' => $user->ID,
             'username' => $user->user_login,
             'email' => $user->user_email,
-            'role' => $user->roles[1] ?? null
+            'role' => $user->roles[0] ?? null
         ];
     }
 
@@ -294,6 +300,11 @@ class DSB_API
     }
 
     public function get_student($request) {
+        $user_id = intval($request['id']);
+        return DSB_Student_Service::get_student($user_id);
+    }
+
+    public function upload_user_avatar ($request) {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
     }
