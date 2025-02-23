@@ -4,6 +4,7 @@ use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
 require_once plugin_dir_path(__FILE__) . 'models/class-dsb-teacher-service.php';
 require_once plugin_dir_path(__FILE__) . 'models/class-dsb-student-service.php';
+require_once plugin_dir_path(__FILE__) . 'models/class-dsb-calendar-service.php';
 
 class DSB_API
 {
@@ -29,6 +30,9 @@ class DSB_API
             'permission_callback' => '__return_true'
         ]);
 
+        /**
+         * USERS ENDPOINTS
+         */
 
           // Users endpoints
           register_rest_route($this->namespace, '/users/me', [
@@ -37,7 +41,7 @@ class DSB_API
             'permission_callback' => [$this, 'check_permission']
         ]);
 
-        
+
         //Load images endpoint
         register_rest_route($this->namespace, '/users/me/avatar', [
             'methods' => 'POST',
@@ -45,6 +49,9 @@ class DSB_API
             'permission_callback' => [$this, 'check_permission'],
         ]);
 
+        /**
+         * BOOKINGS ENDPOINTS
+         */
 
         // Bookings endpoints
         register_rest_route($this->namespace, '/bookings', [
@@ -59,12 +66,20 @@ class DSB_API
             'permission_callback' => [$this, 'check_permission']
         ]);
 
+        /**
+         * VIHICLES ENDPOINTS
+         */
+
         // Vehicles endpoints
         register_rest_route($this->namespace, '/vehicles', [
             'methods' => 'GET',
             'callback' => [$this, 'get_vehicles'],
             'permission_callback' => [$this, 'check_permission']
         ]);
+
+        /**
+         * VIEWS ENDPOINTS
+         */
 
         register_rest_route($this->namespace, '/views/student', [
             'methods' => 'GET',
@@ -84,13 +99,32 @@ class DSB_API
             'permission_callback' => '__return_true'
         ]);
 
+        /**
+         * TEACHERS ENDPOINTS
+         */
+
         // Teachers endpoints
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_teacher'],
             'permission_callback' => [$this, 'check_permission']
         ]);
+        register_rest_route('driving-school/v1', '/professor-availability', [
+            'methods' => 'GET',
+            'callback' => 'get_professor_availability',
+            'permission_callback' => '__return_true'
+        ]);
 
+        register_rest_route('driving-school/v1', '/save-availability', [
+            'methods' => 'POST',
+            'callback' => 'save_professor_availability',
+            'permission_callback' => '__return_true'
+        ]);
+        
+
+        /**
+         * STUDENT ENDPOINT
+         */
         // Students endpoints
         register_rest_route($this->namespace, '/students/(?P<id>\d+)', [
         'methods'  => 'GET',
@@ -98,6 +132,27 @@ class DSB_API
         'permission_callback' => [$this, 'check_permission']
         ]);
 
+        /**
+         * CALENDAR ENDPOINTS
+         */
+        
+         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
+            'methods' => 'GET',
+            'callback' => [$this, 'get_teacher_calendar'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
+            'methods' => 'POST',
+            'callback' => [$this, 'update_teacher_calendar'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/bookings/cancel/(?P<id>\d+)', [
+            'methods' => 'DELETE',
+            'callback' => [$this, 'delete_booking'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
 
     }
 
@@ -299,6 +354,23 @@ class DSB_API
         return DSB_Teacher_Service::get_teacher($teacher_id);
     }
 
+    public function get_professor_availability($request)
+    {
+        $teacher_id = intval($request['id']);
+        return DSB_Teacher_Service::get_professor_availability($teacher_id );
+    }
+
+
+    public function save_professor_availability($request)
+    {
+        $teacher_id = intval($request['id']);
+        return DSB_Teacher_Service::save_professor_availability($request, $teacher_id);
+    }
+
+    /**
+     * BLoque de estudioante 
+     */
+
     public function get_student($request) {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
@@ -307,6 +379,28 @@ class DSB_API
     public function upload_user_avatar ($request) {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
+    }
+
+
+    /**
+     * CALENDAR
+     */
+
+     public function get_teacher_calendar($request) {
+        $teacher_id = intval($request['id']);
+        return DSB_Calendar_Service::get_teacher_calendar($teacher_id);
+    }
+
+    // Agregar disponibilidad
+    public function update_teacher_calendar($request) {
+        return DSB_Calendar_Service::update_teacher_calendar($request);
+    }
+
+    // Eliminar un horario
+    public function delete_booking($request) {
+        $booking= intval($request['id']);
+        return DSB_Calendar_Service::delete_booking($booking);
+       
     }
 
 

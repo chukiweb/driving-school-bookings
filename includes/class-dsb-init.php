@@ -126,6 +126,7 @@ class DSB_Init {
     public function enqueue_scripts() {
         // Registrar y cargar jQuery desde WordPress
         wp_enqueue_script('jquery');
+    
     }
     
 }

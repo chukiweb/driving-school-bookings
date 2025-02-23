@@ -71,4 +71,33 @@ class DSB_Teacher_Service {
 
         return $students_list;
     }
+
+    public static function get_professor_availability($teacher_id ) {
+        $professor_id = $teacher_id ;
+        if (!$professor_id) {
+            return new WP_REST_Response(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+    
+        $horarios = get_user_meta($professor_id, 'available_schedules', true);
+        $horarios = $horarios ? json_decode($horarios, true) : [];
+    
+        return new WP_REST_Response(['success' => true, 'data' => $horarios], 200);
+    }
+    
+    
+
+    public static function save_professor_availability(WP_REST_Request $request, $teacher_id) {
+        $professor_id = $teacher_id;
+        if (!$professor_id) {
+            return new WP_REST_Response(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+    
+        $data = json_decode($request->get_body(), true);
+        update_user_meta($professor_id, 'available_schedules', json_encode($data['events']));
+    
+        return new WP_REST_Response(['success' => true, 'message' => 'Horarios guardados correctamente'], 200);
+    }
+    
+    
+    
 }
