@@ -124,14 +124,21 @@ class DSB_Bookings_View extends DSB_Base_View {
             </thead>
             <tbody>
                 <?php foreach ($bookings as $booking): 
-                    $student = get_user_by('id', get_post_meta($booking->ID, 'student_id', true));
-                    $teacher = get_user_by('id', get_post_meta($booking->ID, 'teacher_id', true));
-                    $vehicle = get_post($booking->vehicle_id);
+                    // Obtener el ID de estudiante y profesor
+                    $student_id = get_post_meta($booking->ID, 'student_id', true);
+                    $teacher_id = get_post_meta($booking->ID, 'teacher_id', true);
+                    
+                    // Obtener los objetos de usuario
+                    $student = !empty($student_id) ? get_user_by('id', $student_id) : false;
+                    $teacher = !empty($teacher_id) ? get_user_by('id', $teacher_id) : false;
+                    
+                    // Obtener vehículo
+                    $vehicle = get_post(get_post_meta($booking->ID, 'vehicle_id', true));
                 ?>
                 <tr>
-                    <td><?php echo esc_html($student->display_name); ?></td>
-                    <td><?php echo esc_html($teacher->display_name); ?></td>
-                    <td><?php echo esc_html($vehicle->post_title); ?></td>
+                    <td><?php echo $student ? esc_html($student->display_name) : 'No asignado'; ?></td>
+                    <td><?php echo $teacher ? esc_html($teacher->display_name) : 'No asignado'; ?></td>
+                    <td><?php echo ($vehicle && !is_wp_error($vehicle)) ? esc_html($vehicle->post_title) : 'Vehículo no encontrado'; ?></td>
                     <td><?php echo esc_html(get_post_meta($booking->ID, 'date', true)); ?></td>
                     <td><?php echo esc_html(get_post_meta($booking->ID, 'time', true)); ?></td>
                     <td><?php echo esc_html(get_post_meta($booking->ID, 'status', true)); ?></td>

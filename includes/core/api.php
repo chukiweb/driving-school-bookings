@@ -2,9 +2,9 @@
 // includes/class-dsb-api.php
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
-require_once plugin_dir_path(__FILE__) . 'models/class-dsb-teacher-service.php';
-require_once plugin_dir_path(__FILE__) . 'models/class-dsb-student-service.php';
-require_once plugin_dir_path(__FILE__) . 'models/class-dsb-calendar-service.php';
+require_once DSB_PLUGIN_DIR . 'services/teacher-service.php';
+require_once DSB_PLUGIN_DIR . 'services/student-service.php';
+require_once DSB_PLUGIN_DIR . 'services/calendar-service.php';
 
 class DSB_API
 {

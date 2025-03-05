@@ -1,5 +1,5 @@
 <?php
-// includes/post-types/class-dsb-vehicle.php
+// includes/post-types/vehicle.php
 
 class DSB_Vehicle {
     public function __construct() {

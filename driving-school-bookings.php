@@ -12,7 +12,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 
 //require_once plugin_dir_path(__FILE__) . 'vendor/autoload.php';
-require_once plugin_dir_path(__FILE__) . 'includes/class-dsb-init.php';
+require_once plugin_dir_path(__FILE__) . 'includes/core/init.php';
 
 function DSB() {
    return DSB_Init::getInstance();

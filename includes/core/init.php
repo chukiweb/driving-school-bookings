@@ -1,5 +1,5 @@
 <?php
-// includes/class-dsb-init.php
+// includes/init.php
 class DSB_Init {
     private static $instance = null;
     public $jwt;
@@ -37,26 +37,27 @@ class DSB_Init {
     private function defineConstants() {
         define('DSB_VERSION', '1.0.0');
         define('DSB_PLUGIN_DIR', plugin_dir_path(dirname(__FILE__)));
+        define('DSB_PLUGIN_DIR_PATH', plugin_dir_path(dirname(__DIR__, 1)));
         define('DSB_PLUGIN_URL', plugin_dir_url(dirname(__FILE__)));
     }
 
     private function loadDependencies() {
-        require_once DSB_PLUGIN_DIR . 'includes/post-types/class-dsb-vehicle.php';
-        require_once DSB_PLUGIN_DIR . 'includes/post-types/class-dsb-booking.php';
-        require_once DSB_PLUGIN_DIR . 'includes/post-types/class-dsb-notification.php';
-        require_once DSB_PLUGIN_DIR . 'includes/class-dsb-api.php';
-        require_once DSB_PLUGIN_DIR . 'includes/class-dsb-roles.php';
-        require_once DSB_PLUGIN_DIR . 'includes/class-dsb-jwt.php';
-        require_once DSB_PLUGIN_DIR . 'includes/class-dsb-template.php';
+        require_once DSB_PLUGIN_DIR . '/post-types/vehicle.php';
+        require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
+        require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
+        require_once DSB_PLUGIN_DIR . 'core/api.php';
+        require_once DSB_PLUGIN_DIR . 'core/roles.php';
+        require_once DSB_PLUGIN_DIR . 'core/jwt.php';
+        require_once DSB_PLUGIN_DIR . 'core/template.php';
 
-        require_once DSB_PLUGIN_DIR . 'admin/class-dsb-admin.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-base-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-dashboard-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-notifications-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-teachers-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-vehicles-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-students-view.php';
-        require_once DSB_PLUGIN_DIR . 'admin/views/class-dsb-bookings-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/dashboard-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/notifications-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/teachers-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/vehicles-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/students-view.php';
+        require_once DSB_PLUGIN_DIR_PATH . 'admin/views/bookings-view.php';
     }
 
     private function initClasses() {

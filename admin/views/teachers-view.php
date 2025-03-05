@@ -93,6 +93,7 @@ class DSB_Teachers_View extends DSB_Base_View {
                     <td>
                         <a href="#" class="button">Editar</a>
                         <a href="#" class="button">Eliminar</a>
+                        <a href="#" class="button">Calendario</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -100,4 +101,30 @@ class DSB_Teachers_View extends DSB_Base_View {
         </table>
         <?php
     }
+    public function enqueue_scripts() {
+        $screen = get_current_screen();
+        
+        // Solo cargar el script en la página del profesor
+        if ($screen && $screen->id === 'toplevel_page_gestion_profesores') {
+            wp_enqueue_script(
+                'teachers-script',
+                plugin_dir_url(__FILE__) . '../public/js/admin/teacher-admin-view.js',
+                ['jquery', 'fullcalendar'],
+                null,
+                true
+            );
+    
+            // Obtener reservas de todos los profesores
+            $teachers = $this->get_data();
+            $teacher_reservations = [];
+    
+            foreach ($teachers as $teacher) {
+                $teacher_reservations[$teacher->ID] = json_decode($this->get_reservations($teacher->ID));
+            }
+    
+            // Pasar las reservas a JavaScript
+            wp_localize_script('teachers-script', 'teacherReservations', $teacher_reservations);
+        }
+    }
+    
 }
