@@ -6,23 +6,36 @@ if (!defined('ABSPATH')) {
 class DSB_Calendar_Service
 {
  // Obtener disponibilidad del profesor
- public static function get_teacher_calendar($teacher_id) {
+ public static function teacher_calendar($teacher_id): array {
     $teacher_id = intval($teacher_id);
+
     $events = get_posts([
         'post_type' => 'booking',
-        'meta_query' => [['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '=']]
+        'meta_query' => [
+            ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '=']
+        ],
+        'posts_per_page' => -1
     ]);
 
     $result = [];
+
     foreach ($events as $event) {
+        $start = get_post_meta($event->ID, 'start_time', true);
+        $end = get_post_meta($event->ID, 'end_time', true);
+
         $result[] = [
             'id' => $event->ID,
-            'start_time' => get_post_meta($event->ID, 'start_time', true),
-            'end_time' => get_post_meta($event->ID, 'end_time', true)
+            'title' => 'Reservado', // puedes personalizar esto con el nombre del estudiante
+            'start' => $start,
+            'end' => $end,
+            'backgroundColor' => '#007bff',
+            'borderColor' => '#007bff'
         ];
     }
+
     return $result;
 }
+
 
 // Agregar disponibilidad
 public static function update_teacher_calendar($request) {

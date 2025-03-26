@@ -18,7 +18,7 @@ class DSB_API
     public function register_routes()
     {
         // Auth endpoints
-        register_rest_route($this->namespace, '/auth/login', [
+        register_rest_route($this->namespace, '/auth/acceso', [
             'methods' => 'POST',
             'callback' => [$this, 'login'],
             'permission_callback' => '__return_true'
@@ -34,8 +34,8 @@ class DSB_API
          * USERS ENDPOINTS
          */
 
-          // Users endpoints
-          register_rest_route($this->namespace, '/users/me', [
+        // Users endpoints
+        register_rest_route($this->namespace, '/users/me', [
             'methods' => 'GET',
             'callback' => [$this, 'get_current_user'],
             'permission_callback' => [$this, 'check_permission']
@@ -120,26 +120,28 @@ class DSB_API
             'callback' => 'save_professor_availability',
             'permission_callback' => '__return_true'
         ]);
-        
+
 
         /**
          * STUDENT ENDPOINT
          */
         // Students endpoints
         register_rest_route($this->namespace, '/students/(?P<id>\d+)', [
-        'methods'  => 'GET',
-        'callback' => [$this, 'get_student'],
-        'permission_callback' => [$this, 'check_permission']
+            'methods' => 'GET',
+            'callback' => [$this, 'get_student'],
+            'permission_callback' => [$this, 'check_permission']
         ]);
 
         /**
          * CALENDAR ENDPOINTS
          */
-        
-         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
+
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
             'methods' => 'GET',
             'callback' => [$this, 'get_teacher_calendar'],
-            'permission_callback' => [$this, 'check_permission']
+            'permission_callback' => function ($request) {
+                return $this->check_permission($request);
+            }
         ]);
 
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
@@ -325,12 +327,15 @@ class DSB_API
     }
 
 
-    public function check_permission($request)
-    {
-        $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
-        if (!$token) {
-            return false;
+    public function check_permission($request) {
+        if (is_user_logged_in()) {
+            return true;
         }
+    
+        // Lógica con token JWT
+        $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
+        if (!$token) return false;
+    
         return DSB()->jwt->validate_token($token);
     }
 
@@ -357,7 +362,7 @@ class DSB_API
     public function get_professor_availability($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_professor_availability($teacher_id );
+        return DSB_Teacher_Service::get_professor_availability($teacher_id);
     }
 
 
@@ -371,12 +376,14 @@ class DSB_API
      * BLoque de estudioante 
      */
 
-    public function get_student($request) {
+    public function get_student($request)
+    {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
     }
 
-    public function upload_user_avatar ($request) {
+    public function upload_user_avatar($request)
+    {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
     }
@@ -386,21 +393,24 @@ class DSB_API
      * CALENDAR
      */
 
-     public function get_teacher_calendar($request) {
+    public function get_teacher_calendar($request)
+    {
         $teacher_id = intval($request['id']);
         return DSB_Calendar_Service::get_teacher_calendar($teacher_id);
     }
 
     // Agregar disponibilidad
-    public function update_teacher_calendar($request) {
+    public function update_teacher_calendar($request)
+    {
         return DSB_Calendar_Service::update_teacher_calendar($request);
     }
 
     // Eliminar un horario
-    public function delete_booking($request) {
-        $booking= intval($request['id']);
+    public function delete_booking($request)
+    {
+        $booking = intval($request['id']);
         return DSB_Calendar_Service::delete_booking($booking);
-       
+
     }
 
 

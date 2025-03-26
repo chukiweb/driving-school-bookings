@@ -6,7 +6,7 @@ async function login() {
     errorMessage.textContent = "";
 
     try {
-        const response = await fetch("/wp-json/driving-school/v1/auth/login", {
+        const response = await fetch("/wp-json/driving-school/v1/auth/acceso", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
@@ -19,8 +19,6 @@ async function login() {
         }
 
         localStorage.setItem("jwt_token", data.token);
-        console.log("Token guardado en localStorage:", data.token);
-        console.log("Rol del usuario:", data.user.role);
 
         if (data.user.role === "student") {
             window.location.href = "/estudiante";

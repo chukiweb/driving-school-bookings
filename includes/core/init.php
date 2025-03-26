@@ -114,7 +114,7 @@ class DSB_Init {
     public function dsb_template_redirect() {
         $view = get_query_var('dsb_view');
         if ($view) {
-            $file_path = DSB_PLUGIN_DIR . "public/views/{$view}.php";
+            $file_path = DSB_PLUGIN_DIR_PATH . "public/views/{$view}.php";
             if (file_exists($file_path)) {
                 include $file_path;
                 exit;

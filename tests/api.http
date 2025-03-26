@@ -2,7 +2,7 @@
 
 ### Login
 # @name login
-POST {{baseUrl}}/auth/login
+POST {{baseUrl}}/auth/acceso
 Content-Type: application/json
 
 {

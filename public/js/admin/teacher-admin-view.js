@@ -1,37 +1,32 @@
-jQuery(document).ready(function($) {
-    // Mostrar formulario de creación de profesor
-    $("#show-form").click(function() {
-        $("#professor-form").slideDown();
+jQuery(document).ready(function ($) {
+    console.log("Script conectado");
+
+    // Mostrar/ocultar el formulario
+    $('#mostrar-form-crear-profesor').on('click', function () {
+        $('#crear-profesor-form').slideToggle();
     });
 
-    // Ocultar formulario
-    $("#cancel-form").click(function() {
-        $("#professor-form").slideUp();
-    });
+    // Mostrar calendario al hacer clic
+    $('.button:contains("Calendario")').on('click', function (e) {
+        e.preventDefault();
 
-    // Mostrar calendario del profesor
-    $(".view-calendar").click(function() {
-        var teacherId = $(this).data("teacher-id");
+        const row = $(this).closest('tr');
+        const teacherLogin = row.find('td[data-login]').data('login');
+        const teacherId = teacherMap[teacherLogin];
 
-        if (teacherReservations.hasOwnProperty(teacherId)) {
-            $("#calendar-container").slideDown();
-
-            $("#calendar").fullCalendar('destroy'); // Limpiar calendario antes de recargar
-            $("#calendar").fullCalendar({
-                header: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'month,agendaWeek,agendaDay'
-                },
-                events: teacherReservations[teacherId] // Cargar eventos del profesor
-            });
-        } else {
-            alert("No hay reservas para este profesor.");
+        if (!teacherId) {
+            alert("No se pudo identificar al profesor.");
+            return;
         }
-    });
 
-    // Cerrar calendario
-    $("#close-calendar").click(function() {
-        $("#calendar-container").slideUp();
+        console.log("ID del profesor seleccionado:", teacherId);
+
+        $.get(`/wp-json/driving-school/v1/teachers/${teacherId}/calendar`, function (events) {
+            const calendar = new FullCalendar.Calendar(document.getElementById('teacher-calendar'), {
+                initialView: 'timeGridWeek',
+                events: events
+            });
+            calendar.render();
+        });
     });
 });
