@@ -85,7 +85,6 @@ class DSB_Vehicle {
                     'choices' => [
                         'car' => 'Coche',
                         'motorcycle' => 'Moto',
-                        'truck' => 'Camión'
                     ],
                     'required' => 1
                 ],

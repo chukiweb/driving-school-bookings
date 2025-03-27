@@ -34,7 +34,6 @@ class DSB_API
          * USERS ENDPOINTS
          */
 
-        // Users endpoints
         register_rest_route($this->namespace, '/users/me', [
             'methods' => 'GET',
             'callback' => [$this, 'get_current_user'],
@@ -53,7 +52,6 @@ class DSB_API
          * BOOKINGS ENDPOINTS
          */
 
-        // Bookings endpoints
         register_rest_route($this->namespace, '/bookings', [
             'methods' => 'GET',
             'callback' => [$this, 'get_bookings'],
@@ -70,7 +68,6 @@ class DSB_API
          * VIHICLES ENDPOINTS
          */
 
-        // Vehicles endpoints
         register_rest_route($this->namespace, '/vehicles', [
             'methods' => 'GET',
             'callback' => [$this, 'get_vehicles'],
@@ -103,29 +100,35 @@ class DSB_API
          * TEACHERS ENDPOINTS
          */
 
-        // Teachers endpoints
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_teacher'],
             'permission_callback' => [$this, 'check_permission']
         ]);
-        register_rest_route('driving-school/v1', '/professor-availability', [
+
+        register_rest_route($this->namespace, '/professor-availability', [
             'methods' => 'GET',
             'callback' => 'get_professor_availability',
             'permission_callback' => '__return_true'
         ]);
 
-        register_rest_route('driving-school/v1', '/save-availability', [
+        register_rest_route($this->namespace, '/save-availability', [
             'methods' => 'POST',
             'callback' => 'save_professor_availability',
             'permission_callback' => '__return_true'
         ]);
 
+        register_rest_route($this->namespace, '/professor/(?P<id>\d+)/classes', [
+            'methods' => 'POST',
+            'callback' => [$this, 'save_professor_classes'],
+            'permission_callback' => [$this, 'check_permission'],
+        ]);
+        
+
 
         /**
          * STUDENT ENDPOINT
          */
-        // Students endpoints
         register_rest_route($this->namespace, '/students/(?P<id>\d+)', [
             'methods' => 'GET',
             'callback' => [$this, 'get_student'],
@@ -346,6 +349,10 @@ class DSB_API
         ]);
     }
 
+    /**
+     * TEACHERS ENDPOINTS
+     */
+
     public function get_teacher_view()
     {
         return rest_ensure_response([
@@ -357,6 +364,12 @@ class DSB_API
     {
         $teacher_id = intval($request['id']);
         return DSB_Teacher_Service::get_teacher($teacher_id);
+    }
+
+    public function update_teacher($request)
+    {
+        $teacher_id = intval($request['id']);
+        return DSB_Teacher_Service::get_professor_availability($teacher_id);
     }
 
     public function get_professor_availability($request)
@@ -372,8 +385,13 @@ class DSB_API
         return DSB_Teacher_Service::save_professor_availability($request, $teacher_id);
     }
 
+    public function save_professor_classes($request) {
+        $teacher_id = intval($request['id']);
+        return DSB_Teacher_Service::save_professor_classes($request, $teacher_id);
+    }
+
     /**
-     * BLoque de estudioante 
+     * STUDENT ENDPOINT
      */
 
     public function get_student($request)
@@ -433,6 +451,26 @@ class DSB_API
         include $file_path;
         return ob_get_clean();
     }
+
+    public function get_vehicles($request) {
+        $vehiculos = get_posts(array(
+            'post_type' => 'vehiculo', // Asegúrate que es el CPT correcto
+            'post_status' => 'publish',
+            'numberposts' => -1
+        ));
+    
+        $resultado = array();
+    
+        foreach ($vehiculos as $vehiculo) {
+            $resultado[] = array(
+                'id'   => $vehiculo->ID,
+                'name' => $vehiculo->post_title
+            );
+        }
+    
+        return new WP_REST_Response($resultado, 200);
+    }
+    
 
 
 

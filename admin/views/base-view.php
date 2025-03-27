@@ -11,15 +11,19 @@ abstract class DSB_Base_View {
 
     public function render() {
         echo '<div class="wrap">';
-        echo '<h1>' . esc_html($this->title) . '</h1>';
+            echo '<h1>' . esc_html($this->title) . '</h1>';
 
-        if (isset($_POST['submit'])) {
-            $this->handle_form_submission();
-        }
+            if (isset($_POST['submit'])) {
+                $this->handle_form_submission();
+            }
+            echo '<div class="wp-list-table widefat fixed striped table-view-list posts">';
+            $this->render_table();
+            echo '</div>';
 
-        $this->render_table();
-        $this->render_form();
-       
+            echo '<div class="wrap">';
+            $this->render_form();
+            echo '</div>';
+
         echo '</div>';
     }
 

@@ -20,7 +20,7 @@ class DSB_Students_View extends DSB_Base_View
         $username = strtolower(sanitize_text_field($_POST['first_name'])) . '.' . strtolower(sanitize_text_field($_POST['last_name']));
         $user_data = [
             'user_login' => $username,
-            'user_pass'  => wp_generate_password(),
+            'user_pass'  => '23061981', // Contraseña por defecto, en produccion deberia ser generada con un enlace por mail al cliente.
             'user_email' => sanitize_email($_POST['email']),
             'first_name' => sanitize_text_field($_POST['first_name']),
             'last_name' => sanitize_text_field($_POST['last_name']),
@@ -123,12 +123,11 @@ class DSB_Students_View extends DSB_Base_View
                     <td><input type="text" name="postal_code" required /></td>
                 </tr>
                 <tr>
-                    <th><label for="license_type">Tipo de Licencia</label></th>
+                    <th><label for="license_type">Permiso al que aspira</label></th>
                     <td>
                         <select name="license_type" required>
                             <option value="B">B - Coche</option>
                             <option value="A">A - Moto</option>
-                            <option value="C">C - Camión</option>
                         </select>
                     </td>
                 </tr>
@@ -146,25 +145,12 @@ class DSB_Students_View extends DSB_Base_View
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="vehicle">Vehículo Asignado</label></th>
-                    <td>
-                        <select name="vehicle" required>
-                            <option value="">Seleccionar vehículo</option>
-                            <?php foreach ($vehicles as $vehicle): ?>
-                                <option value="<?php echo esc_attr($vehicle->ID); ?>">
-                                    <?php echo esc_html($vehicle->post_title); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="initial_points">Creditos</label></th>
-                    <td><input type="number" name="initial_points" min="0" required /></td>
+                    <th><label for="opening_balance">Saldo de practicas</label></th>
+                    <td><input type="number" name="opening_balance" min="0" required /></td>
                 </tr>
             </table>
             <p class="submit">
-                <input type="submit" name="submit" class="button-primary" value="Crear Estudiante" />
+                <input type="submit" name="submit" class="button-primary" value="Crear Alumno" />
             </p>
         </form>
         <?php
@@ -183,11 +169,10 @@ class DSB_Students_View extends DSB_Base_View
                     <th>DNI</th>
                     <th>Teléfono</th>
                     <th>Ciudad</th>
-                    <th>Licencia</th>
+                    <th>Permiso al que aspira</th>
                     <th>Profesor</th>
-                    <th>Vehículo</th>
                     <th>Acciones</th>
-                    <th>Creditos</th>
+                    <th>Saldo</th>
                 </tr>
             </thead>
             <tbody>
@@ -205,7 +190,6 @@ class DSB_Students_View extends DSB_Base_View
                         <td><?php echo esc_html(get_user_meta($student->ID, 'city', true)); ?></td>
                         <td><?php echo esc_html(get_user_meta($student->ID, 'license_type', true)); ?></td>
                         <td><?php echo $teacher ? esc_html($teacher->first_name . ' ' . $teacher->last_name) : '—'; ?></td>
-                        <td><?php echo $vehicle ? esc_html($vehicle->post_title) : '—'; ?></td>
                         <td>
                             <a href="#" class="button" data-id="<?php echo esc_attr($student->ID); ?>">Editar</a>
                             <a href="#" class="button" data-id="<?php echo esc_attr($student->ID); ?>">Eliminar</a>

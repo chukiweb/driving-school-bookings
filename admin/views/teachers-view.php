@@ -30,6 +30,7 @@ class DSB_Teachers_View extends DSB_Base_View
 
         if (!is_wp_error($user_id)) {
             update_user_meta($user_id, 'license_number', sanitize_text_field($_POST['license_number']));
+            update_user_meta($user_id, 'assigned_vehicle', sanitize_text_field($_POST['assigned_vehicle']));
             $this->render_notice('Profesor creado exitosamente');
         } else {
             $this->render_notice($user_id->get_error_message(), 'error');
@@ -38,8 +39,8 @@ class DSB_Teachers_View extends DSB_Base_View
 
     protected function render_form()
     {
+        $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
         ?>
-        <button id="mostrar-form-crear-profesor" class="button button-primary">Crear Profesor</button>
 
         <div id="crear-profesor-form" style="display: none; margin-top: 20px;">
             <form method="post" action="">
@@ -66,8 +67,30 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td><input type="text" name="last_name" required /></td>
                     </tr>
                     <tr>
-                        <th><label for="license_number">Número de Licencia</label></th>
-                        <td><input type="text" name="license_number" required /></td>
+                        <th><label for="phone">Telefono</label></th>
+                        <td><input type="text" name="phone" required /></td>
+                    </tr>
+                    <tr>
+                        <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
+                        <td> <select id="assigned_vehicle" name="assigned_vehicle" class="form-control">
+                                <option value="">-- Selecciona un vehículo --</option>
+                                <?php foreach ($vehicles as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
+                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select></td>
+                    </tr>
+                    <tr>
+                        <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
+                        <td> <select id="assign_motorcycle" name="assign_motorcycle" class="form-control">
+                                <option value="">-- Selecciona una moto --</option>
+                                <?php foreach ($vehicles as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
+                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select></td>
                     </tr>
                 </table>
                 <p class="submit">
@@ -83,7 +106,14 @@ class DSB_Teachers_View extends DSB_Base_View
     {
         $teachers = $this->get_data();
         ?>
-        <h2>Listado de Profesores</h2>
+
+        <div class="heding">
+            <h2>Listado de Profesores</h2>
+            <div class="boton-heding">
+                <button id="mostrar-form-crear-profesor" class="button button-primary">Nuevo Profesor</button>
+            </div>
+        </div>
+
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -104,14 +134,53 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td><?php echo esc_html($teacher->user_email); ?></td>
                         <td><?php echo esc_html(get_user_meta($teacher->ID, 'license_number', true)); ?></td>
                         <td>
-                            <a href="#" class="button">Editar</a>
+                            <a href="#" class="button" data-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
                             <a href="#" class="button">Eliminar</a>
                             <a href="#" class="button">Calendario</a>
+                            <a href="#" class="button open-class-settings" data-id=<?php echo esc_html($teacher->ID); ?>>Admin
+                                clases</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <div id="modal-clases-profesor" style="display:none;">
+            <form id="form-clases-profesor">
+                <?php wp_nonce_field('guardar_clases_profesor', 'clases_profesor_nonce'); ?>
+                <input type="hidden" name="teacher_id" id="clases_teacher_id" value="">
+
+                <table class="form-table">
+                    <tr>
+                        <th><label for="dias">Días que trabaja</label></th>
+                        <td>
+                            <?php
+                            $dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                            foreach ($dias as $dia): ?>
+                                <label style="margin-right:10px;">
+                                    <input type="checkbox" name="dias[]" value="<?php echo $dia; ?>"> <?php echo $dia; ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="hora_inicio">Hora de inicio</label></th>
+                        <td><input type="time" name="hora_inicio" required></td>
+                    </tr>
+                    <tr>
+                        <th><label for="hora_fin">Hora de fin</label></th>
+                        <td><input type="time" name="hora_fin" required></td>
+                    </tr>
+                    <tr>
+                        <th><label for="duracion">Duración de la clase (min)</label></th>
+                        <td><input type="number" name="duracion" min="15" step="5" required></td>
+                    </tr>
+                </table>
+                <p class="submit">
+                    <button type="submit" class="button button-primary">Guardar Clases</button>
+                </p>
+            </form>
+        </div>
+
         <div id="teacher-calendar-container" style="display:none; margin-top: 30px;">
             <h2>Calendario del Profesor</h2>
             <div id="teacher-calendar"></div>
@@ -134,13 +203,13 @@ class DSB_Teachers_View extends DSB_Base_View
             true
         );
 
-         // Solo pasamos el mapa login → ID
-    $map_login_id = [];
-    foreach ($this->get_data() as $teacher) {
-        $map_login_id[$teacher->user_login] = $teacher->ID;
-    }
+        // Solo pasamos el mapa login → ID
+        $map_login_id = [];
+        foreach ($this->get_data() as $teacher) {
+            $map_login_id[$teacher->user_login] = $teacher->ID;
+        }
 
-    wp_localize_script('teachers-calendar-js', 'teacherMap', $map_login_id);
+        wp_localize_script('teachers-calendar-js', 'teacherMap', $map_login_id);
 
 
     }
@@ -178,5 +247,8 @@ class DSB_Teachers_View extends DSB_Base_View
 
         return $eventos;
     }
+
+
+
 
 }
