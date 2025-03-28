@@ -14,12 +14,14 @@ class DSB_Dashboard_View extends DSB_Base_View {
     }
 
     public function render() {
+        $this->handle_form_submission(); 
         $data = $this->get_data();
         ?>
         <div class="wrap">
             <h1><?php echo esc_html($this->title); ?></h1>
             
             <?php $this->render_stats($data); ?>
+            <?php $this->render_settings_block(); ?>
             
             <div class="dsb-dashboard-grid">
                 <?php
@@ -104,6 +106,46 @@ class DSB_Dashboard_View extends DSB_Base_View {
             echo '</tr>';
         }
     }
+
+    private function render_settings_block() {
+        $cancel_time = DSB_Settings::get('cancelation_time_hours');
+        $daily_limit = DSB_Settings::get('daily_limit');
+        $class_cost = DSB_Settings::get('class_cost');
+    
+        ?>
+        <div class="dsb-section">
+            <h2>Ajustes Generales del Sistema</h2>
+    
+            <?php if (!empty($_POST['dsb_save_settings'])): ?>
+                <div class="notice notice-success is-dismissible"><p>Ajustes guardados correctamente.</p></div>
+            <?php endif; ?>
+    
+            <form method="post">
+                <?php wp_nonce_field('dsb_save_settings_nonce'); ?>
+                <input type="hidden" name="dsb_save_settings" value="1" />
+    
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="cancelation_time_hours">Tiempo de cancelación (horas)</label></th>
+                        <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?php echo esc_attr($cancel_time); ?>" class="regular-text"></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="daily_limit">Clases diarias por estudiante</label></th>
+                        <td><input type="number" id="daily_limit" name="daily_limit" value="<?php echo esc_attr($daily_limit); ?>" class="regular-text"></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="class_cost">Coste por clase (créditos)</label></th>
+                        <td><input type="number" step="0.1" id="class_cost" name="class_cost" value="<?php echo esc_attr($class_cost); ?>" class="regular-text"></td>
+                    </tr>
+                </table>
+    
+                <p><button type="submit" class="button button-primary">Guardar ajustes</button></p>
+            </form>
+        </div>
+        <?php
+    }
+    
+    
     
 
     private function add_dashboard_styles() {
@@ -144,7 +186,17 @@ class DSB_Dashboard_View extends DSB_Base_View {
     }
 
     // Estos métodos son requeridos por la clase base pero no los usamos en el dashboard
-    protected function handle_form_submission() {}
+    protected function handle_form_submission() {
+        if (!empty($_POST['dsb_save_settings'])) {
+            check_admin_referer('dsb_save_settings_nonce');
+    
+            if (current_user_can('administrator')) {
+                DSB_Settings::update('cancelation_time_hours', intval($_POST['cancelation_time_hours']));
+                DSB_Settings::update('daily_limit', intval($_POST['daily_limit']));
+                DSB_Settings::update('class_cost', floatval($_POST['class_cost']));
+            }
+        }
+    }
     protected function render_form() {}
     protected function render_table() {}
 }

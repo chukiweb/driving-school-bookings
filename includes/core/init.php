@@ -46,6 +46,7 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
         require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
         require_once DSB_PLUGIN_DIR . 'core/api.php';
+        require_once DSB_PLUGIN_DIR . 'core/settings.php';
         require_once DSB_PLUGIN_DIR . 'core/roles.php';
         require_once DSB_PLUGIN_DIR . 'core/jwt.php';
         require_once DSB_PLUGIN_DIR . 'core/template.php';
@@ -68,6 +69,7 @@ class DSB_Init {
         new DSB_Booking();
         new DSB_Notification();
         new DSB_Template();
+        new DSB_Settings();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();

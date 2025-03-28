@@ -37,6 +37,38 @@ class DSB_Teachers_View extends DSB_Base_View
         }
     }
 
+    public function handle_class_schedule_form(): void
+    {
+        if (
+            isset($_POST['clases_profesor_nonce'], $_POST['teacher_id']) &&
+            wp_verify_nonce($_POST['clases_profesor_nonce'], 'guardar_clases_profesor')
+        ) {
+            $teacher_id = intval($_POST['teacher_id']);
+
+            $dias = array_map('sanitize_text_field', $_POST['dias'] ?? []);
+            $hora_inicio = sanitize_text_field($_POST['hora_inicio'] ?? '');
+            $hora_fin = sanitize_text_field($_POST['hora_fin'] ?? '');
+            $duracion = intval($_POST['duracion'] ?? 0);
+
+            if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
+                $this->render_notice('Faltan datos obligatorios para guardar las clases.', 'error');
+                return;
+            }
+
+            $config = [
+                'dias' => $dias,
+                'hora_inicio' => $hora_inicio,
+                'hora_fin' => $hora_fin,
+                'duracion' => $duracion,
+            ];
+
+            update_user_meta($teacher_id, 'dsb_clases_config', $config);
+
+            $this->render_notice('Datos de clases guardados correctamente.');
+        }
+    }
+
+
     protected function render_form()
     {
         $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
@@ -145,7 +177,8 @@ class DSB_Teachers_View extends DSB_Base_View
             </tbody>
         </table>
         <div id="modal-clases-profesor" style="display:none;">
-            <form id="form-clases-profesor">
+        <form id="form-clases-profesor" method="post" action="<?php echo esc_url(admin_url('admin.php?page=dsb-teachers')); ?>">
+
                 <?php wp_nonce_field('guardar_clases_profesor', 'clases_profesor_nonce'); ?>
                 <input type="hidden" name="teacher_id" id="clases_teacher_id" value="">
 
@@ -176,7 +209,7 @@ class DSB_Teachers_View extends DSB_Base_View
                     </tr>
                 </table>
                 <p class="submit">
-                    <button type="submit" class="button button-primary">Guardar Clases</button>
+                    <button type="submit" class="button button-primary" id="guardar-clases">Guardar Clases</button>
                 </p>
             </form>
         </div>

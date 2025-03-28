@@ -153,43 +153,5 @@ jQuery(document).ready(function($) {
     
     });
 
-    // Enviar formulario al endpoint REST
-    $('#form-clases-profesor').on('submit', function(e) {
-        e.preventDefault();
-        const token = localStorage.getItem("jwt_token");
-        const teacherId = $('#clases_teacher_id').val();
-        const dias = [];
-        $('input[name="dias[]"]:checked').each(function() {
-            dias.push($(this).val());
-        });
-
-        const data = {
-            dias: dias,
-            hora_inicio: $('input[name="hora_inicio"]').val(),
-            hora_fin: $('input[name="hora_fin"]').val(),
-            duracion: parseInt($('input[name="duracion"]').val())
-        };
-
-        fetch(`/wp-json/v1/professor/${teacherId}/classes`, {
-            method: 'POST',
-            headers: {
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(response => {
-            if (response.success) {
-                alert('Datos de clases guardados correctamente.');
-                tb_remove(); // Cerrar modal
-            } else {
-                alert('Error: ' + (response.message || 'No se pudo guardar'));
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Error al guardar los datos');
-        });
-    });
 });
 
