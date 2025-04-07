@@ -5,6 +5,7 @@ use \Firebase\JWT\Key;
 require_once DSB_PLUGIN_DIR . 'services/teacher-service.php';
 require_once DSB_PLUGIN_DIR . 'services/student-service.php';
 require_once DSB_PLUGIN_DIR . 'services/calendar-service.php';
+require_once DSB_PLUGIN_DIR . 'services/vehicle-service.php';
 
 class DSB_API
 {
@@ -96,6 +97,8 @@ class DSB_API
             'permission_callback' => '__return_true'
         ]);
 
+
+
         /**
          * TEACHERS ENDPOINTS
          */
@@ -106,7 +109,7 @@ class DSB_API
             'permission_callback' => [$this, 'check_permission']
         ]);
 
-        register_rest_route($this->namespace, '/professor-availability', [
+        register_rest_route($this->namespace, '/teachers-availability', [
             'methods' => 'GET',
             'callback' => 'get_professor_availability',
             'permission_callback' => '__return_true'
@@ -114,13 +117,13 @@ class DSB_API
 
         register_rest_route($this->namespace, '/save-availability', [
             'methods' => 'POST',
-            'callback' => 'save_professor_availability',
+            'callback' => 'save_teacher_availability',
             'permission_callback' => '__return_true'
         ]);
 
-        register_rest_route($this->namespace, '/professor/(?P<id>\d+)/classes', [
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/classes', [
             'methods' => 'POST',
-            'callback' => [$this, 'save_professor_classes'],
+            'callback' => [$this, 'save_teacher_classes'],
             'permission_callback' => [$this, 'check_permission'],
         ]);
         
@@ -135,6 +138,8 @@ class DSB_API
             'permission_callback' => [$this, 'check_permission']
         ]);
 
+
+
         /**
          * CALENDAR ENDPOINTS
          */
@@ -142,9 +147,7 @@ class DSB_API
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
             'methods' => 'GET',
             'callback' => [$this, 'get_teacher_calendar'],
-            'permission_callback' => function ($request) {
-                return $this->check_permission($request);
-            }
+            'permission_callback' => [$this, 'check_permission']
         ]);
 
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
@@ -372,22 +375,22 @@ class DSB_API
         return DSB_Teacher_Service::get_professor_availability($teacher_id);
     }
 
-    public function get_professor_availability($request)
+    public function get_teacher_availability($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_professor_availability($teacher_id);
+        return DSB_Teacher_Service::get_teacher_availability($teacher_id);
     }
 
 
-    public function save_professor_availability($request)
+    public function save_teacher_availability($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::save_professor_availability($request, $teacher_id);
+        return DSB_Teacher_Service::save_teacher_availability($request, $teacher_id);
     }
 
-    public function save_professor_classes($request) {
+    public function save_teacher_classes($request) {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::save_professor_classes($request, $teacher_id);
+        return DSB_Teacher_Service::save_teacher_classes($request, $teacher_id);
     }
 
     /**

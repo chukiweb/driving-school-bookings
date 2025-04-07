@@ -145,8 +145,6 @@ class DSB_Dashboard_View extends DSB_Base_View {
         <?php
     }
     
-    
-    
 
     private function add_dashboard_styles() {
         ?>

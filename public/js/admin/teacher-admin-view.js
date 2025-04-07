@@ -6,152 +6,130 @@ jQuery(document).ready(function ($) {
         $('#crear-profesor-form').slideToggle();
     });
 
-    /**
-     * 
-     */
+    // EDITAR PROFESOR
     $('.button:contains("Editar")').on('click', function (e) {
         e.preventDefault();
-    
         const teacherId = $(this).data('id');
-        const token = localStorage.getItem("jwt_token");
-    
-        if (!token) {
-            alert("No tienes sesión activa");
-            return;
-        }
-    
+
         $.ajax({
-            url: `/wp-json/driving-school/v1/teachers/${teacherId}`,
-            method: 'GET',
-            headers: {
-                "Authorization": `Bearer ${token}`
+            url: profesorAjax.ajaxurl,
+            method: 'POST',
+            data: {
+                action: 'dsb_get_teacher_data',
+                teacher_id: teacherId
             },
             success: function (response) {
                 if (response.success) {
                     const prof = response.data;
-    
                     $('#crear-profesor-form').slideDown();
-    
                     $('input[name="username"]').val(prof.username);
                     $('input[name="email"]').val(prof.email);
                     $('input[name="first_name"]').val(prof.first_name);
                     $('input[name="last_name"]').val(prof.last_name);
                     $('input[name="license_number"]').val(prof.license);
-    
-                    cargarVehiculos(prof.vehicle_id); // rellena el <select>
+                    cargarVehiculos(prof.vehicle_id);
                     $('#crear-profesor-form').attr('data-edit-id', prof.ID);
                     $('button[type="submit"]').text('Actualizar Profesor');
                 } else {
-                    alert("No se pudieron obtener los datos del profesor.");
+                    alert("No se pudo obtener el profesor.");
                 }
             },
-            error: function (xhr) {
-                alert("Error: " + xhr.status + " - No autorizado.");
-            }
-        });
-    });
-    
-
-    /**
-     * Funcion para guardar un profesor editado
-     */
-    $('#guardar-profesor').on('click', function () {
-        const id = $('#profesor_id').val();
-        const nombre = $('#nombre_profesor').val();
-        const email = $('#email_profesor').val();
-        const licencia = $('#licencia_profesor').val();
-        const vehiculo = $('#vehiculo_profesor').val();
-
-        const metodo = id ? 'PUT' : 'POST';
-        const url = id ? `/wp-json/driving-school/v1/teachers/${id}` : '/wp-json/driving-school/v1/teachers';
-
-        $.ajax({
-            url: url,
-            method: metodo,
-            contentType: 'application/json',
-            data: JSON.stringify({
-                display_name: nombre,
-                email: email,
-                license: licencia,
-                vehicle_id: vehiculo
-            }),
-            success: function (res) {
-                alert("Profesor guardado correctamente");
-                location.reload();
-            },
             error: function () {
-                alert("Error al guardar el profesor");
+                alert("Error al obtener datos del profesor.");
             }
         });
     });
 
+    // GUARDAR PROFESOR
+    $('#guardar-profesor').on('click', function () {
+        const id = $('#crear-profesor-form').attr('data-edit-id') || '';
+        const data = {
+            action: 'dsb_save_teacher_data',
+            teacher_id: id,
+            username: $('input[name="username"]').val(),
+            email: $('input[name="email"]').val(),
+            first_name: $('input[name="first_name"]').val(),
+            last_name: $('input[name="last_name"]').val(),
+            license: $('input[name="license_number"]').val(),
+            vehicle_id: $('#assigned_vehicle').val()
+        };
 
+        $.post(profesorAjax.ajaxurl, data, function (res) {
+            if (res.success) {
+                alert("Guardado correctamente");
+                location.reload();
+            } else {
+                alert("Error: " + res.data);
+            }
+        });
+    });
 
-    // Mostrar calendario al hacer clic
+    // CALENDARIO
     $('.button:contains("Calendario")').on('click', function (e) {
         e.preventDefault();
+        const teacherId = $(this).closest('tr').find('[data-id]').data('id');
 
-        const row = $(this).closest('tr');
-        const teacherLogin = row.find('td[data-login]').data('login');
-        const teacherId = teacherMap[teacherLogin];
+        $.ajax({
+            url: profesorAjax.ajaxurl,
+            method: 'POST',
+            data: {
+                action: 'dsb_get_teacher_calendar',
+                teacher_id: teacherId
+            },
+            success: function (events) {
+                $("#teacher-calendar-container").css("display", "block");
+                const calendar = new FullCalendar.Calendar(document.getElementById('teacher-calendar'), {
+                    initialView: 'timeGridWeek',
+    slotMinTime: '08:00:00',
+    slotMaxTime: '21:00:00',
+    allDaySlot: false,
+    height: 'auto',
+    events: events,
+    eventContent: function (arg) {
+        const title = arg.event.title;
+        const start = arg.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const end = arg.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        if (!teacherId) {
-            alert("No se pudo identificar al profesor.");
-            return;
-        }
-
-        console.log("ID del profesor seleccionado:", teacherId);
-
-        $.get(`/wp-json/driving-school/v1/teachers/${teacherId}/calendar`, function (events) {
-            const calendar = new FullCalendar.Calendar(document.getElementById('teacher-calendar'), {
-                initialView: 'timeGridWeek',
-                events: events
-            });
-            calendar.render();
+        return {
+            html: `<div class="fc-event-title">${start} - ${end}<br><strong>${title}</strong></div>`
+        };
+    }
+                });
+                calendar.render();
+                
+            },
+            error: function () {
+                alert("No se pudo cargar el calendario.");
+            }
         });
+    });
+
+    // CLASES
+    $('.open-class-settings').on('click', function (e) {
+        e.preventDefault();
+        const teacherId = $(this).data('id');
+        $('#clases_teacher_id').val(teacherId);
+        $('#modal-clases-profesor').slideToggle();
     });
 
     function cargarVehiculos(vehiculoSeleccionado = null) {
-        const token = localStorage.getItem("jwt_token");
-    
         $.ajax({
-            url: '/wp-json/driving-school/v1/vehicles',
-            method: 'GET',
-            headers: {
-                "Authorization": `Bearer ${token}`
+            url: profesorAjax.ajaxurl,
+            method: 'POST',
+            data: {
+                action: 'dsb_get_vehicles'
             },
             success: function (vehiculos) {
                 const $select = $('#assigned_vehicle');
-                $select.empty();
-                $select.append('<option value="">-- Selecciona un vehículo --</option>');
-    
+                $select.empty().append('<option value="">-- Selecciona un vehículo --</option>');
                 vehiculos.forEach(function (vehiculo) {
                     const selected = (vehiculo.id == vehiculoSeleccionado) ? 'selected' : '';
                     $select.append(`<option value="${vehiculo.id}" ${selected}>${vehiculo.name}</option>`);
                 });
             },
             error: function () {
-                alert("No se pudieron cargar los vehículos.");
+                alert("Error al cargar los vehículos");
             }
         });
     }
-    
-
-    
-
 });
-
-
-jQuery(document).ready(function($) {
-    $('.open-class-settings').on('click', function(e) {
-        e.preventDefault();
-        const teacherId = $(this).data('id');
-        $('#clases_teacher_id').val(teacherId);
-
-        // Mostrar modal
-        $('#modal-clases-profesor').slideToggle();
-    
-    });
-
-});
-

@@ -1,4 +1,5 @@
-jQuery(document).ready( function ($) {
+jQuery(document).ready(function ($) {
+
     const token = localStorage.getItem("jwt_token");
 
     if (!token) {
@@ -13,7 +14,7 @@ jQuery(document).ready( function ($) {
     }
 
     // Cargar datos del profesor
-    $.ajax({
+    /*$.ajax({
         url: `/wp-json/driving-school/v1/teachers/${userId}`,
         method: "GET",
         headers: {
@@ -38,21 +39,18 @@ jQuery(document).ready( function ($) {
         error: function (error) {
             console.error("Error al cargar datos del profesor:", error);
         }
-    });
+    });*/
 
-    // Botón para abrir el modal del calendario
-    $("#btn-organizar-clases").click(function () {
-        $("#modalOrganizarClases").modal("show");
+    
 
-    });
 
-    var calendarEl = document.getElementById('calendario-profesor');
+    var calendarEl = document.getElementById('teacher-calendar');
     if (!calendarEl) {
         console.error("❌ No se encontró el contenedor del calendario.");
         return;
     }
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+  /*  var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
         locale: 'es',
         editable: true,
@@ -69,21 +67,25 @@ jQuery(document).ready( function ($) {
             right: window.innerWidth < 768 ? 'timeGridDay,listWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
         },
 
-        events: function(fetchInfo, successCallback, failureCallback)  {
+        events: function (fetchInfo, successCallback, failureCallback) {
             $.ajax({
                 url: '/wp-json/driving-school/v1/teachers/' + userId + '/calendar',
                 type: 'GET',
-                success: function(data) {
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                success: function (data) {
                     successCallback(data);
                 },
-                error: function() {
+                error: function () {
                     failureCallback();
                 }
             });
         }
     });
 
-    calendar.render();
+    calendar.render();*/
 
 });
 

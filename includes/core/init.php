@@ -25,6 +25,7 @@ class DSB_Init {
             });
         });
 
+        
         // Hook para cargar scripts y estilos en el frontend
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
         
@@ -39,6 +40,7 @@ class DSB_Init {
         define('DSB_PLUGIN_DIR', plugin_dir_path(dirname(__FILE__)));
         define('DSB_PLUGIN_DIR_PATH', plugin_dir_path(dirname(__DIR__, 1)));
         define('DSB_PLUGIN_URL', plugin_dir_url(dirname(__FILE__)));
+        define('DSB_PLUGIN_FULLCALENDAR_URL', DSB_PLUGIN_URL . '../public/lib/fullcalendar.min.js');
     }
 
     private function loadDependencies() {
@@ -46,6 +48,7 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
         require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
         require_once DSB_PLUGIN_DIR . 'core/api.php';
+        require_once DSB_PLUGIN_DIR . 'core/ajax.php';
         require_once DSB_PLUGIN_DIR . 'core/settings.php';
         require_once DSB_PLUGIN_DIR . 'core/roles.php';
         require_once DSB_PLUGIN_DIR . 'core/jwt.php';
@@ -73,6 +76,8 @@ class DSB_Init {
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
+        $this->ajax = DSB_Ajax_Handler::init(); // Aunque no hace falta almacenar nada realmente
+
     }
 
     private function initHooks() {

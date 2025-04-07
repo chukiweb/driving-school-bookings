@@ -15,12 +15,20 @@ class DSB_Bookings_View extends DSB_Base_View {
 
     protected function handle_form_submission() {
         $this->verify_nonce();
-
+        $start_time = sanitize_text_field($_POST['time']);
+        $date = sanitize_text_field($_POST['date']);
+        
+        // Calcular end_time sumando 45 minutos a la hora de inicio
+        $datetime_inicio = new DateTime("$date $start_time");
+        $datetime_fin = clone $datetime_inicio;
+        $datetime_fin->modify('+45 minutes');
+        $end_time = $datetime_fin->format('H:i');
+        
         $post_data = [
             'post_title' => sprintf(
                 'Reserva - %s - %s',
                 sanitize_text_field($_POST['student']),
-                sanitize_text_field($_POST['date'])
+                $date
             ),
             'post_type' => 'reserva',
             'post_status' => 'publish',
@@ -28,12 +36,12 @@ class DSB_Bookings_View extends DSB_Base_View {
                 'student_id' => sanitize_text_field($_POST['student']),
                 'teacher_id' => sanitize_text_field($_POST['teacher']),
                 'vehicle_id' => sanitize_text_field($_POST['vehicle']),
-                'date' => sanitize_text_field($_POST['date']),
-                'time' => sanitize_text_field($_POST['time']),
+                'date' => $date,
+                'time' => $start_time,
+                'end_time' => $end_time,
                 'status' => 'pending'
             ]
         ];
-        
         $post_id = wp_insert_post($post_data);
         
         if ($post_id) {

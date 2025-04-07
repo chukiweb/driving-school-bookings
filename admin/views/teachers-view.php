@@ -159,7 +159,7 @@ class DSB_Teachers_View extends DSB_Base_View
             <tbody>
                 <?php foreach ($teachers as $teacher): ?>
                     <tr>
-                        <td data-login="<?php echo esc_attr($teacher->user_login); ?>">
+                        <td data-login="<?php echo esc_attr($teacher->user_login); ?>" data-id="<?php echo esc_attr($teacher->ID); ?>">
                             <?php echo esc_html($teacher->user_login); ?>
                         </td>
                         <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
@@ -177,7 +177,8 @@ class DSB_Teachers_View extends DSB_Base_View
             </tbody>
         </table>
         <div id="modal-clases-profesor" style="display:none;">
-        <form id="form-clases-profesor" method="post" action="<?php echo esc_url(admin_url('admin.php?page=dsb-teachers')); ?>">
+            <form id="form-clases-profesor" method="post"
+                action="<?php echo esc_url(admin_url('admin.php?page=dsb-teachers')); ?>">
 
                 <?php wp_nonce_field('guardar_clases_profesor', 'clases_profesor_nonce'); ?>
                 <input type="hidden" name="teacher_id" id="clases_teacher_id" value="">
@@ -216,7 +217,7 @@ class DSB_Teachers_View extends DSB_Base_View
 
         <div id="teacher-calendar-container" style="display:none; margin-top: 30px;">
             <h2>Calendario del Profesor</h2>
-            <div id="teacher-calendar"></div>
+            <div id="teacher-calendar" style="min-height: 600px;"></div>
         </div>
         <?php
     }
@@ -224,26 +225,43 @@ class DSB_Teachers_View extends DSB_Base_View
 
     public function enqueue_scripts()
     {
-        $plugin_url = plugin_dir_url(__FILE__) . '../../public/';
 
-        //wp_enqueue_style('fullcalendar-css', $plugin_url . 'lib/fullcalendar.min.css');
-        wp_enqueue_script('fullcalendar-js', $plugin_url . 'lib/fullcalendar.min.js', [], null, true);
+        // Asegurar que jQuery esté cargado antes de FullCalendar
+        wp_enqueue_script('jquery');
+
         wp_enqueue_script(
-            'teachers-calendar-js',
-            $plugin_url . 'js/admin/teacher-admin-view.js',
-            ['jquery', 'fullcalendar-js'],
-            null,
+            'fullcalendar-js',
+            DSB_PLUGIN_FULLCALENDAR_URL,
+            ['jquery'],
+            '5.11.3',
             true
+        ); // Cargar estilo personalizado para el calendario
+        wp_enqueue_style(
+            'teacher-calendar-css',
+            DSB_PLUGIN_URL . '../public/css/admin/teacher-view.css',
+            [],
+            '1.0.0'
         );
+        // Cargar script de profesor.js (depende de FullCalendar)
+        wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], '1.0.0', true);
 
-        // Solo pasamos el mapa login → ID
-        $map_login_id = [];
-        foreach ($this->get_data() as $teacher) {
-            $map_login_id[$teacher->user_login] = $teacher->ID;
-        }
+       // Construir mapas
+    $map_login_id = [];
+    $teacher_config_map = [];
 
-        wp_localize_script('teachers-calendar-js', 'teacherMap', $map_login_id);
+    foreach ($this->get_data() as $teacher) {
+        $map_login_id[$teacher->user_login] = $teacher->ID;
+        $teacher_config_map[$teacher->ID] = get_user_meta($teacher->ID, 'dsb_clases_config', true);
+    }
 
+
+        // Pasar los datos al JS
+    wp_localize_script('teachers-calendar-js', 'teacherMap', $map_login_id);
+    wp_localize_script('teachers-calendar-js', 'teacherMapConfig', $teacher_config_map);
+    wp_localize_script('profesor-js', 'profesorAjax', [
+        'ajaxurl' => admin_url('admin-ajax.php')
+    ]);
+    
 
     }
 
