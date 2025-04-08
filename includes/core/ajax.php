@@ -42,8 +42,9 @@ class DSB_Ajax_Handler
         // ✅ Usa el servicio aquí
         $teacher = DSB_Teacher_Service::get_teacher($teacher_id);
 
-        wp_send_json($teacher);
+        wp_send_json_success($teacher);
     }
+
     public static function save_teacher_data() {
         if (!current_user_can('manage_options') && !current_user_can('teacher')) {
             wp_send_json_error('No autorizado', 403);
@@ -60,19 +61,21 @@ class DSB_Ajax_Handler
         }
 
         // ✅ Usa el servicio aquí
-        $result = DSB_Teacher_Service::save_teacher($teacher_id, $data);
+        $result = DSB_Teacher_Service::update_teacher($teacher_id, $data);
 
         wp_send_json($result);
     }
+
     public static function get_vehicles() {
         if (!current_user_can('manage_options') && !current_user_can('teacher')) {
             wp_send_json_error('No autorizado', 403);
         }
 
-        $vehicles = DSB_Vehicle_Service::get_all_vehicles();
+        $vehicles = DSB_Vehicle_Service::get_all();
 
-        wp_send_json($vehicles);
+        wp_send_json_success($vehicles);
     }
+
     public static function get_vehicle_data() {
         if (!current_user_can('manage_options') && !current_user_can('teacher')) {
             wp_send_json_error('No autorizado', 403);

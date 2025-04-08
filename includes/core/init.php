@@ -76,7 +76,7 @@ class DSB_Init {
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
-        $this->ajax = DSB_Ajax_Handler::init(); // Aunque no hace falta almacenar nada realmente
+        DSB_Ajax_Handler::init(); // Aunque no hace falta almacenar nada realmente
 
     }
 

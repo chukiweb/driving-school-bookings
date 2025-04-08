@@ -25,7 +25,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
             
             <div class="dsb-dashboard-grid">
                 <?php
-                $this->render_recent_items('Profesores', $data['teachers'], ['Nombre', 'Email', 'Licencia']);
+                $this->render_recent_items('Profesores', $data['teachers'], ['Nombre', 'Email']);
                 $this->render_recent_items('Estudiantes', $data['students'], ['Nombre', 'Email', 'DNI']);
                 $this->render_recent_items('Vehículos', $data['vehicles'], ['Modelo', 'Matrícula', 'Año']);
                 $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Estudiante', 'Profesor']);
@@ -96,7 +96,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
             echo '<tr>';
             echo '<td>' . esc_html($first_name . ' ' . $last_name) . '</td>';
             echo '<td>' . esc_html($item->user_email ?? '') . '</td>';
-            echo '<td>' . esc_html(get_user_meta($item->ID, $role === 'profesor' ? 'license_number' : 'dni', true)) . '</td>';
+            echo '<td>' . esc_html(get_user_meta($item->ID, 'dni', true)) . '</td>';
             echo '</tr>';
         } else {
             echo '<tr>';
