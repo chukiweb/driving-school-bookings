@@ -1,17 +1,11 @@
 <?php
 class DSB_Teachers_View extends DSB_Base_View
 {
-    public string $nonce_action_update;
-    public string $nonce_name_update;
-
     public function __construct()
     {
         $this->title = 'Gestión de Profesores';
-        $this->nonce_action = 'create_teacher';
+        $this->nonce_action = 'process_teacher_form';
         $this->nonce_name = 'teacher_nonce';
-
-        $this->nonce_action_update = 'update_teacher';
-        $this->nonce_name_update = 'update_teacher_nonce';
     }
 
     protected function get_data()
@@ -19,10 +13,45 @@ class DSB_Teachers_View extends DSB_Base_View
         return get_users(['role' => 'teacher'],);
     }
 
-    protected function handle_form_submission()
+    public static function get_teacher_vehicles($teacher_id)
+    {
+        $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true) ?: null;
+        $moto_id = get_user_meta($teacher_id, 'assigned_motorcycle', true) ?: null;
+
+        $coche = $coche_id ? get_post($coche_id) : null;
+        $moto = $moto_id ? get_post($moto_id) : null;
+
+        return [
+            'car' => $coche ? [
+                'id' => $coche->ID,
+                'title' => $coche->post_title,
+            ] : null,
+            'motorcycle' => $moto ? [
+                'id' => $moto->ID,
+                'title' => $moto->post_title,
+            ] : null,
+        ];
+    }
+
+    public function handle_form_submission()
     {
         $this->verify_nonce();
 
+        switch ($_POST['form_action']) {
+            case 'create_teacher':
+                $this->handle_create_teacher_form();
+                break;
+            case 'edit_teacher':
+                $this->handle_edit_teacher_form();
+                break;
+            case 'config_teacher':
+                $this->handle_class_schedule_form();
+                break;
+        }
+    }
+
+    protected function handle_create_teacher_form()
+    {
         $user_data = [
             'user_login' => sanitize_text_field($_POST['username']),
             'user_pass' => $_POST['password'],
@@ -35,19 +64,26 @@ class DSB_Teachers_View extends DSB_Base_View
         $user_id = wp_insert_user($user_data);
 
         if (!is_wp_error($user_id)) {
+
             update_user_meta($user_id, 'assigned_vehicle', sanitize_text_field($_POST['assigned_vehicle']));
+
+            ($_POST['assign_motorcycle']) ? update_user_meta($user_id, 'assigned_motorcycle', sanitize_text_field($_POST['assign_motorcycle'])) : '';
+
+            ($_POST['phone']) ? update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone'])) : '';
+
+            // Enviar correo predeterminado de WordPress para asignar la contraseña
+            
+            
             $this->render_notice('Profesor creado exitosamente');
         } else {
             $this->render_notice($user_id->get_error_message(), 'error');
         }
     }
 
-    public function handle_update_teacher_form()
+    public function handle_edit_teacher_form(): void
     {
-        $this->verify_nonce();
-        $user_id = intval($_POST['user_id']);
         $user_data = [
-            'ID' => $user_id,
+            'ID' => intval($_POST['user_id']),
             'user_login' => sanitize_text_field($_POST['username']),
             'user_email' => sanitize_email($_POST['email']),
             'first_name' => sanitize_text_field($_POST['first_name']),
@@ -59,6 +95,9 @@ class DSB_Teachers_View extends DSB_Base_View
 
         if (!is_wp_error($user_id)) {
             update_user_meta($user_id, 'assigned_vehicle', sanitize_text_field($_POST['assigned_vehicle']));
+            update_user_meta($user_id, 'assigned_motorcycle', sanitize_text_field($_POST['assign_motorcycle']));
+            update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone']));
+
             $this->render_notice('Profesor actualizado exitosamente');
         } else {
             $this->render_notice($user_id->get_error_message(), 'error');
@@ -102,7 +141,7 @@ class DSB_Teachers_View extends DSB_Base_View
         $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
 ?>
 
-        <div id="createFormContainer" style="display: none; margin-top: 20px;">
+        <div id="createFormContainer" data-action-id="create" style="display: none; margin-top: 20px;">
             <form method="post" id="crear-profesor-form" action="">
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
                 <table class="form-table">
@@ -153,16 +192,19 @@ class DSB_Teachers_View extends DSB_Base_View
                             </select></td>
                     </tr>
                 </table>
+
+                <input type="hidden" name="form_action" value="create_teacher" />
+
                 <p class="submit">
-                    <input type="submit" name="submit" class="button-primary" value="Crear Profesor" />
+                    <input type="submit" name="submit" class="button-primary" value="Crear profesor" />
                 </p>
             </form>
         </div>
 
-        <div class="updateFormContainer" style="display: none; margin-top: 20px;">
+        <div id="editFormContainer" data-action-id="edit" style="display: none; margin-top: 20px;">
             <form method="post" id="editar-profesor-form" action="">
 
-                <?php wp_nonce_field($this->nonce_action_update, $this->nonce_name_update); ?>
+                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
                 <input type="hidden" name="user_id" id="user_id" value="" />
 
                 <table class="form-table">
@@ -213,15 +255,18 @@ class DSB_Teachers_View extends DSB_Base_View
                             </select></td>
                     </tr>
                 </table>
+
+                <input type="hidden" name="form_action" value="edit_teacher" />
+
                 <p class="submit">
-                    <input type="submit" name="submit" class="button-primary" value="Crear Profesor" />
+                    <input type="submit" name="submit" class="button-primary" value="Actualizar profesor" />
                 </p>
             </form>
         </div>
 
-        <div class="settingsContainer" style="display: none; margin-top: 20px;">
+        <div id="configFormContainer" data-action-id="open-config" style="display: none; margin-top: 20px;">
             <form method="post" id="form-clases-profesor" action="">
-                <?php wp_nonce_field("EJEMPLO", "EJEMPLO"); ?>
+                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
                 <table class="form-table">
                     <tr>
                         <th><label for="dias">Días que trabaja</label></th>
@@ -248,6 +293,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td><input type="number" name="duracion" min="15" step="5" required></td>
                     </tr>
                 </table>
+
+                <input type="hidden" name="form_action" value="config_teacher" />
+
             </form>
         </div>
 
@@ -268,7 +316,7 @@ class DSB_Teachers_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de Profesores</h2>
             <div class="boton-heding">
-                <button id="mostrar-form-crear-profesor" class="button button-primary">Nuevo Profesor</button>
+                <button id="mostrar-form-crear-profesor" class="button button-primary" data-action-id="create">Nuevo Profesor</button>
             </div>
         </div>
 
@@ -290,10 +338,10 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
                         <td><?php echo esc_html($teacher->user_email); ?></td>
                         <td>
-                            <a href="#" class="button edit-teacher" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
-                            <a href="#" class="button">Eliminar</a>
-                            <a href="#" class="button">Calendario</a>
-                            <a href="#" class="button open-class-settings" data-id=<?php echo esc_html($teacher->ID); ?>>Admin
+                            <a href="#" class="button edit-teacher" data-user-id=<?php echo esc_html($teacher->ID); ?> data-action-id="edit">Editar</a>
+                            <a href="#" class="button" data-action-id="delete">Eliminar</a>
+                            <a href="#" class="button" data-action-id="open-calendar">Calendario</a>
+                            <a href="#" class="button open-class-settings" data-id=<?php echo esc_html($teacher->ID); ?> data-action-id="open-config">Admin
                                 clases</a>
                         </td>
                     </tr>
@@ -331,22 +379,7 @@ class DSB_Teachers_View extends DSB_Base_View
 
         if (!empty($teachers)) {
             foreach ($teachers as $teacher) {
-                $assigned_vehicle_id = get_user_meta($teacher->ID, 'assigned_vehicle', true);
-
-                $vehicle_name = 'N/A';
-                $vehicle_id_for_js = null;
-
-                if (!empty($assigned_vehicle_id) && is_numeric($assigned_vehicle_id)) {
-                    $vehicle_id_for_js = intval($assigned_vehicle_id);
-                    $vehicle_post = get_post($vehicle_id_for_js);
-
-                    if ($vehicle_post instanceof WP_Post && $vehicle_post->post_type === 'vehiculo') {
-                        $vehicle_name = $vehicle_post->post_title;
-                    } else {
-                        $vehicle_name = 'Vehículo inválido/eliminado';
-                        $vehicle_id_for_js = null;
-                    }
-                }
+                $vehiculos = $this->get_teacher_vehicles($teacher->ID);
 
                 $teacher_info = [
                     'id'            => $teacher->ID,
@@ -354,8 +387,9 @@ class DSB_Teachers_View extends DSB_Base_View
                     'firstName'     => get_user_meta($teacher->ID, 'first_name', true),
                     'lastName'      => get_user_meta($teacher->ID, 'last_name', true),
                     'email'         => $teacher->user_email,
-                    'vehicleId'     => $vehicle_id_for_js,
-                    'vehicleName'   => $vehicle_name,
+                    'phone'         => get_user_meta($teacher->ID, 'phone', true),
+                    'vehicleId'     => $vehiculos['car']['id'] ?? '',
+                    'motorcycleId'  => $vehiculos['motorcycle']['id'] ?? '',
                     'config'        => get_user_meta($teacher->ID, 'dsb_clases_config', true)
                 ];
 
