@@ -33,6 +33,13 @@ class DSB_Teachers_View extends DSB_Base_View
         ];
     }
 
+    protected function get_events($teacher_id): array 
+    {
+        $events = DSB_Calendar_Service::get_teacher_calendar($teacher_id);
+
+        return $events;
+    }
+
     public function handle_form_submission()
     {
         $this->verify_nonce();
@@ -45,7 +52,10 @@ class DSB_Teachers_View extends DSB_Base_View
                 $this->handle_edit_teacher_form();
                 break;
             case 'config_teacher':
-                $this->handle_class_schedule_form();
+                $this->handle_config_lesson_form();
+                break;
+            case 'delete_teacher':
+                $this->handle_delete_teacher_form();
                 break;
         }
     }
@@ -72,8 +82,17 @@ class DSB_Teachers_View extends DSB_Base_View
             ($_POST['phone']) ? update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone'])) : '';
 
             // Enviar correo predeterminado de WordPress para asignar la contraseña
-            
-            
+            $user = get_user_by('id', $user_id);
+
+            wp_mail(
+                $user->user_email,
+                $user->first_name . ', establece tu contraseña',
+                sprintf(
+                    'Bienvenido a nuestro equipo. Para establecer tu contraseña, haz clic en el siguiente enlace: %s',
+                    network_site_url("wp-login.php?action=rp&key=" . get_password_reset_key($user) . "&login=" . rawurlencode($user->user_login), 'login')
+                )
+            );
+
             $this->render_notice('Profesor creado exitosamente');
         } else {
             $this->render_notice($user_id->get_error_message(), 'error');
@@ -104,34 +123,44 @@ class DSB_Teachers_View extends DSB_Base_View
         }
     }
 
-    public function handle_class_schedule_form(): void
+    public function handle_config_lesson_form(): void
     {
-        if (
-            isset($_POST['clases_profesor_nonce'], $_POST['teacher_id']) &&
-            wp_verify_nonce($_POST['clases_profesor_nonce'], 'guardar_clases_profesor')
-        ) {
-            $teacher_id = intval($_POST['teacher_id']);
 
-            $dias = array_map('sanitize_text_field', $_POST['dias'] ?? []);
-            $hora_inicio = sanitize_text_field($_POST['hora_inicio'] ?? '');
-            $hora_fin = sanitize_text_field($_POST['hora_fin'] ?? '');
-            $duracion = intval($_POST['duracion'] ?? 0);
+        $teacher_id = intval($_POST['user_id']);
 
-            if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
-                $this->render_notice('Faltan datos obligatorios para guardar las clases.', 'error');
-                return;
+        $dias = array_map('sanitize_text_field', $_POST['dias'] ?? []);
+        $hora_inicio = sanitize_text_field($_POST['hora_inicio'] ?? '');
+        $hora_fin = sanitize_text_field($_POST['hora_fin'] ?? '');
+        $duracion = intval($_POST['duracion'] ?? 0);
+
+        if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
+            $this->render_notice('Faltan datos obligatorios para guardar las clases.', 'error');
+            return;
+        }
+
+        $config = [
+            'dias' => $dias,
+            'hora_inicio' => $hora_inicio,
+            'hora_fin' => $hora_fin,
+            'duracion' => $duracion,
+        ];
+
+        update_user_meta($teacher_id, 'dsb_clases_config', $config);
+
+        $this->render_notice('Datos de clases guardados correctamente.');
+    }
+
+    public function handle_delete_teacher_form(): void
+    {
+        if (isset($_POST['user_id'])) {
+            $user_id = intval($_POST['user_id']);
+            $result = wp_delete_user($user_id);
+
+            if ($result) {
+                $this->render_notice('Profesor eliminado exitosamente');
+            } else {
+                $this->render_notice('Error al eliminar el profesor', 'error');
             }
-
-            $config = [
-                'dias' => $dias,
-                'hora_inicio' => $hora_inicio,
-                'hora_fin' => $hora_fin,
-                'duracion' => $duracion,
-            ];
-
-            update_user_meta($teacher_id, 'dsb_clases_config', $config);
-
-            $this->render_notice('Datos de clases guardados correctamente.');
         }
     }
 
@@ -205,7 +234,7 @@ class DSB_Teachers_View extends DSB_Base_View
             <form method="post" id="editar-profesor-form" action="">
 
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
-                <input type="hidden" name="user_id" id="user_id" value="" />
+                <input type="hidden" name="user_id" value="" />
 
                 <table class="form-table">
                     <tr>
@@ -266,7 +295,10 @@ class DSB_Teachers_View extends DSB_Base_View
 
         <div id="configFormContainer" data-action-id="open-config" style="display: none; margin-top: 20px;">
             <form method="post" id="form-clases-profesor" action="">
+
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                <input type="hidden" name="user_id" value="" />
+
                 <table class="form-table">
                     <tr>
                         <th><label for="dias">Días que trabaja</label></th>
@@ -295,14 +327,30 @@ class DSB_Teachers_View extends DSB_Base_View
                 </table>
 
                 <input type="hidden" name="form_action" value="config_teacher" />
+                <input type="submit" name="submit" class="button-primary" value="Guardar configuracion" />
 
             </form>
         </div>
 
-        <div id="teacher-calendar-container" style="display:none; margin-top: 30px;">
+        <div id="teacherCalendarContainer" style="display:none; margin-top: 30px;">
             <h2>Calendario del Profesor</h2>
-            <div id="teacher-calendar" style="min-height: 600px;"></div>
+            <div id="teacherCalendar" style="min-height: 600px;"></div>
         </div>
+
+        <dialog id="deleteTeacherModal">
+            <form method="post" id="deleteTeacherForm" action="">
+
+                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                <input type="hidden" name="user_id" value="" />
+                <input type="hidden" name="form_action" value="delete_teacher" />
+
+                <p>¿Estás seguro de que deseas eliminar este profesor?</p>
+
+                <input type="submit" name="submit" class="button-primary" value="Eliminar" />
+                <button type="button" onclick="document.getElementById('deleteTeacherModal').close();" class="button button-secondary">Cancelar</button>
+
+            </form>
+        </dialog>
 
     <?php
         $this->enqueue_scripts();
@@ -332,16 +380,16 @@ class DSB_Teachers_View extends DSB_Base_View
             <tbody>
                 <?php foreach ($teachers as $teacher): ?>
                     <tr>
-                        <td data-login="<?php echo esc_attr($teacher->user_login); ?>" data-id="<?php echo esc_attr($teacher->ID); ?>">
+                        <td data-login="<?php echo esc_attr($teacher->user_login); ?>" data-user-id="<?php echo esc_attr($teacher->ID); ?>">
                             <?php echo esc_html($teacher->user_login); ?>
                         </td>
                         <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
                         <td><?php echo esc_html($teacher->user_email); ?></td>
                         <td>
-                            <a href="#" class="button edit-teacher" data-user-id=<?php echo esc_html($teacher->ID); ?> data-action-id="edit">Editar</a>
-                            <a href="#" class="button" data-action-id="delete">Eliminar</a>
-                            <a href="#" class="button" data-action-id="open-calendar">Calendario</a>
-                            <a href="#" class="button open-class-settings" data-id=<?php echo esc_html($teacher->ID); ?> data-action-id="open-config">Admin
+                            <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
+                            <a href="#" class="button" data-action-id="delete" data-user-id=<?php echo esc_html($teacher->ID); ?>>Eliminar</a>
+                            <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?php echo esc_html($teacher->ID); ?>>Calendario</a>
+                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Admin
                                 clases</a>
                         </td>
                     </tr>
@@ -390,7 +438,8 @@ class DSB_Teachers_View extends DSB_Base_View
                     'phone'         => get_user_meta($teacher->ID, 'phone', true),
                     'vehicleId'     => $vehiculos['car']['id'] ?? '',
                     'motorcycleId'  => $vehiculos['motorcycle']['id'] ?? '',
-                    'config'        => get_user_meta($teacher->ID, 'dsb_clases_config', true)
+                    'config'        => get_user_meta($teacher->ID, 'dsb_clases_config', true),
+                    'events'       => $this->get_events($teacher->ID),
                 ];
 
                 $all_teacher_data[] = $teacher_info;
