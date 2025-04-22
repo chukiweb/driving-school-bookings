@@ -41,7 +41,7 @@ class DSB_Vehicles_View extends DSB_Base_View
         }
     }
 
-    protected function render_form()
+    protected function render_forms()
     {
         ?>
         <form method="post" action="">
@@ -123,5 +123,10 @@ class DSB_Vehicles_View extends DSB_Base_View
             </tbody>
         </table>
         <?php
+    }
+
+    protected function enqueue_scripts()
+    {
+        
     }
 }

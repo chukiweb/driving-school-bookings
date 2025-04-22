@@ -4,10 +4,10 @@ abstract class DSB_Base_View {
     protected $nonce_action;
     protected $nonce_name;
 
-    abstract protected function get_data();
     abstract protected function handle_form_submission();
-    abstract protected function render_form();
+    abstract protected function render_forms();
     abstract protected function render_table();
+    abstract protected function enqueue_scripts();
 
     public function render() {
         echo '<div class="wrap">';
@@ -21,10 +21,12 @@ abstract class DSB_Base_View {
             echo '</div>';
 
             echo '<div class="wrap">';
-            $this->render_form();
+            $this->render_forms();
             echo '</div>';
 
         echo '</div>';
+
+        $this->enqueue_scripts();
     }
 
     protected function render_notice($message, $type = 'success') {

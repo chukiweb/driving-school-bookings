@@ -1,19 +1,30 @@
 <?php
 class DSB_Teachers_View extends DSB_Base_View
 {
-    public function __construct()
+    private $vehicles;
+    private $teachers;
+
+    function __construct()
     {
         $this->title = 'Gestión de Profesores';
         $this->nonce_action = 'process_teacher_form';
         $this->nonce_name = 'teacher_nonce';
+        $this->vehicles = get_posts([
+            'post_type' => 'vehiculo',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+        ]);
+        $this->teachers = get_users([
+            'role' => 'teacher'
+        ]);
     }
 
     protected function get_data()
     {
-        return get_users(['role' => 'teacher'],);
+        
     }
 
-    public static function get_teacher_vehicles($teacher_id)
+    private function get_teacher_vehicles($teacher_id)
     {
         $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true) ?: null;
         $moto_id = get_user_meta($teacher_id, 'assigned_motorcycle', true) ?: null;
@@ -33,11 +44,34 @@ class DSB_Teachers_View extends DSB_Base_View
         ];
     }
 
-    protected function get_events($teacher_id): array 
+    private function get_teacher_data()
     {
-        $events = DSB_Calendar_Service::get_teacher_calendar($teacher_id);
+        $all_teacher_data = [];
 
-        return $events;
+        $teachers = $this->teachers;
+
+        if (!empty($teachers)) {
+            foreach ($teachers as $teacher) {
+                $vehiculos = $this->get_teacher_vehicles($teacher->ID);
+
+                $teacher_info = [
+                    'id'            => $teacher->ID,
+                    'username'      => $teacher->user_login,
+                    'firstName'     => get_user_meta($teacher->ID, 'first_name', true),
+                    'lastName'      => get_user_meta($teacher->ID, 'last_name', true),
+                    'email'         => $teacher->user_email,
+                    'phone'         => get_user_meta($teacher->ID, 'phone', true),
+                    'vehicleId'     => $vehiculos['car']['id'] ?? '',
+                    'motorcycleId'  => $vehiculos['motorcycle']['id'] ?? '',
+                    'config'        => get_user_meta($teacher->ID, 'dsb_clases_config', true),
+                    'events'        => DSB_Calendar_Service::get_teacher_calendar($teacher->ID),
+                ];
+
+                $all_teacher_data[] = $teacher_info;
+            }
+        }
+        
+        return $all_teacher_data;
     }
 
     public function handle_form_submission()
@@ -63,7 +97,7 @@ class DSB_Teachers_View extends DSB_Base_View
     protected function handle_create_teacher_form()
     {
         $user_data = [
-            'user_login' => sanitize_text_field($_POST['username']),
+            'user_login' => sanitize_text_field($_POST['first_name'] . $_POST['last_name']),
             'user_pass' => $_POST['password'],
             'user_email' => sanitize_email($_POST['email']),
             'first_name' => sanitize_text_field($_POST['first_name']),
@@ -103,7 +137,6 @@ class DSB_Teachers_View extends DSB_Base_View
     {
         $user_data = [
             'ID' => intval($_POST['user_id']),
-            'user_login' => sanitize_text_field($_POST['username']),
             'user_email' => sanitize_email($_POST['email']),
             'first_name' => sanitize_text_field($_POST['first_name']),
             'last_name' => sanitize_text_field($_POST['last_name']),
@@ -164,20 +197,29 @@ class DSB_Teachers_View extends DSB_Base_View
         }
     }
 
-
-    protected function render_form()
+    protected function render_forms()
     {
-        $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
-?>
+    ?>
+        <div>
+            <h2>
+                <span id="teacherName"></span>
+            </h2>
+        </div>
+    <?php
+        $this->render_create_teacher_form();
+        $this->render_edit_teacher_form();
+        $this->render_config_teacher_form();
+        $this->render_delete_teacher_form();
+        $this->render_teacher_calendar();
+    }
 
+    private function render_create_teacher_form()
+    {
+?>
         <div id="createFormContainer" data-action-id="create" style="display: none; margin-top: 20px;">
             <form method="post" id="crear-profesor-form" action="">
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
                 <table class="form-table">
-                    <tr>
-                        <th><label for="username">Usuario</label></th>
-                        <td><input type="text" name="username" required /></td>
-                    </tr>
                     <tr>
                         <th><label for="password">Contraseña</label></th>
                         <td><input type="password" name="password" required /></td>
@@ -202,7 +244,7 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($vehicles as $vehiculo): ?>
+                                <?php foreach ($this->vehicles as $vehiculo): ?>
                                     <option value="<?php echo esc_attr($vehiculo->ID); ?>">
                                         <?php echo esc_html($vehiculo->post_title); ?>
                                     </option>
@@ -213,7 +255,7 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($vehicles as $vehiculo): ?>
+                                <?php foreach ($this->vehicles as $vehiculo): ?>
                                     <option value="<?php echo esc_attr($vehiculo->ID); ?>">
                                         <?php echo esc_html($vehiculo->post_title); ?>
                                     </option>
@@ -229,7 +271,12 @@ class DSB_Teachers_View extends DSB_Base_View
                 </p>
             </form>
         </div>
+    <?php
+    }
 
+    private function render_edit_teacher_form()
+    {
+    ?>
         <div id="editFormContainer" data-action-id="edit" style="display: none; margin-top: 20px;">
             <form method="post" id="editar-profesor-form" action="">
 
@@ -237,10 +284,6 @@ class DSB_Teachers_View extends DSB_Base_View
                 <input type="hidden" name="user_id" value="" />
 
                 <table class="form-table">
-                    <tr>
-                        <th><label for="username">Usuario</label></th>
-                        <td><input type="text" name="username" required /></td>
-                    </tr>
                     <tr>
                         <th><label for="password">Contraseña</label></th>
                         <td><input type="password" name="password" required /></td>
@@ -265,7 +308,7 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($vehicles as $vehiculo): ?>
+                                <?php foreach ($this->vehicles as $vehiculo): ?>
                                     <option value="<?php echo esc_attr($vehiculo->ID); ?>">
                                         <?php echo esc_html($vehiculo->post_title); ?>
                                     </option>
@@ -276,7 +319,7 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($vehicles as $vehiculo): ?>
+                                <?php foreach ($this->vehicles as $vehiculo): ?>
                                     <option value="<?php echo esc_attr($vehiculo->ID); ?>">
                                         <?php echo esc_html($vehiculo->post_title); ?>
                                     </option>
@@ -292,7 +335,12 @@ class DSB_Teachers_View extends DSB_Base_View
                 </p>
             </form>
         </div>
+    <?php
+    }
 
+    private function render_config_teacher_form()
+    {
+    ?>
         <div id="configFormContainer" data-action-id="open-config" style="display: none; margin-top: 20px;">
             <form method="post" id="form-clases-profesor" action="">
 
@@ -331,12 +379,22 @@ class DSB_Teachers_View extends DSB_Base_View
 
             </form>
         </div>
+    <?php
+    }
 
-        <div id="teacherCalendarContainer" style="display:none; margin-top: 30px;">
+    private function render_teacher_calendar()
+    {
+    ?>
+        <div id="teacherCalendarContainer" data-action-id="open-calendar" style="display:none; margin-top: 30px;">
             <h2>Calendario del Profesor</h2>
             <div id="teacherCalendar" style="min-height: 600px;"></div>
         </div>
+    <?php
+    }
 
+    private function render_delete_teacher_form()
+    {
+    ?>
         <dialog id="deleteTeacherModal">
             <form method="post" id="deleteTeacherForm" action="">
 
@@ -351,56 +409,10 @@ class DSB_Teachers_View extends DSB_Base_View
 
             </form>
         </dialog>
-
     <?php
-        $this->enqueue_scripts();
     }
 
-    protected function render_table()
-    {
-        $teachers = $this->get_data();
-    ?>
-
-        <div class="heding">
-            <h2>Listado de Profesores</h2>
-            <div class="boton-heding">
-                <button id="mostrar-form-crear-profesor" class="button button-primary" data-action-id="create">Nuevo Profesor</button>
-            </div>
-        </div>
-
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>Usuario</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($teachers as $teacher): ?>
-                    <tr>
-                        <td data-login="<?php echo esc_attr($teacher->user_login); ?>" data-user-id="<?php echo esc_attr($teacher->ID); ?>">
-                            <?php echo esc_html($teacher->user_login); ?>
-                        </td>
-                        <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
-                        <td><?php echo esc_html($teacher->user_email); ?></td>
-                        <td>
-                            <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
-                            <a href="#" class="button" data-action-id="delete" data-user-id=<?php echo esc_html($teacher->ID); ?>>Eliminar</a>
-                            <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?php echo esc_html($teacher->ID); ?>>Calendario</a>
-                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Admin
-                                clases</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-<?php
-    }
-
-
-    public function enqueue_scripts()
+    protected function enqueue_scripts()
     {
         wp_enqueue_script('jquery');
 
@@ -413,7 +425,7 @@ class DSB_Teachers_View extends DSB_Base_View
         );
 
         wp_enqueue_style(
-            'teacher-calendar-css',
+            'teacher-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/teacher-view.css',
             [],
             '1.0.0'
@@ -421,69 +433,62 @@ class DSB_Teachers_View extends DSB_Base_View
 
         wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], '1.0.0', true);
 
-        $all_teacher_data = [];
-
-        $teachers = $this->get_data();
-
-        if (!empty($teachers)) {
-            foreach ($teachers as $teacher) {
-                $vehiculos = $this->get_teacher_vehicles($teacher->ID);
-
-                $teacher_info = [
-                    'id'            => $teacher->ID,
-                    'username'      => $teacher->user_login,
-                    'firstName'     => get_user_meta($teacher->ID, 'first_name', true),
-                    'lastName'      => get_user_meta($teacher->ID, 'last_name', true),
-                    'email'         => $teacher->user_email,
-                    'phone'         => get_user_meta($teacher->ID, 'phone', true),
-                    'vehicleId'     => $vehiculos['car']['id'] ?? '',
-                    'motorcycleId'  => $vehiculos['motorcycle']['id'] ?? '',
-                    'config'        => get_user_meta($teacher->ID, 'dsb_clases_config', true),
-                    'events'       => $this->get_events($teacher->ID),
-                ];
-
-                $all_teacher_data[] = $teacher_info;
-            }
-        }
-
-        wp_localize_script('profesor-js', 'allTeacherData', $all_teacher_data);
+        wp_localize_script('profesor-js', 'allTeacherData', $this->get_teacher_data());
 
         wp_localize_script('profesor-js', 'profesorAjax', [
             'ajaxurl' => admin_url('admin-ajax.php')
         ]);
     }
 
-    // Método auxiliar para recoger reservas como array estructurado
-    private function get_reservations_array($teacher_id)
+    protected function render_table()
     {
-        $reservas = get_posts([
-            'post_type' => 'reserva',
-            'meta_query' => [
-                [
-                    'key' => 'teacher_id',
-                    'value' => $teacher_id,
-                    'compare' => '='
-                ]
-            ]
-        ]);
+    ?>
 
-        $eventos = [];
+        <div class="heding">
+            <h2>Listado de Profesores</h2>
+            <div class="boton-heding">
+                <button id="mostrar-form-crear-profesor" class="button button-primary" data-action-id="create">Nuevo Profesor</button>
+            </div>
+        </div>
 
-        foreach ($reservas as $reserva) {
-            $fecha = get_post_meta($reserva->ID, 'date', true);
-            $hora = get_post_meta($reserva->ID, 'time', true);
-            $student_id = get_post_meta($reserva->ID, 'student_id', true);
-            $student = get_user_by('id', $student_id);
-            $title = $student ? $student->first_name . ' ' . $student->last_name : 'Reservado';
-
-            $eventos[] = [
-                'title' => $title,
-                'start' => $fecha . 'T' . $hora,
-                'backgroundColor' => '#007bff',
-                'borderColor' => '#007bff'
-            ];
-        }
-
-        return $eventos;
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Vehículo</th>
+                    <th>Moto</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($this->teachers as $teacher): ?>
+                    <tr>
+                        <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
+                        <td><?php echo esc_html($teacher->user_email); ?></td>
+                        <td><?php echo esc_html(get_user_meta($teacher->ID, 'phone', true)); ?></td>
+                        <td>
+                            <?php
+                            $vehiculos = $this->get_teacher_vehicles($teacher->ID);
+                            echo esc_html($vehiculos['car']['title'] ?? 'Sin vehículo');
+                            ?>
+                        </td>
+                        <td>
+                            <?php
+                            echo esc_html($vehiculos['motorcycle']['title'] ?? 'Sin moto');
+                            ?>
+                        </td>
+                        <td>
+                            <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
+                            <a href="#" class="button" data-action-id="delete" data-user-id=<?php echo esc_html($teacher->ID); ?>>Eliminar</a>
+                            <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?php echo esc_html($teacher->ID); ?>>Calendario</a>
+                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Admin clases</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php
     }
 }

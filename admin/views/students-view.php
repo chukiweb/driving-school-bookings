@@ -78,7 +78,7 @@ class DSB_Students_View extends DSB_Base_View
         }
     }
 
-    protected function render_form()
+    protected function render_forms()
     {
         $teachers = get_users(['role' => 'teacher']);
         $vehicles = get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]);
@@ -205,5 +205,10 @@ class DSB_Students_View extends DSB_Base_View
             </tbody>
         </table>
         <?php
+    }
+
+    protected function enqueue_scripts()
+    {
+        
     }
 }

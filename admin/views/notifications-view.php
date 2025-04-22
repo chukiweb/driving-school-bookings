@@ -37,7 +37,7 @@ class DSB_Notifications_View extends DSB_Base_View {
         }
     }
 
-    protected function render_form() {
+    protected function render_forms() {
         $users = get_users(['role__in' => ['estudiante', 'profesor']]);
         ?>
         <form method="post" action="">
@@ -118,4 +118,8 @@ class DSB_Notifications_View extends DSB_Base_View {
        </table>
        <?php
    }
+
+    protected function enqueue_scripts() {
+        
+    }
 }
