@@ -15,7 +15,6 @@ class DSB_Teacher_Service
                 'errors' => ['No se proporcionó un ID válido']
             ], 400);
         }
-        $license = get_user_meta($teacher_id, 'license_number', true);
         $vehicle_id = get_user_meta($teacher_id, 'assigned_vehicle', true);
         $first_name = get_user_meta($teacher_id, 'first_name', true);
         $last_name = get_user_meta($teacher_id, 'last_name', true);
@@ -47,7 +46,6 @@ class DSB_Teacher_Service
                 'display_name' => $user->display_name,
                 'avatar' => $avatar_url,
                 'students' => $students,
-                'license' => $license,
                 'vehicle_id' => $vehicle_id,
             ]
         ], 200);
@@ -96,8 +94,6 @@ class DSB_Teacher_Service
         return new WP_REST_Response(['success' => true, 'data' => $horarios], 200);
     }
 
-
-
     public static function save_professor_availability(WP_REST_Request $request, $teacher_id)
     {
         $professor_id = $teacher_id;
@@ -112,37 +108,60 @@ class DSB_Teacher_Service
     }
 
     public static function save_professor_classes(WP_REST_Request $request, $teacher_id)
-{
-    $user_id = (int) $request['id'];
+    {
+        $user_id = (int) $request['id'];
 
-    if (!user_can($user_id, 'teacher')) {
-        return new WP_Error('invalid_user', 'El usuario no es un profesor válido', ['status' => 403]);
+        if (!user_can($user_id, 'teacher')) {
+            return new WP_Error('invalid_user', 'El usuario no es un profesor válido', ['status' => 403]);
+        }
+
+        $params = $request->get_json_params();
+
+        $dias = array_map('sanitize_text_field', $params['dias'] ?? []);
+        $hora_inicio = sanitize_text_field($params['hora_inicio'] ?? '');
+        $hora_fin = sanitize_text_field($params['hora_fin'] ?? '');
+        $duracion = intval($params['duracion'] ?? 0);
+
+        if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
+            return new WP_Error('invalid_data', 'Faltan datos obligatorios', ['status' => 400]);
+        }
+
+        $config = [
+            'dias' => $dias,
+            'hora_inicio' => $hora_inicio,
+            'hora_fin' => $hora_fin,
+            'duracion' => $duracion,
+        ];
+
+        update_user_meta($user_id, 'dsb_clases_config', $config);
+
+        return rest_ensure_response(['success' => true, 'message' => 'Datos de clases guardados']);
     }
 
-    $params = $request->get_json_params();
+    public static function update_teacher($teacherId) {
+        $user_id = (int) $teacherId;
 
-    $dias = array_map('sanitize_text_field', $params['dias'] ?? []);
-    $hora_inicio = sanitize_text_field($params['hora_inicio'] ?? '');
-    $hora_fin = sanitize_text_field($params['hora_fin'] ?? '');
-    $duracion = intval($params['duracion'] ?? 0);
+        if (!user_can($user_id, 'teacher')) {
+            return new WP_Error('invalid_user', 'El usuario no es un profesor válido', ['status' => 403]);
+        }
 
-    if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
-        return new WP_Error('invalid_data', 'Faltan datos obligatorios', ['status' => 400]);
+        $params = $_POST['data'] ?? [];
+
+        $first_name = sanitize_text_field($params['first_name'] ?? '');
+        $last_name = sanitize_text_field($params['last_name'] ?? '');
+        $email = sanitize_email($params['email'] ?? '');
+
+        if (empty($first_name) || empty($last_name) || empty($email)) {
+            return new WP_Error('invalid_data', 'Faltan datos obligatorios', ['status' => 400]);
+        }
+
+        wp_update_user([
+            'ID' => $user_id,
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'user_email' => $email,
+        ]);
+
+        return rest_ensure_response(['success' => true, 'message' => 'Datos del profesor actualizados']);
     }
-
-    $config = [
-        'dias' => $dias,
-        'hora_inicio' => $hora_inicio,
-        'hora_fin' => $hora_fin,
-        'duracion' => $duracion,
-    ];
-
-    update_user_meta($user_id, 'dsb_clases_config', $config);
-
-    return rest_ensure_response(['success' => true, 'message' => 'Datos de clases guardados']);
-}
-    
-
-
-
 }
