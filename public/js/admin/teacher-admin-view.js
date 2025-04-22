@@ -22,17 +22,20 @@ jQuery(document).ready(function ($) {
                     }
 
                     teacherAdminView.handleAction(action, btn);
+                    teacherAdminView.changeName(btn);
                 });
             });
         }
 
-        static getContainerByAction(action) {
-            const containers = {
-                'create': teacherAdminView.createFormContainer,
-                'edit': teacherAdminView.updateFormContainer,
-                'config': teacherAdminView.configFormContainer
-            };
-            return containers[action] || null;
+        static changeName(btn) {
+            const teacherId = btn.dataset.userId;
+            
+            allTeacherData.forEach(function (prof) {
+                if (prof.id == teacherId) {
+                    const name = `${prof.firstName} ${prof.lastName}`;
+                    document.querySelector('#teacherName').textContent = name;
+                }
+            });
         }
 
         static toogleAllContainers(target) {
@@ -86,7 +89,6 @@ jQuery(document).ready(function ($) {
 
                 if (prof.id == teacherId) {
                     updateForm.querySelector('input[name="user_id"]').value = prof.id;
-                    updateForm.querySelector('input[name="username"]').value = prof.username;
                     updateForm.querySelector('input[name="password"]').value = '1234';
                     updateForm.querySelector('input[name="email"]').value = prof.email;
                     updateForm.querySelector('input[name="phone"]').value = prof.phone;
@@ -99,7 +101,6 @@ jQuery(document).ready(function ($) {
         }
 
         static configFormAction(teacherId) {
-            console.log("TEACHER ID CONFIG FORM: ", teacherId);
             const configForm = document.querySelector('#configFormContainer form');
             teacherAdminView.configFormContainer.querySelector('form').reset();
 
@@ -125,8 +126,6 @@ jQuery(document).ready(function ($) {
 
         static deleteFormAction(teacherId) {
             const deleteForm = document.querySelector('#deleteTeacherForm');
-            console.log(deleteForm);
-            console.log(teacherId);
 
             deleteForm.querySelector('input[name="user_id"]').value = teacherId;
 
@@ -146,43 +145,29 @@ jQuery(document).ready(function ($) {
             let teacherConfig = [];
             allTeacherData.forEach(function (prof) {
                 if (prof.id == teacherId) {
-                    // If the teacher has events property, use it
-                    if (prof.events) {
-                        teacherEvents = prof.events;
-                    }
-                    // If the teacher has config property, use it
-                    if (prof.config) {
-                        teacherConfig = prof.config;
-                    }
-
-                    // You might want to display teacher name or other info
-                    // document.querySelector('#teacherCalendarContainer .teacher-name').textContent = 
-                    // `${prof.firstName} ${prof.lastName}`;
+                    ({ events: teacherEvents = [], config: teacherConfig = {} } = prof);
                 }
             });
 
-            // Initialize the calendar with the teacher's events
             const calendar = new FullCalendar.Calendar(calendarElement, {
-                // UTC time zone
-                timeZone: 'UTC',
                 allDaySlot: false,
+                locale: 'es',
+                nowIndicator: true,
+                selectable: true,
+                expandRows: true,
+                height: '100%',
+                initialView: 'timeGridWeek',
                 buttonText: {
                     today: 'Hoy',
                     month: 'Mes',
                     week: 'Semana',
                     day: 'Día'
                 },
-                expandRows: true,
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
-                height: '100%',
-                initialView: 'timeGridWeek',
-                locale: 'es',
-                nowIndicator: true,
-                selectable: true,
                 slotDuration: '00:45:00',
                 slotLabelInterval: '00:45:00',
                 slotLabelFormat: {
@@ -216,5 +201,4 @@ jQuery(document).ready(function ($) {
     teacherAdminView.init();
 
     console.log(allTeacherData);
-
 });

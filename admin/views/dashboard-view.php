@@ -1,7 +1,24 @@
 <?php
 class DSB_Dashboard_View extends DSB_Base_View {
+    
+    private $teachers;
+    private $students;
+    private $vehicles;
+    private $bookings;
+
     public function __construct() {
         $this->title = 'Dashboard Autoescuela';
+
+    }
+
+    protected function enqueue_scripts()
+    {
+        
+    }
+
+    protected function render_forms()
+    {
+        
     }
 
     protected function get_data() {
