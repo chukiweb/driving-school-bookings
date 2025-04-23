@@ -23,6 +23,26 @@ class DSB_Teachers_View extends DSB_Base_View
 
     protected function get_data() {}
 
+    protected function get_vehicles(string $type): array
+    {
+        $vehiculos = ['car' => [], 'motorcycle' => []];
+        foreach ($this->vehicles as $vehicle) {
+            if (get_post_meta($vehicle->ID, 'vehicle_type', true) === 'car') {
+                $vehiculos['car'][] = [
+                    'id' => $vehicle->ID,
+                    'title' => $vehicle->post_title,
+                ];
+            } elseif (get_post_meta($vehicle->ID, 'vehicle_type', true) === 'motorcycle') {
+                $vehiculos['motorcycle'][] = [
+                    'id' => $vehicle->ID,
+                    'title' => $vehicle->post_title,
+                ];
+            }
+        }
+
+        return $vehiculos[$type];
+    }
+
     private function get_teacher_vehicles($teacher_id)
     {
         $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true) ?: null;
@@ -331,9 +351,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -342,9 +362,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -395,9 +415,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -406,9 +426,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -615,7 +635,7 @@ class DSB_Teachers_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de Profesores</h2>
             <div class="boton-heding">
-                <button class="button button-primary" data-action-id="create">Nuevo Profesor</button>
+                <button class="button button-primary" data-action-id="create">Nuevo profesor</button>
             </div>
         </div>
 

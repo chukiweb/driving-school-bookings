@@ -3,7 +3,7 @@ jQuery(document).ready(function ($) {
     class teacherAdminView {
 
         static createFormContainer = document.querySelector('#createFormContainer');
-        static updateFormContainer = document.querySelector('#editFormContainer');
+        static editFormContainer = document.querySelector('#editFormContainer');
         static configFormContainer = document.querySelector('#configFormContainer');
         static deleteTeacherModal = document.querySelector('#deleteTeacherModal');
         static calendarContainer = document.querySelector('#teacherCalendarContainer');
@@ -34,6 +34,11 @@ jQuery(document).ready(function ($) {
         static changeName(btn) {
             const teacherId = btn.dataset.userId;
 
+            if (!teacherId) {
+                document.querySelector('#teacherName').textContent = '';
+                return;
+            }
+            
             allTeacherData.forEach(function (prof) {
                 if (prof.id == teacherId) {
                     const name = `${prof.firstName} ${prof.lastName}`;
@@ -45,7 +50,7 @@ jQuery(document).ready(function ($) {
         static toogleAllContainers(target) {
             const containers = [
                 teacherAdminView.createFormContainer,
-                teacherAdminView.updateFormContainer,
+                teacherAdminView.editFormContainer,
                 teacherAdminView.configFormContainer,
                 teacherAdminView.calendarContainer,
             ];
@@ -87,19 +92,19 @@ jQuery(document).ready(function ($) {
 
         static editFormAction(teacherId) {
 
-            const updateForm = document.querySelector('#editar-profesor-form');
+            const editForm = document.querySelector('#editar-profesor-form');
 
             allTeacherData.forEach(function (prof) {
 
                 if (prof.id == teacherId) {
-                    updateForm.querySelector('input[name="user_id"]').value = prof.id;
-                    updateForm.querySelector('input[name="password"]').value = '1234';
-                    updateForm.querySelector('input[name="email"]').value = prof.email;
-                    updateForm.querySelector('input[name="phone"]').value = prof.phone;
-                    updateForm.querySelector('input[name="first_name"]').value = prof.firstName;
-                    updateForm.querySelector('input[name="last_name"]').value = prof.lastName;
-                    updateForm.querySelector('select[name="assigned_vehicle"]').value = prof.vehicleId;
-                    updateForm.querySelector('select[name="assign_motorcycle"]').value = prof.motorcycleId;
+                    editForm.querySelector('input[name="user_id"]').value = prof.id;
+                    editForm.querySelector('input[name="password"]').value = '1234';
+                    editForm.querySelector('input[name="email"]').value = prof.email;
+                    editForm.querySelector('input[name="phone"]').value = prof.phone;
+                    editForm.querySelector('input[name="first_name"]').value = prof.firstName;
+                    editForm.querySelector('input[name="last_name"]').value = prof.lastName;
+                    editForm.querySelector('select[name="assigned_vehicle"]').value = prof.vehicleId;
+                    editForm.querySelector('select[name="assign_motorcycle"]').value = prof.motorcycleId;
                 }
             });
         }
@@ -278,8 +283,6 @@ jQuery(document).ready(function ($) {
     }
 
     teacherAdminView.init();
-
-    console.log(allTeacherData);
 });
 
 
