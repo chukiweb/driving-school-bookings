@@ -6,7 +6,7 @@ class DSB_Students_View extends DSB_Base_View
 
     public function __construct()
     {
-        $this->title = 'Gestión de Estudiantes';
+        $this->title = 'Gestión de alumnos';
         $this->nonce_action = 'create_student';
         $this->nonce_name = 'student_nonce';
         $this->teachers = get_users(['role' => 'teacher']);
@@ -51,115 +51,27 @@ class DSB_Students_View extends DSB_Base_View
             case 'edit_student':
                 $this->handle_edit_student_form();
                 break;
+            case 'delete_student':
+                return $this->handle_delete_student_form();
+                break;
         }
     }
 
     private function handle_create_student_form()
     {
-        $username = strtolower(sanitize_text_field($_POST['first_name'])) . '.' . strtolower(sanitize_text_field($_POST['last_name']));
-        $user_data = [
-            'user_login' => $username,
-            'user_pass'  => '23061981', // Contraseña por defecto, en produccion deberia ser generada con un enlace por mail al cliente.
-            'user_email' => sanitize_email($_POST['email']),
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-            'role' => 'student'
-        ];
-
-        $user_id = wp_insert_user($user_data);
-
-        if (!is_wp_error($user_id)) {
-            try {
-                // Metadatos del estudiante
-                $meta_data = [
-                    'dni' => $_POST['dni'],
-                    'phone' => $_POST['phone'],
-                    'birth_date' => $_POST['birth_date'],
-                    'address' => $_POST['address'],
-                    'city' => $_POST['city'],
-                    'postal_code' => $_POST['postal_code'],
-                    'license_type' => $_POST['license_type'],
-                    'assigned_teacher' => $_POST['teacher'],
-                    'class_points' => $_POST['opening_balance']
-                ];
-
-                foreach ($meta_data as $key => $value) {
-                    update_user_meta($user_id, $key, sanitize_text_field($value));
-                }
-
-                // Generar enlace de recuperación
-                $user = get_user_by('id', $user_id);
-                if ($user) {
-                    $key = get_password_reset_key($user);
-                    if (!is_wp_error($key)) {
-                        $reset_link = network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($username), 'login');
-
-                        wp_mail(
-                            $user_data['user_email'],
-                            'Acceso a tu cuenta de estudiante',
-                            sprintf(
-                                'Bienvenido/a %s,\n\nTu cuenta ha sido creada. Establece tu contraseña aquí:\n\n%s\n\nUsuario: %s',
-                                $user_data['first_name'],
-                                $reset_link,
-                                $username
-                            )
-                        );
-
-                        $this->render_notice('Estudiante creado exitosamente. Se ha enviado un email con las instrucciones de acceso.');
-                    }
-                }
-            } catch (Exception $e) {
-                $this->render_notice('Error: ' . $e->getMessage(), 'error');
-            }
-        } else {
-            $this->render_notice('Error al crear el usuario: ' . $user_id->get_error_message(), 'error');
-        }
+        $this->render_response(DSB()->user_manager->create_student());
     }
 
     private function handle_edit_student_form()
     {
-        $user_data = [
-            'ID' => $_POST['user_id'],
-            'user_email' => sanitize_email($_POST['email']),
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-        ];
-
-        $user_id = wp_update_user($user_data);
-
-        if (!is_wp_error($user_id)) {
-            // Metadatos del estudiante
-            $meta_data = [
-                'dni' => $_POST['dni'],
-                'phone' => $_POST['phone'],
-                'birth_date' => $_POST['birth_date'],
-                'address' => $_POST['address'],
-                'city' => $_POST['city'],
-                'postal_code' => $_POST['postal_code'],
-                'license_type' => $_POST['license_type'],
-                'assigned_teacher' => $_POST['teacher'],
-                'class_points' => $_POST['opening_balance']
-            ];
-
-            foreach ($meta_data as $key => $value) {
-                update_user_meta($user_id, $key, sanitize_text_field($value));
-            }
-
-            $this->render_notice('Estudiante editado exitosamente.');
-        } else {
-            $this->render_notice('Error al editar el usuario: ' . $user_id->get_error_message(), 'error');
-        }
+        $this->render_response(DSB()->user_manager->update_student());
     }
 
     private function handle_delete_student_form()
     {
         $user_id = $_POST['user_id'];
 
-        if (wp_delete_user($user_id)) {
-            $this->render_notice('Estudiante eliminado exitosamente.');
-        } else {
-            $this->render_notice('Error al eliminar el usuario.', 'error');
-        }
+        $this->render_response(DSB()->user_manager->delete_student($user_id));
     }
 
     private function handle_points_form()
@@ -405,7 +317,7 @@ class DSB_Students_View extends DSB_Base_View
     {
     ?>
         <div class="heding">
-            <h2>Listado de Profesores</h2>
+            <h2>Listado de alumnos</h2>
             <div class="boton-heding">
                 <button class="button button-primary" data-action-id="create">Nuevo alumno</button>
             </div>
@@ -444,9 +356,9 @@ class DSB_Students_View extends DSB_Base_View
                         </td>
                         <td>
                             <?php echo esc_html(get_user_meta($student->ID, 'class_points', true)); ?>
-                            <a href="#" class="button add-points" data-student="<?php echo esc_attr($student->ID); ?>">
+                            <!-- <a href="#" class="button add-points" data-student="<?php //echo esc_attr($student->ID); ?>">
                                 Añadir Puntos
-                            </a>
+                            </a> -->
                         </td>
                     </tr>
                 <?php endforeach; ?>

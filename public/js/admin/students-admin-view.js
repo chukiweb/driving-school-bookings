@@ -4,11 +4,7 @@ jQuery(document).ready(function ($) {
 
         static createFormContainer = document.querySelector('#createFormContainer');
         static editFormContainer = document.querySelector('#editFormContainer');
-        // static configFormContainer = document.querySelector('#configFormContainer');
         static deleteStudentModal = document.querySelector('#deleteStudentModal');
-        // static calendarContainer = document.querySelector('#studentCalendarContainer');
-        // static calendarModal = document.querySelector('#studentCalendarModal');
-        // static calendarInfoModal = document.querySelector('#studentCalendarInfoModal');
         static lastAction = null;
 
         static init() {
@@ -27,8 +23,6 @@ jQuery(document).ready(function ($) {
                     studentAdminView.changeName(btn);
                 });
             });
-
-            // studentAdminView.initBookingFormListener();
         }
 
         static changeName(btn) {
@@ -38,7 +32,7 @@ jQuery(document).ready(function ($) {
                 document.querySelector('#studentName').textContent = '';
                 return;
             }
-            
+
             allStudentData.forEach(function (prof) {
                 if (prof.id == studentId) {
                     const name = `${prof.first_name} ${prof.last_name}`;
@@ -51,8 +45,6 @@ jQuery(document).ready(function ($) {
             const containers = [
                 studentAdminView.createFormContainer,
                 studentAdminView.editFormContainer,
-                // studentAdminView.configFormContainer,
-                // studentAdminView.calendarContainer,
             ];
 
             containers.forEach(container => {
@@ -72,13 +64,7 @@ jQuery(document).ready(function ($) {
                 case 'edit':
                     studentAdminView.editFormAction(btn.dataset.userId);
                     break;
-                case 'open-config':
-                    studentAdminView.configFormAction(btn.dataset.userId);
-                    break;
-                case 'open-calendar':
-                    studentAdminView.calendarFormAction(btn.dataset.userId);
-                    break;
-                case 'delete-student':
+                case 'delete':
                     studentAdminView.deleteFormAction(btn.dataset.userId);
                     break;
                 default:
@@ -114,30 +100,6 @@ jQuery(document).ready(function ($) {
             });
         }
 
-        static configFormAction(studentId) {
-            const configForm = document.querySelector('#configFormContainer form');
-            studentAdminView.configFormContainer.querySelector('form').reset();
-
-            allStudentData.forEach(function (prof) {
-                if (prof.id == studentId) {
-                    configForm.querySelector('input[name="user_id"]').value = prof.id;
-
-                    if (prof.config.dias) {
-                        prof.config.dias.forEach(function (day) {
-                            const checkbox = configForm.querySelector(`input[value="${day}"]`);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                            }
-                        });
-                    }
-
-                    configForm.querySelector('input[name="hora_inicio"]').value = prof.config.hora_inicio;
-                    configForm.querySelector('input[name="hora_fin"]').value = prof.config.hora_fin;
-                    configForm.querySelector('input[name="duracion"').value = prof.config.duracion;
-                }
-            });
-        }
-
         static deleteFormAction(studentId) {
             const deleteForm = document.querySelector('#deleteStudentForm');
 
@@ -146,145 +108,6 @@ jQuery(document).ready(function ($) {
             studentAdminView.deleteStudentModal.showModal();
         }
 
-        // static initBookingFormListener() {
-        //     document.querySelector('#studentCalendarForm select[name="student"]').addEventListener('change', function (e) {
-        //         const studentId = this.value;
-
-        //         if (studentId) {
-        //             const studentData = allStudentData.find(student => student.id == studentId);
-        //             const license = studentData.license_type;
-        //             var vehicle = '';
-        //             if (license == 'A') {
-        //                 vehicle = studentData.profesordata.vehicle.motorcycle;
-        //             } else if (license == 'B') {
-        //                 vehicle = studentData.profesordata.vehicle.car;
-        //             }
-
-        //             if (studentData) {
-        //                 document.querySelector('#studentCalendarForm input[name="student"]').value = studentData.profesordata.name;
-        //                 document.querySelector('#studentCalendarForm input[name="student_id"]').value = studentData.profesordata.id;
-        //                 document.querySelector('#studentCalendarForm input[name="license_type"]').value = studentData.license_type;
-        //                 document.querySelector('#studentCalendarForm input[name="vehicle"]').value = vehicle.title;
-        //                 document.querySelector('#studentCalendarForm input[name="vehicle_id"]').value = vehicle.id;
-        //             }
-        //         }
-        //     });
-        // }
-
-        // static calendarFormAction(studentId) {
-        //     // Clear any existing calendar
-        //     const calendarElement = document.getElementById('studentCalendar');
-        //     studentAdminView.calendarContainer.style.display = 'block';
-        //     if (calendarElement) {
-        //         calendarElement.innerHTML = '';
-        //     }
-
-        //     // Get student data
-        //     let studentEvents = [];
-        //     let studentConfig = [];
-        //     allStudentData.forEach(function (prof) {
-        //         if (prof.id == studentId) {
-        //             ({ events: studentEvents = [], config: studentConfig = {} } = prof);
-        //         }
-        //     });
-
-        //     function obtenerDiasNoDisponibles(diasDisponibles) {
-        //         const todosDias = [0, 1, 2, 3, 4, 5, 6];
-
-        //         if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
-        //             return todosDias;
-        //         }
-
-        //         const mapaDias = {
-        //             'Domingo': 0,
-        //             'Lunes': 1,
-        //             'Martes': 2,
-        //             'Miércoles': 3,
-        //             'Jueves': 4,
-        //             'Viernes': 5,
-        //             'Sábado': 6
-        //         };
-
-        //         const diasNumericos = diasDisponibles.map(dia => {
-        //             if (typeof dia === 'number') return dia;
-        //             return mapaDias[dia];
-        //         }).filter(dia => dia !== undefined);
-
-        //         return todosDias.filter(dia => !diasNumericos.includes(dia));
-        //     }
-
-        //     const diasNoDisponibles = obtenerDiasNoDisponibles(studentConfig.dias);
-
-        //     const duracion = studentConfig.duracion ? '00:' + studentConfig.duracion + ':00' : '00:45:00';
-
-        //     const calendar = new FullCalendar.Calendar(calendarElement, {
-        //         allDaySlot: false,
-        //         locale: 'es',
-        //         nowIndicator: true,
-        //         selectable: true,
-        //         hiddenDays: diasNoDisponibles,
-        //         select: function (e) {
-        //             const start = e.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        //             const end = e.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        //             document.querySelector('#studentCalendarForm input[name="time"]').value = start;
-        //             document.querySelector('#studentCalendarForm input[name="end_time"]').value = end;
-        //             document.querySelector('#studentCalendarForm input[name="date"]').value = e.start.toISOString().split('T')[0];
-
-        //             studentAdminView.calendarModal.showModal();
-        //         },
-        //         eventClick: function (e) {
-        //             const eventId = e.event.id;
-        //             const eventTitle = e.event.title;
-        //             const eventStart = e.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        //             const eventEnd = e.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        //             document.querySelector('#studentCalendarInfoForm input[name="booking_id"]').value = eventId;
-        //             document.querySelector('#studentCalendarInfoForm h3').innerHTML = eventTitle;
-
-        //             studentAdminView.calendarInfoModal.showModal();
-        //         },
-        //         expandRows: true,
-        //         height: '100%',
-        //         initialView: 'timeGridWeek',
-        //         buttonText: {
-        //             today: 'Hoy',
-        //             month: 'Mes',
-        //             week: 'Semana',
-        //             day: 'Día'
-        //         },
-        //         headerToolbar: {
-        //             left: 'prev,next today',
-        //             center: 'title',
-        //             right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        //         },
-        //         slotDuration: duracion || '00:45:00',
-        //         slotLabelFormat: {
-        //             hour: '2-digit',
-        //             minute: '2-digit',
-        //             hour12: false
-        //         },
-        //         slotMinTime: studentConfig.hora_inicio || '08:00:00',
-        //         slotMaxTime: studentConfig.hora_fin || '21:00:00',
-        //         events: studentEvents,
-        //         eventContent: function (e) {
-        //             const title = e.event.title;
-        //             const start = e.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        //             const end = e.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        //             return {
-        //                 html: `
-        //                     <div class="fc-event-custom">
-        //                         <span class="fc-event-time">${start} - ${end}</span><br>
-        //                         <strong>${title}</strong>
-        //                     </div>
-        //                 `
-        //             };
-        //         },
-        //     });
-
-        //     calendar.render();
-        // }
     }
 
     studentAdminView.init();

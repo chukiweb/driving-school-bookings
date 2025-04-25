@@ -43,7 +43,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
             <div class="dsb-dashboard-grid">
                 <?php
                 $this->render_recent_items('Profesores', $data['teachers'], ['Nombre', 'Email']);
-                $this->render_recent_items('Estudiantes', $data['students'], ['Nombre', 'Email', 'DNI']);
+                $this->render_recent_items('Alumnos', $data['students'], ['Nombre', 'Email', 'DNI']);
                 $this->render_recent_items('Vehículos', $data['vehicles'], ['Modelo', 'Matrícula', 'Año']);
                 $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Estudiante', 'Profesor']);
                 ?>
@@ -56,7 +56,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
     private function render_stats($data) {
         $stats = [
             ['icon' => 'groups', 'title' => 'Profesores', 'count' => count($data['teachers'])],
-            ['icon' => 'welcome-learn-more', 'title' => 'Estudiantes', 'count' => count($data['students'])],
+            ['icon' => 'welcome-learn-more', 'title' => 'Alumnos', 'count' => count($data['students'])],
             ['icon' => 'car', 'title' => 'Vehículos', 'count' => count($data['vehicles'])],
             ['icon' => 'calendar-alt', 'title' => 'Reservas', 'count' => count($data['bookings'])]
         ];
