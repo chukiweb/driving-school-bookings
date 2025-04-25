@@ -23,6 +23,26 @@ class DSB_Teachers_View extends DSB_Base_View
 
     protected function get_data() {}
 
+    protected function get_vehicles(string $type): array
+    {
+        $vehiculos = ['car' => [], 'motorcycle' => []];
+        foreach ($this->vehicles as $vehicle) {
+            if (get_post_meta($vehicle->ID, 'vehicle_type', true) === 'car') {
+                $vehiculos['car'][] = [
+                    'id' => $vehicle->ID,
+                    'title' => $vehicle->post_title,
+                ];
+            } elseif (get_post_meta($vehicle->ID, 'vehicle_type', true) === 'motorcycle') {
+                $vehiculos['motorcycle'][] = [
+                    'id' => $vehicle->ID,
+                    'title' => $vehicle->post_title,
+                ];
+            }
+        }
+
+        return $vehiculos[$type];
+    }
+
     private function get_teacher_vehicles($teacher_id)
     {
         $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true) ?: null;
@@ -128,66 +148,15 @@ class DSB_Teachers_View extends DSB_Base_View
 
     protected function handle_create_teacher_form()
     {
-        $user_data = [
-            'user_login' => sanitize_text_field($_POST['first_name'] . $_POST['last_name']),
-            'user_pass' => $_POST['password'],
-            'user_email' => sanitize_email($_POST['email']),
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-            'role' => 'teacher'
-        ];
-
-        $user_id = wp_insert_user($user_data);
-
-        if (!is_wp_error($user_id)) {
-
-            update_user_meta($user_id, 'assigned_vehicle', sanitize_text_field($_POST['assigned_vehicle']));
-
-            ($_POST['assign_motorcycle']) ? update_user_meta($user_id, 'assigned_motorcycle', sanitize_text_field($_POST['assign_motorcycle'])) : '';
-
-            ($_POST['phone']) ? update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone'])) : '';
-
-            $user = get_user_by('id', $user_id);
-
-            wp_mail(
-                $user->user_email,
-                $user->first_name . ', establece tu contraseña',
-                sprintf(
-                    'Bienvenido a nuestro equipo. Para establecer tu contraseña, haz clic en el siguiente enlace: %s',
-                    network_site_url("wp-login.php?action=rp&key=" . get_password_reset_key($user) . "&login=" . rawurlencode($user->user_login), 'login')
-                )
-            );
-
-            $this->render_notice('Profesor creado exitosamente');
-        } else {
-            $this->render_notice($user_id->get_error_message(), 'error');
-        }
+        $this->render_response(DSB()->user_manager->create_teacher());
     }
 
-    public function handle_edit_teacher_form(): void
+    public function handle_edit_teacher_form()
     {
-        $user_data = [
-            'ID' => intval($_POST['user_id']),
-            'user_email' => sanitize_email($_POST['email']),
-            'first_name' => sanitize_text_field($_POST['first_name']),
-            'last_name' => sanitize_text_field($_POST['last_name']),
-            'role' => 'teacher'
-        ];
-
-        $user_id = wp_update_user($user_data);
-
-        if (!is_wp_error($user_id)) {
-            update_user_meta($user_id, 'assigned_vehicle', sanitize_text_field($_POST['assigned_vehicle']));
-            update_user_meta($user_id, 'assigned_motorcycle', sanitize_text_field($_POST['assign_motorcycle']));
-            update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone']));
-
-            $this->render_notice('Profesor actualizado exitosamente');
-        } else {
-            $this->render_notice($user_id->get_error_message(), 'error');
-        }
+        $this->render_response(DSB()->user_manager->update_teacher());
     }
 
-    public function handle_config_lesson_form(): void
+    public function handle_config_lesson_form()
     {
 
         $teacher_id = intval($_POST['user_id']);
@@ -216,16 +185,9 @@ class DSB_Teachers_View extends DSB_Base_View
 
     public function handle_delete_teacher_form(): void
     {
-        if (isset($_POST['user_id'])) {
-            $user_id = intval($_POST['user_id']);
-            $result = wp_delete_user($user_id);
+        $user_id = $_POST['user_id'];
 
-            if ($result) {
-                $this->render_notice('Profesor eliminado exitosamente');
-            } else {
-                $this->render_notice('Error al eliminar el profesor', 'error');
-            }
-        }
+        $this->render_response(DSB()->user_manager->delete_student($user_id));
     }
 
     private function handle_create_booking_form()
@@ -307,10 +269,10 @@ class DSB_Teachers_View extends DSB_Base_View
             <form method="post" id="crear-profesor-form" action="">
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
                 <table class="form-table">
-                    <tr>
+                    <!-- <tr>
                         <th><label for="password">Contraseña</label></th>
                         <td><input type="password" name="password" required /></td>
-                    </tr>
+                    </tr> -->
                     <tr>
                         <th><label for="email">Email</label></th>
                         <td><input type="email" name="email" required /></td>
@@ -331,9 +293,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -342,9 +304,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -395,9 +357,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assigned_vehicle">Vehiculo asignado</label></th>
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -406,9 +368,9 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="assign_motorcycle">Moto asignada (opcional)</label></th>
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
-                                <?php foreach ($this->vehicles as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo->ID); ?>">
-                                        <?php echo esc_html($vehiculo->post_title); ?>
+                                <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
+                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
+                                        <?php echo esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -615,7 +577,7 @@ class DSB_Teachers_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de Profesores</h2>
             <div class="boton-heding">
-                <button class="button button-primary" data-action-id="create">Nuevo Profesor</button>
+                <button class="button button-primary" data-action-id="create">Nuevo profesor</button>
             </div>
         </div>
 

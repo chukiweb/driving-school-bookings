@@ -5,6 +5,7 @@ class DSB_Init {
     public $jwt;
     public $api;
     public $roles;
+    public $user_manager;
 
     public static function getInstance() {
         if (self::$instance == null) {
@@ -53,6 +54,7 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . 'core/roles.php';
         require_once DSB_PLUGIN_DIR . 'core/jwt.php';
         require_once DSB_PLUGIN_DIR . 'core/template.php';
+        require_once DSB_PLUGIN_DIR . 'core/class-users.php';
 
         require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
@@ -73,6 +75,7 @@ class DSB_Init {
         new DSB_Notification();
         new DSB_Template();
         new DSB_Settings();
+        $this->user_manager = new DSB_User_Manager();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();

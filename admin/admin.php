@@ -31,7 +31,7 @@ class DSB_Admin {
 
         $submenus = [
             'dsb-teachers' => ['Profesores', [$this->views['teachers'], 'render']],
-            'dsb-students' => ['Estudiantes', [$this->views['students'], 'render']],
+            'dsb-students' => ['Alumnos', [$this->views['students'], 'render']],
             'dsb-vehicles' => ['Vehículos', [$this->views['vehicles'], 'render']],
             'dsb-bookings' => ['Reservas', [$this->views['bookings'], 'render']],
             'dsb-notifications' => ['Notificaciones', [$this->views['notifications'], 'render']]
