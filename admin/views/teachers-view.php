@@ -3,6 +3,7 @@ class DSB_Teachers_View extends DSB_Base_View
 {
     private $vehicles;
     private $teachers;
+    private $students;
 
     function __construct()
     {
@@ -17,12 +18,10 @@ class DSB_Teachers_View extends DSB_Base_View
         $this->teachers = get_users([
             'role' => 'teacher'
         ]);
+        $this->students = get_users(['role' => 'student']);
     }
 
-    protected function get_data()
-    {
-        
-    }
+    protected function get_data() {}
 
     private function get_teacher_vehicles($teacher_id)
     {
@@ -70,8 +69,35 @@ class DSB_Teachers_View extends DSB_Base_View
                 $all_teacher_data[] = $teacher_info;
             }
         }
-        
+
         return $all_teacher_data;
+    }
+
+    protected function get_students_data(): array
+    {
+        $all_student_data = [];
+        $students = $this->students;
+
+        if (!empty($students)) {
+            foreach ($students as $student) {
+                $teacher = get_user_by('id', get_user_meta($student->ID, 'assigned_teacher', true));
+
+                $student_info = [
+                    'id' => $student->ID,
+                    'name' => get_user_meta($student->ID, 'first_name', true) . ' ' . get_user_meta($student->ID, 'last_name', true),
+                    'license_type' => get_user_meta($student->ID, 'license_type', true),
+                    'profesordata' => [
+                        'id' => $teacher->ID,
+                        'name' => get_user_meta($teacher->ID, 'first_name', true) . ' ' . get_user_meta($teacher->ID, 'last_name', true),
+                        'vehicle' => $this->get_teacher_vehicles($teacher->ID),
+                    ],
+                ];
+
+                $all_student_data[] = $student_info;
+            }
+        }
+
+        return $all_student_data;
     }
 
     public function handle_form_submission()
@@ -90,6 +116,12 @@ class DSB_Teachers_View extends DSB_Base_View
                 break;
             case 'delete_teacher':
                 $this->handle_delete_teacher_form();
+                break;
+            case 'create_booking':
+                $this->handle_create_booking_form();
+                break;
+            case 'delete_booking':
+                $this->handle_delete_booking_form();
                 break;
         }
     }
@@ -115,7 +147,6 @@ class DSB_Teachers_View extends DSB_Base_View
 
             ($_POST['phone']) ? update_user_meta($user_id, 'phone', sanitize_text_field($_POST['phone'])) : '';
 
-            // Enviar correo predeterminado de WordPress para asignar la contraseña
             $user = get_user_by('id', $user_id);
 
             wp_mail(
@@ -197,9 +228,65 @@ class DSB_Teachers_View extends DSB_Base_View
         }
     }
 
+    private function handle_create_booking_form()
+    {
+        $start_time = sanitize_text_field($_POST['time']);
+        $end_time = isset($_POST['end_time']) && $_POST['end_time'] !== '' ? sanitize_text_field($_POST['end_time']) : null;
+        $date = sanitize_text_field($_POST['date']);
+
+        $datetime_inicio = new DateTime("$date $start_time");
+        if ($end_time !== null) {
+            $datetime_fin = new DateTime("$date $end_time");
+        } else {
+            $datetime_fin = clone $datetime_inicio;
+            $datetime_fin->modify('+45 minutes');
+        }
+        $end_time = $datetime_fin->format('H:i');
+
+        $post_data = [
+            'post_title' => sprintf(
+                'Reserva - %s - %s',
+                sanitize_text_field($_POST['student']),
+                $date
+            ),
+            'post_type' => 'reserva',
+            'post_status' => 'publish',
+            'meta_input' => [
+                'student_id' => sanitize_text_field($_POST['student']),
+                'teacher_id' => sanitize_text_field($_POST['teacher_id']),
+                'vehicle_id' => sanitize_text_field($_POST['vehicle_id']),
+                'date' => $date,
+                'time' => $start_time,
+                'end_time' => $end_time,
+                'status' => 'pending'
+            ]
+        ];
+        $post_id = wp_insert_post($post_data);
+
+        if ($post_id) {
+            $this->render_notice('Reserva creada exitosamente');
+        } else {
+            $this->render_notice('Error al crear la reserva', 'error');
+        }
+    }
+
+    private function handle_delete_booking_form()
+    {
+        if (isset($_POST['booking_id'])) {
+            $booking_id = intval($_POST['booking_id']);
+            $result = wp_delete_post($booking_id, true);
+
+            if ($result) {
+                $this->render_notice('Reserva eliminada exitosamente');
+            } else {
+                $this->render_notice('Error al eliminar la reserva', 'error');
+            }
+        }
+    }
+
     protected function render_forms()
     {
-    ?>
+?>
         <div>
             <h2>
                 <span id="teacherName"></span>
@@ -215,7 +302,7 @@ class DSB_Teachers_View extends DSB_Base_View
 
     private function render_create_teacher_form()
     {
-?>
+    ?>
         <div id="createFormContainer" data-action-id="create" style="display: none; margin-top: 20px;">
             <form method="post" id="crear-profesor-form" action="">
                 <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
@@ -388,6 +475,85 @@ class DSB_Teachers_View extends DSB_Base_View
         <div id="teacherCalendarContainer" data-action-id="open-calendar" style="display:none; margin-top: 30px;">
             <h2>Calendario del Profesor</h2>
             <div id="teacherCalendar" style="min-height: 600px;"></div>
+            <dialog id="teacherCalendarModal">
+                <form method="post" id="teacherCalendarForm" action="">
+                    <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                    <input type="hidden" name="form_action" value="create_booking" />
+                    <input type="hidden" name="teacher_id" value="" />
+                    <input type="hidden" name="vehicle_id" value="" />
+
+                    <table class="form-table">
+                        <tr>
+                            <th><label for="student">Estudiante</label></th>
+                            <td>
+                                <select name="student" required>
+                                    <option value="">Seleccionar estudiante</option>
+                                    <?php foreach ($this->students as $student): ?>
+                                        <option value="<?php echo esc_attr($student->ID); ?>">
+                                            <?php echo esc_html($student->display_name); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="teacher">Profesor</label></th>
+                            <td>
+                                <input type="text" name="teacher" required readonly />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="license_type">Licencia</label></th>
+                            <td>
+                                <input type="text" name="license_type" required readonly />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="vehicle">Vehículo</label></th>
+                            <td>
+                                <input type="text" name="vehicle" required readonly />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="date">Fecha</label></th>
+                            <td><input type="date" name="date" required /></td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="time">Hora de inicio</label></th>
+                            <td><input type="time" name="time" required /></td>
+                        </tr>
+
+                        <tr>
+                            <th><label for="end">Hora de finalizacion</label></th>
+                            <td><input type="time" name="end_time" required /></td>
+                        </tr>
+                    </table>
+
+                    <p class="submit">
+                        <input type="submit" name="submit" class="button-primary" value="Crear Reserva" />
+                    </p>
+                </form>
+                </form>
+            </dialog>
+
+            <dialog id="teacherCalendarInfoModal">
+                <form method="post" id="teacherCalendarInfoForm" action="">
+                    <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                    <input type="hidden" name="form_action" value="delete_booking" />
+                    <input type="hidden" name="booking_id" value="" />
+                    <h3></h3>
+
+                    <p>¿Estás seguro de que deseas eliminar esta reserva?</p>
+
+                    <input type="submit" name="submit" class="button-primary" value="Eliminar Reserva" />
+                    <button type="button" onclick="document.getElementById('teacherCalendarInfoModal').close();" class="button button-secondary">Cancelar</button>
+                </form>
+            </dialog>
         </div>
     <?php
     }
@@ -433,6 +599,8 @@ class DSB_Teachers_View extends DSB_Base_View
 
         wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], '1.0.0', true);
 
+        wp_localize_script('profesor-js', 'allStudentData', $this->get_students_data());
+
         wp_localize_script('profesor-js', 'allTeacherData', $this->get_teacher_data());
 
         wp_localize_script('profesor-js', 'profesorAjax', [
@@ -447,7 +615,7 @@ class DSB_Teachers_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de Profesores</h2>
             <div class="boton-heding">
-                <button id="mostrar-form-crear-profesor" class="button button-primary" data-action-id="create">Nuevo Profesor</button>
+                <button class="button button-primary" data-action-id="create">Nuevo Profesor</button>
             </div>
         </div>
 
@@ -483,12 +651,12 @@ class DSB_Teachers_View extends DSB_Base_View
                             <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
                             <a href="#" class="button" data-action-id="delete" data-user-id=<?php echo esc_html($teacher->ID); ?>>Eliminar</a>
                             <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?php echo esc_html($teacher->ID); ?>>Calendario</a>
-                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Admin clases</a>
+                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Configurar clases</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-    <?php
+<?php
     }
 }

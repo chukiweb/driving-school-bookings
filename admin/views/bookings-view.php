@@ -90,7 +90,6 @@ class DSB_Bookings_View extends DSB_Base_View
                     trim($first_name . ' ' . $last_name) : $student->display_name;
             }
 
-            // Get teacher display name properly
             $teacher_name = 'No asignado';
             if ($teacher) {
                 $first_name = get_user_meta($teacher_id, 'first_name', true);
@@ -120,14 +119,14 @@ class DSB_Bookings_View extends DSB_Base_View
             ];
         }
 
-        // Sort bookings by date and time
-        usort($all_booking_data, function ($a, $b) {
-            $date_compare = strcmp($a['date'], $b['date']);
-            if ($date_compare !== 0) {
-                return $date_compare;
-            }
-            return strcmp($a['time'], $b['time']);
-        });
+        // Ordenar reservaras por fecha y hora
+        // usort($all_booking_data, function ($a, $b) {
+        //     $date_compare = strcmp($a['date'], $b['date']);
+        //     if ($date_compare !== 0) {
+        //         return $date_compare;
+        //     }
+        //     return strcmp($a['time'], $b['time']);
+        // });
 
         return $all_booking_data;
     }
@@ -155,14 +154,6 @@ class DSB_Bookings_View extends DSB_Base_View
         $datetime_fin->modify('+45 minutes');
         $end_time = $datetime_fin->format('H:i');
 
-        // Obtener el id del vehículo asignado al profesor
-        $coche_id = get_user_meta(
-            sanitize_text_field($_POST['teacher']),
-            'assigned_vehicle',
-            true
-        )
-            ?: null;
-
         $post_data = [
             'post_title' => sprintf(
                 'Reserva - %s - %s',
@@ -173,8 +164,8 @@ class DSB_Bookings_View extends DSB_Base_View
             'post_status' => 'publish',
             'meta_input' => [
                 'student_id' => sanitize_text_field($_POST['student']),
-                'teacher_id' => sanitize_text_field($_POST['teacher']),
-                'vehicle_id' => $coche_id,
+                'teacher_id' => sanitize_text_field($_POST['teacher_id']),
+                'vehicle_id' => sanitize_text_field($_POST['vehicle_id']),
                 'date' => $date,
                 'time' => $start_time,
                 'end_time' => $end_time,
@@ -210,61 +201,66 @@ class DSB_Bookings_View extends DSB_Base_View
     private function render_create_booking_form()
     {
 ?>
-        <form method="post" id="createBookingForm" action>
-            <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
-            <input type="hidden" name="form_action" value="create_booking" />
 
-            <table class="form-table">
-                <tr>
-                    <th><label for="student">Estudiante</label></th>
-                    <td>
-                        <select name="student" required>
-                            <option value="">Seleccionar estudiante</option>
-                            <?php foreach ($this->students as $student): ?>
-                                <option value="<?php echo esc_attr($student->ID); ?>">
-                                    <?php echo esc_html($student->display_name); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                </tr>
+        <div id="createFormContainer" data-action-id="create" style="display: none; margin-top: 20px;">
+            <form method="post" id="createBookingForm" action>
+                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                <input type="hidden" name="form_action" value="create_booking" />
+                <input type="hidden" name="teacher_id" value="" />
+                <input type="hidden" name="vehicle_id" value="" />
 
-                <tr>
-                    <th><label for="teacher">Profesor</label></th>
-                    <td>
-                        <input type="text" name="teacher" required readonly />
-                    </td>
-                </tr>
+                <table class="form-table">
+                    <tr>
+                        <th><label for="student">Estudiante</label></th>
+                        <td>
+                            <select name="student" required>
+                                <option value="">Seleccionar estudiante</option>
+                                <?php foreach ($this->students as $student): ?>
+                                    <option value="<?php echo esc_attr($student->ID); ?>">
+                                        <?php echo esc_html($student->display_name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
 
-                <tr>
-                    <th><label for="license_type">Licencia</label></th>
-                    <td>
-                        <input type="text" name="license_type" required readonly />
-                    </td>
-                </tr>
+                    <tr>
+                        <th><label for="teacher">Profesor</label></th>
+                        <td>
+                            <input type="text" name="teacher" required readonly />
+                        </td>
+                    </tr>
 
-                <tr>
-                    <th><label for="vehicle">Vehículo</label></th>
-                    <td>
-                        <input type="text" name="vehicle" required readonly />
-                    </td>
-                </tr>
+                    <tr>
+                        <th><label for="license_type">Licencia</label></th>
+                        <td>
+                            <input type="text" name="license_type" required readonly />
+                        </td>
+                    </tr>
 
-                <tr>
-                    <th><label for="date">Fecha</label></th>
-                    <td><input type="date" name="date" required /></td>
-                </tr>
+                    <tr>
+                        <th><label for="vehicle">Vehículo</label></th>
+                        <td>
+                            <input type="text" name="vehicle" required readonly />
+                        </td>
+                    </tr>
 
-                <tr>
-                    <th><label for="time">Hora</label></th>
-                    <td><input type="time" name="time" required /></td>
-                </tr>
-            </table>
+                    <tr>
+                        <th><label for="date">Fecha</label></th>
+                        <td><input type="date" name="date" required /></td>
+                    </tr>
 
-            <p class="submit">
-                <input type="submit" name="submit" class="button-primary" value="Crear Reserva" />
-            </p>
-        </form>
+                    <tr>
+                        <th><label for="time">Hora</label></th>
+                        <td><input type="time" name="time" required /></td>
+                    </tr>
+                </table>
+
+                <p class="submit">
+                    <input type="submit" name="submit" class="button-primary" value="Crear Reserva" />
+                </p>
+            </form>
+        </div>
     <?php
     }
 
@@ -359,7 +355,12 @@ class DSB_Bookings_View extends DSB_Base_View
     protected function render_table()
     {
     ?>
-        <h2>Listado de Reservas</h2>
+        <div class="heding">
+            <h2>Listado de Reservas</h2>
+            <div class="boton-heding">
+                <button class="button button-primary" data-action-id="create">Añadir reserva</button>
+            </div>
+        </div>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>

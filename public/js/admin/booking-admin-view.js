@@ -2,6 +2,7 @@ jQuery(document).ready(function ($) {
 
     class bookingAdminView {
 
+        static createFormContainer = document.querySelector('#createFormContainer');
         static inputDate = document.querySelector('#createBookingForm input[name="date"]');
         static inputTime = document.querySelector('#createBookingForm input[name="time"]');
         static acceptBookingModal = document.querySelector('#acceptBookingModal');
@@ -14,22 +15,39 @@ jQuery(document).ready(function ($) {
                     const action = e.target.dataset.actionId;
                     const btn = e.target.closest('.button');
 
-                    // if (action !== bookingAdminView.lastAction) {
-                    //     bookingAdminView.toggleAllContainers(action);
-                    //     bookingAdminView.lastAction = action;
-                    // }
+                    if (action !== bookingAdminView.lastAction) {
+                        bookingAdminView.toggleAllContainers(action);
+                        bookingAdminView.lastAction = action;
+                    }
 
                     bookingAdminView.handleAction(action, btn);
                 });
             });
 
-            bookingAdminView.initBookinFormListener();
+            bookingAdminView.initBookingFormListener();
             bookingAdminView.addMinDateInputDate();
-            bookingAdminView.addMinHourInputHour();
+            // bookingAdminView.addMinHourInputHour();
+        }
+
+        static toggleAllContainers(target) {
+            const containers = [
+                bookingAdminView.createFormContainer,
+            ];
+
+            containers.forEach(container => {
+                if (container.dataset.actionId === target) {
+                    $(container).slideDown();
+                } else {
+                    $(container).slideUp();
+                }
+            });
         }
 
         static handleAction(action, btn) {
             switch (action) {
+                case 'create':
+                    bookingAdminView.createFormContainer.querySelector('form').reset();
+                    break;
                 case 'accept':
                     bookingAdminView.acceptFormAction(btn.dataset.bookingId);
                     break;
@@ -44,7 +62,7 @@ jQuery(document).ready(function ($) {
         static acceptFormAction(bookingId) {
             const acceptForm = document.querySelector('#acceptBookingForm');
             
-            this.fillModalInfo(bookingId, bookingAdminView.acceptBookingModal);
+            bookingAdminView.fillModalInfo(bookingId, bookingAdminView.acceptBookingModal);
             acceptForm.querySelector('input[name="booking_id"]').value = bookingId;
 
             bookingAdminView.acceptBookingModal.showModal();
@@ -55,7 +73,7 @@ jQuery(document).ready(function ($) {
 
             cancelForm.querySelector('input[name="booking_id"]').value = bookingId;
 
-            this.fillModalInfo(bookingId, bookingAdminView.cancelBookingModal);
+            bookingAdminView.fillModalInfo(bookingId, bookingAdminView.cancelBookingModal);
             bookingAdminView.cancelBookingModal.showModal();
         }
 
@@ -70,7 +88,7 @@ jQuery(document).ready(function ($) {
             modalName.querySelector('span[class="booking-status"]').textContent = bookingData.status;
         }
 
-        static initBookinFormListener() {
+        static initBookingFormListener() {
             document.querySelector('#createBookingForm select[name="student"]').addEventListener('change', function (e) {
                 const studentId =  this.value;
 
@@ -79,15 +97,17 @@ jQuery(document).ready(function ($) {
                     const license = studentData.license_type;
                     var vehicle = '';
                     if (license == 'A') {
-                        vehicle = studentData.profesordata.vehicle.motorcycle.title;
+                        vehicle = studentData.profesordata.vehicle.motorcycle;
                     } else if (license == 'B') {
-                        vehicle = studentData.profesordata.vehicle.car.title;
+                        vehicle = studentData.profesordata.vehicle.car;
                     }
 
                     if (studentData) {
                         document.querySelector('#createBookingForm input[name="teacher"]').value = studentData.profesordata.name;
+                        document.querySelector('#createBookingForm input[name="teacher_id"]').value = studentData.profesordata.id;
                         document.querySelector('#createBookingForm input[name="license_type"]').value = studentData.license_type;
-                        document.querySelector('#createBookingForm input[name="vehicle"]').value = vehicle;
+                        document.querySelector('#createBookingForm input[name="vehicle"]').value = vehicle.title;
+                        document.querySelector('#createBookingForm input[name="vehicle_id"]').value = vehicle.id;
                     }
                 }
             });
@@ -102,13 +122,13 @@ jQuery(document).ready(function ($) {
             bookingAdminView.inputDate.setAttribute('min', `${yyyy}-${mm}-${dd}`);
         }
 
-        static addMinHourInputHour() {
-            const today = new Date();
-            const hh = String(today.getHours()).padStart(2, '0');
-            const mm = String(today.getMinutes()).padStart(2, '0');
+        // static addMinHourInputHour() {
+        //     const today = new Date();
+        //     const hh = String(today.getHours()).padStart(2, '0');
+        //     const mm = String(today.getMinutes()).padStart(2, '0');
 
-            bookingAdminView.inputTime.setAttribute('min', `${hh}:${mm}`);
-        }
+        //     bookingAdminView.inputTime.setAttribute('min', `${hh}:${mm}`);
+        // }
     }
 
     bookingAdminView.init();

@@ -7,6 +7,8 @@ jQuery(document).ready(function ($) {
         static configFormContainer = document.querySelector('#configFormContainer');
         static deleteTeacherModal = document.querySelector('#deleteTeacherModal');
         static calendarContainer = document.querySelector('#teacherCalendarContainer');
+        static calendarModal = document.querySelector('#teacherCalendarModal');
+        static calendarInfoModal = document.querySelector('#teacherCalendarInfoModal');
         static lastAction = null;
 
         static init() {
@@ -25,11 +27,13 @@ jQuery(document).ready(function ($) {
                     teacherAdminView.changeName(btn);
                 });
             });
+
+            teacherAdminView.initBookingFormListener();
         }
 
         static changeName(btn) {
             const teacherId = btn.dataset.userId;
-            
+
             allTeacherData.forEach(function (prof) {
                 if (prof.id == teacherId) {
                     const name = `${prof.firstName} ${prof.lastName}`;
@@ -132,6 +136,31 @@ jQuery(document).ready(function ($) {
             teacherAdminView.deleteTeacherModal.showModal();
         }
 
+        static initBookingFormListener() {
+            document.querySelector('#teacherCalendarForm select[name="student"]').addEventListener('change', function (e) {
+                const studentId = this.value;
+
+                if (studentId) {
+                    const studentData = allStudentData.find(student => student.id == studentId);
+                    const license = studentData.license_type;
+                    var vehicle = '';
+                    if (license == 'A') {
+                        vehicle = studentData.profesordata.vehicle.motorcycle;
+                    } else if (license == 'B') {
+                        vehicle = studentData.profesordata.vehicle.car;
+                    }
+
+                    if (studentData) {
+                        document.querySelector('#teacherCalendarForm input[name="teacher"]').value = studentData.profesordata.name;
+                        document.querySelector('#teacherCalendarForm input[name="teacher_id"]').value = studentData.profesordata.id;
+                        document.querySelector('#teacherCalendarForm input[name="license_type"]').value = studentData.license_type;
+                        document.querySelector('#teacherCalendarForm input[name="vehicle"]').value = vehicle.title;
+                        document.querySelector('#teacherCalendarForm input[name="vehicle_id"]').value = vehicle.id;
+                    }
+                }
+            });
+        }
+
         static calendarFormAction(teacherId) {
             // Clear any existing calendar
             const calendarElement = document.getElementById('teacherCalendar');
@@ -149,11 +178,62 @@ jQuery(document).ready(function ($) {
                 }
             });
 
+            function obtenerDiasNoDisponibles(diasDisponibles) {
+                const todosDias = [0, 1, 2, 3, 4, 5, 6];
+
+                if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
+                    return todosDias;
+                }
+
+                const mapaDias = {
+                    'Domingo': 0,
+                    'Lunes': 1,
+                    'Martes': 2,
+                    'Miércoles': 3,
+                    'Jueves': 4,
+                    'Viernes': 5,
+                    'Sábado': 6
+                };
+
+                const diasNumericos = diasDisponibles.map(dia => {
+                    if (typeof dia === 'number') return dia;
+                    return mapaDias[dia];
+                }).filter(dia => dia !== undefined);
+
+                return todosDias.filter(dia => !diasNumericos.includes(dia));
+            }
+
+            const diasNoDisponibles = obtenerDiasNoDisponibles(teacherConfig.dias);
+
+            const duracion = teacherConfig.duracion ? '00:' + teacherConfig.duracion + ':00' : '00:45:00';
+
             const calendar = new FullCalendar.Calendar(calendarElement, {
                 allDaySlot: false,
                 locale: 'es',
                 nowIndicator: true,
                 selectable: true,
+                hiddenDays: diasNoDisponibles,
+                select: function (e) {
+                    const start = e.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const end = e.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    document.querySelector('#teacherCalendarForm input[name="time"]').value = start;
+                    document.querySelector('#teacherCalendarForm input[name="end_time"]').value = end;
+                    document.querySelector('#teacherCalendarForm input[name="date"]').value = e.start.toISOString().split('T')[0];
+
+                    teacherAdminView.calendarModal.showModal();
+                },
+                eventClick: function (e) {
+                    const eventId = e.event.id;
+                    const eventTitle = e.event.title;
+                    const eventStart = e.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const eventEnd = e.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    document.querySelector('#teacherCalendarInfoForm input[name="booking_id"]').value = eventId;
+                    document.querySelector('#teacherCalendarInfoForm h3').innerHTML = eventTitle;
+
+                    teacherAdminView.calendarInfoModal.showModal();
+                },
                 expandRows: true,
                 height: '100%',
                 initialView: 'timeGridWeek',
@@ -168,8 +248,7 @@ jQuery(document).ready(function ($) {
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
-                slotDuration: '00:45:00',
-                slotLabelInterval: '00:45:00',
+                slotDuration: duracion || '00:45:00',
                 slotLabelFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -178,10 +257,10 @@ jQuery(document).ready(function ($) {
                 slotMinTime: teacherConfig.hora_inicio || '08:00:00',
                 slotMaxTime: teacherConfig.hora_fin || '21:00:00',
                 events: teacherEvents,
-                eventContent: function (arg) {
-                    const title = arg.event.title;
-                    const start = arg.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const end = arg.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                eventContent: function (e) {
+                    const title = e.event.title;
+                    const start = e.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const end = e.event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     return {
                         html: `
@@ -202,3 +281,5 @@ jQuery(document).ready(function ($) {
 
     console.log(allTeacherData);
 });
+
+
