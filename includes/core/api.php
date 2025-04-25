@@ -183,9 +183,10 @@ class DSB_API
 
         // Generar JWT token
         $token = $this->generate_jwt($user);
+        DSB()->jwt->store_token( $token );
 
         return [
-            'token' => $token,
+            // 'token' => $token,
             'user' => $this->format_user($user),
         ];
     }
@@ -291,10 +292,11 @@ class DSB_API
     private function format_user($user)
     {
         return [
-            'id' => $user->ID,
-            'username' => $user->user_login,
-            'email' => $user->user_email,
-            'role' => $user->roles[0] ?? null
+            // 'id' => $user->ID,
+            // 'username' => $user->user_login,
+            // 'email' => $user->user_email,
+            // 'role' => $user->roles[0] ?? null,
+            'url' => $user->roles === 'teacher' ? '/profesor' : '/alumno',
         ];
     }
 
@@ -348,7 +350,7 @@ class DSB_API
     public function get_student_view()
     {
         return rest_ensure_response([
-            'url' => plugins_url('public/views/estudiante.php', dirname(__FILE__))
+            'url' => plugins_url('public/views/alumno.php', dirname(__FILE__))
         ]);
     }
 
@@ -439,7 +441,7 @@ class DSB_API
     {
         $view = sanitize_text_field($request['view']);
 
-        $allowed_views = ['acceso', 'estudiante', 'profesor'];
+        $allowed_views = ['acceso', 'alumno', 'profesor'];
         if (!in_array($view, $allowed_views)) {
             return new WP_Error('invalid_view', 'Vista no permitida', ['status' => 403]);
         }

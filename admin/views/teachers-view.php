@@ -446,10 +446,10 @@ class DSB_Teachers_View extends DSB_Base_View
 
                     <table class="form-table">
                         <tr>
-                            <th><label for="student">Estudiante</label></th>
+                            <th><label for="student">Alumno</label></th>
                             <td>
                                 <select name="student" required>
-                                    <option value="">Seleccionar estudiante</option>
+                                    <option value="">Seleccionar alumno</option>
                                     <?php foreach ($this->students as $student): ?>
                                         <option value="<?php echo esc_attr($student->ID); ?>">
                                             <?php echo esc_html($student->display_name); ?>

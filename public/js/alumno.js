@@ -1,13 +1,15 @@
 let studentData = {};
 let reservas = [];
 jQuery(document).ready(function ($) {
+    console.log("STUDENT DATA", studentDataData);
  
-    const token = localStorage.getItem("jwt_token");
+    // const token = localStorage.getItem("jwt_token");
+    const token = sessionStorage.getItem("jwt_token");
 
-    if (!token) {
-        window.location.href = "/acceso";
-        return;
-    }
+    // if (!token) {
+    //     window.location.href = "/acceso";
+    //     return;
+    // }
 
     const userId = obtenerUsuarioDesdeToken(token);
     if (!userId) {
@@ -65,7 +67,8 @@ jQuery(document).ready(function ($) {
             contentType: false,
             processData: false,
             headers: {
-                "Authorization": "Bearer " + localStorage.getItem("jwt_token")
+                // "Authorization": "Bearer " + localStorage.getItem("jwt_token")
+                "Authorization": "Bearer " + sessionStorage.getItem("jwt_token")
             },
             success: function(response) {
                 if (response.success) {
@@ -168,6 +171,7 @@ jQuery(document).ready(function ($) {
             return null;
         }
     }
+
 });
 
 

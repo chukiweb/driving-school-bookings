@@ -10,7 +10,7 @@ class DSB_Student_Service
         if (!$student_id) {
             return new WP_REST_Response([
                 'success' => false,
-                'message' => 'ID de estudiante inválido',
+                'message' => 'ID de alumno inválido',
             ], 400);
         }
 
@@ -18,7 +18,7 @@ class DSB_Student_Service
         if (!$user) {
             return new WP_REST_Response([
                 'success' => false,
-                'message' => 'Estudiante no encontrado',
+                'message' => 'Alumno no encontrado',
             ], 404);
         }
 
@@ -61,7 +61,7 @@ class DSB_Student_Service
 
         return new WP_REST_Response([
             'success' => true,
-            'message' => 'Datos del estudiante obtenidos correctamente',
+            'message' => 'Datos del alumno obtenidos correctamente',
             'data' => array_merge([
                 'id' => $user->ID,
                 'display_name' => $user->display_name,

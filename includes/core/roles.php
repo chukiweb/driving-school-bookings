@@ -20,7 +20,7 @@ class DSB_Roles {
         ]);
 
         // Estudiante
-        add_role('student', 'Estudiante', [
+        add_role('student', 'Alumno', [
             'read' => true,
             'edit_own_bookings' => true,
             'view_own_progress' => true,

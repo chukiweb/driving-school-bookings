@@ -211,10 +211,10 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <table class="form-table">
                     <tr>
-                        <th><label for="student">Estudiante</label></th>
+                        <th><label for="student">Alumno</label></th>
                         <td>
                             <select name="student" required>
-                                <option value="">Seleccionar estudiante</option>
+                                <option value="">Seleccionar alumno</option>
                                 <?php foreach ($this->students as $student): ?>
                                     <option value="<?php echo esc_attr($student->ID); ?>">
                                         <?php echo esc_html($student->display_name); ?>
@@ -276,7 +276,7 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <div>
                     <h3>Detalles de la reserva</h3>
-                    <p><strong>Estudiante:</strong> <span class="student-name"></span></p>
+                    <p><strong>Alumno:</strong> <span class="student-name"></span></p>
                     <p><strong>Profesor:</strong> <span class="teacher-name"></span></p>
                     <p><strong>Vehículo:</strong> <span class="vehicle-name"></span></p>
                     <p><strong>Fecha:</strong> <span class="booking-date"></span></p>
@@ -305,7 +305,7 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <div>
                     <h3>Detalles de la reserva</h3>
-                    <p><strong>Estudiante:</strong> <span class="student-name"></span></p>
+                    <p><strong>Alumno:</strong> <span class="student-name"></span></p>
                     <p><strong>Profesor:</strong> <span class="teacher-name"></span></p>
                     <p><strong>Vehículo:</strong> <span class="vehicle-name"></span></p>
                     <p><strong>Fecha:</strong> <span class="booking-date"></span></p>
@@ -364,7 +364,7 @@ class DSB_Bookings_View extends DSB_Base_View
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th>Estudiante</th>
+                    <th>Alumno</th>
                     <th>Profesor</th>
                     <th>Vehículo</th>
                     <th>Fecha</th>

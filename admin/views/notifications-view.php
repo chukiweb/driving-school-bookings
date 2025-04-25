@@ -38,7 +38,7 @@ class DSB_Notifications_View extends DSB_Base_View {
     }
 
     protected function render_forms() {
-        $users = get_users(['role__in' => ['estudiante', 'profesor']]);
+        $users = get_users(['role__in' => ['student', 'teacher']]);
         ?>
         <form method="post" action="">
             <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>

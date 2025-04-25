@@ -1,19 +1,20 @@
 <?php
 /**
- * Template Name: Vista Estudiante
+ * Template Name: Vista alumno
  */
 if (!defined('ABSPATH')) {
     exit;
 }
 
 // Incluir estilos y scripts específicos para esta vista
-function dsb_enqueue_estudiante_assets()
+function dsb_enqueue_alumno_assets()
 {
     wp_enqueue_script('jquery');
-    wp_enqueue_style('dsb-estudiante-css', plugin_dir_url(__FILE__) . '../css/estudiante.css', [], '1.0.0', 'all');
-    wp_enqueue_script('dsb-estudiante-js', plugin_dir_url(__FILE__) . '../js/estudiante.js', [], '1.0.0', true);
+    wp_enqueue_style('dsb-alumno-css', plugin_dir_url(__FILE__) . '../css/alumno.css', [], '1.0.0', 'all');
+    wp_enqueue_script('dsb-alumno-js', plugin_dir_url(__FILE__) . '../js/alumno.js', [], '1.0.0', true);
+    // wp_localize_script('dsb-alumno-js', 'studentDataData', DSB_Student_Service::get_student($_SESSION['user_id']));
 }
-add_action('wp_enqueue_scripts', 'dsb_enqueue_estudiante_assets');
+add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
 ?>
 <!DOCTYPE html>
 <html lang="es">

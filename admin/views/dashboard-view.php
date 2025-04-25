@@ -45,7 +45,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
                 $this->render_recent_items('Profesores', $data['teachers'], ['Nombre', 'Email']);
                 $this->render_recent_items('Alumnos', $data['students'], ['Nombre', 'Email', 'DNI']);
                 $this->render_recent_items('Vehículos', $data['vehicles'], ['Modelo', 'Matrícula', 'Año']);
-                $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Estudiante', 'Profesor']);
+                $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Alumno', 'Profesor']);
                 ?>
             </div>
         </div>
@@ -147,7 +147,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
                         <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?php echo esc_attr($cancel_time); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="daily_limit">Clases diarias por estudiante</label></th>
+                        <th scope="row"><label for="daily_limit">Clases diarias por alumno</label></th>
                         <td><input type="number" id="daily_limit" name="daily_limit" value="<?php echo esc_attr($daily_limit); ?>" class="regular-text"></td>
                     </tr>
                     <tr>

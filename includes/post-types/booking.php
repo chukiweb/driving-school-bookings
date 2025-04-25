@@ -70,7 +70,7 @@ class DSB_Booking {
             'fields' => [
                 [
                     'key' => 'field_student',
-                    'label' => 'Estudiante',
+                    'label' => 'Alumno',
                     'name' => 'student',
                     'type' => 'user',
                     'role' => ['student'],

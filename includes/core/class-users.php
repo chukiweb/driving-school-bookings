@@ -131,7 +131,7 @@ class DSB_User_Manager
 
         // 5) Mensaje final
         $msg = $role === 'student'
-            ? ($sent ? 'Estudiante creado. Email enviado.' : 'Estudiante creado, email no enviado.')
+            ? ($sent ? 'Alumno creado. Email enviado.' : 'Alumno creado, email no enviado.')
             : ($sent ? 'Profesor creado. Email enviado.'   : 'Profesor creado, email no enviado.');
 
         return ['user_id' => $uid, 'sent' => (bool)$sent, 'message' => $msg];

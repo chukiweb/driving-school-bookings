@@ -39,7 +39,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
                                 <input type="password" class="form-control" id="password" placeholder="Ingresa tu contraseña" required>
                             </div>
                             <div class="d-grid">
-                                <button type="button" class="btn btn-primary" onclick="login()">Ingresar</button>
+                                <button type="submit" class="btn btn-primary">Ingresar</button>
                             </div>
                         </form>
                         <p class="text-danger mt-3 text-center" id="error-message"></p>

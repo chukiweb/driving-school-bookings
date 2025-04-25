@@ -283,7 +283,6 @@ class DSB_Vehicles_View extends DSB_Base_View
             </div>
         </div>
 
-        <h2>Listado de Vehículos</h2>
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>

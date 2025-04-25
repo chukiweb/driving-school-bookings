@@ -1,9 +1,10 @@
 jQuery(document).ready(function ($) {
 
-    const token = localStorage.getItem("jwt_token");
+    // const token = localStorage.getItem("jwt_token");
+    const token = sessionStorage.getItem("jwt_token");
 
     if (!token) {
-        window.location.href = "/public/views/acceso.php"; // Redirige al login si no hay sesión
+        window.location.href = "/acceso"; // Redirige al login si no hay sesión
         return;
     }
 
