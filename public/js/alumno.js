@@ -74,10 +74,6 @@ jQuery(document).ready(function ($) {
                 }
             });
 
-            document.getElementById('estudiante-avatar').addEventListener('click', function () {
-                document.getElementById('file-input').click();
-            });
-
             // Evento cuando se selecciona un archivo
             document.getElementById('file-input').addEventListener('change', function (event) {
                 AlumnoView.handleAvatarUpload(event);
@@ -89,7 +85,7 @@ jQuery(document).ready(function ($) {
                     AlumnoView.handleFormSubmit(e.target);
                 });
             });
-            
+
             const avatarWrapper = document.querySelector('.avatar-wrapper');
             const fileInput = document.getElementById('file-input');
 
@@ -168,176 +164,182 @@ jQuery(document).ready(function ($) {
             });
         }
 
-        static async handleFormSubmit(form) {
-            // Mapeo de formularios a sus respectivos endpoints y configuraciones
-            const formEndpoints = {
-                'studentCalendarForm': {
-                    endpoint: `${AlumnoView.apiUrl}/bookings`,
-                    method: 'POST',
-                    dataMapper: (form) => ({
-                        alumno: AlumnoView.alumnoId,
-                        profesor: AlumnoView.teacherId,
-                        vehiculo: AlumnoView.alumnoData.teacher.vehicle_id,
-                        fecha: form.querySelector('input[name="date"]').value,
-                        hora: form.querySelector('input[name="time"]').value,
-                        end_time: form.querySelector('input[name="end_time"]').value
-                    }),
-                    onSuccess: (res) => {
-                        // Ocultar modal
-                        AlumnoView.calendarModal.hide();
+        // Mejoras para la función initializeCalendar
+        static initializeCalendar() {
+            const calendarElement = document.getElementById('calendar');
+            if (!calendarElement) return;
 
-                        // Actualizar el saldo visible
-                        AlumnoView.actualizarSaldo(res.newBalance);
+            // Configuraciones comunes
+            const duracion = teacherConfig.duracion_clase || '00:45:00';
+            const classDuration = parseInt(duracion.split(':')[0]) * 60 + parseInt(duracion.split(':')[1]);
+            const diasNoDisponibles = teacherConfig.dias_no_disponibles ? teacherConfig.dias_no_disponibles.split(',').map(Number) : [];
 
-                        // Mostrar notificación sin bloquear con alert
-                        AlumnoView.mostrarNotificacion('success', `Reserva creada correctamente el ${res.date} a las ${res.startTime}`);
-
-                        // Estado inicial de la reserva (normalmente 'pending')
-                        // Verifica si el backend devuelve el estado, sino usa 'pending' como predeterminado
-                        const status = res.status || 'pending';
-
-                        // Determinar color basado en el estado
-                        const backgroundColor = status === 'pending' ? '#ffc107' : '#28a745';
-                        const className = status === 'pending' ? 'pending-event' : 'accepted-event';
-
-                        // Añadir el nuevo evento al calendario con color según su estado
-                        AlumnoView.calendar.addEvent({
-                            id: res.id,
-                            title: `Clase con ${AlumnoView.alumnoData.teacher.name}`,
-                            start: `${res.date}T${res.startTime}`,
-                            end: `${res.date}T${res.endTime}`,
-                            backgroundColor: backgroundColor,
-                            borderColor: backgroundColor,
-                            classNames: [className], // Aplicamos la clase CSS según estado
-                            status: status // Guardamos el estado en el evento para referencia futura
-                        });
-
-                        // Actualizar la lista de reservas en memoria
-                        AlumnoView.reservas.push({
-                            id: res.id,
-                            date: res.date,
-                            start: res.startTime,
-                            end: res.endTime,
-                            teacher_name: AlumnoView.alumnoData.teacher.name,
-                            vehicle: AlumnoView.alumnoData.teacher.vehicle_name,
-                            status: status // Usamos el estado real en lugar de 'active'
-                        });
+            // Opciones del Calendario
+            const studentCalendar = new FullCalendar.Calendar(calendarElement, {
+                allDaySlot: false,
+                locale: 'es',
+                nowIndicator: true,
+                selectable: true,
+                initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+                expandRows: true,
+                height: 'auto',
+                customButtons: {
+                    myCustomButton: {
+                        text: 'Hoy',
+                        click: function () {
+                            studentCalendar.today();
+                        }
                     }
                 },
-                'studentCalendarInfoForm': {
-                    endpoint: (form) => {
-                        const bookingId = form.querySelector('input[name="booking_id"]').value;
-                        return `${AlumnoView.apiUrl}/bookings/cancel/${bookingId}`;
-                    },
-                    method: 'POST',
-                    dataMapper: (form) => ({}),
-                    onSuccess: (res) => {
-                        // Obtener el ID de la reserva cancelada
-                        const bookingId = form.querySelector('input[name="booking_id"]').value;
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana',
+                    day: 'Día'
+                },
+                headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                slotLabelFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                },
+                slotDuration: duracion,
+                slotMinTime: teacherConfig.hora_inicio || '08:00:00',
+                slotMaxTime: teacherConfig.hora_fin || '21:00:00',
+                hiddenDays: diasNoDisponibles,
 
-                        // Ocultar modal
-                        AlumnoView.calendarInfoModal.hide();
-
-                        // Actualizar el saldo si hubo reembolso
-                        if (res.refund && res.refund_amount > 0) {
-                            // Si el backend ya nos devuelve el nuevo saldo, lo usamos directamente
-                            if (res.newBalance !== undefined) {
-                                AlumnoView.actualizarSaldo(res.newBalance);
-                            } else {
-                                // Si no, calculamos el nuevo saldo sumando el reembolso al saldo actual
-                                const currentBalance = parseFloat(AlumnoView.alumnoData.class_points);
-                                const newBalance = currentBalance + parseFloat(res.refund_amount);
-                                AlumnoView.actualizarSaldo(newBalance);
-                            }
-
-                            // Mensaje específico para reembolso
-                            AlumnoView.mostrarNotificacion('success',
-                                `Reserva cancelada correctamente. Se han devuelto ${res.refund_amount} créditos a tu cuenta.`);
-                        } else {
-                            // Mensaje sin reembolso
-                            AlumnoView.mostrarNotificacion('success', 'Reserva cancelada correctamente');
-                        }
-
-                        // Eliminar el evento del calendario
-                        const evento = AlumnoView.calendar.getEventById(bookingId);
-                        if (evento) {
-                            evento.remove();
-                        }
-
-                        // Actualizar el estado en la lista de reservas
-                        const reservaIndex = AlumnoView.reservas.findIndex(r => r.id == bookingId);
-                        if (reservaIndex >= 0) {
-                            AlumnoView.reservas[reservaIndex].status = 'cancelled';
-                        }
+                // Formateo de eventos para mejor visualización
+                eventDidMount: function (info) {
+                    // Añadir información extra a eventos
+                    if (info.event.extendedProps.status === 'pending') {
+                        info.el.querySelector('.fc-event-title').innerHTML =
+                            '<i class="bi bi-hourglass me-1"></i>' + info.event.title;
+                    } else if (info.event.extendedProps.status === 'accepted') {
+                        info.el.querySelector('.fc-event-title').innerHTML =
+                            '<i class="bi bi-check-circle me-1"></i>' + info.event.title;
                     }
+
+                    // Tooltips con más información
+                    const tooltip = new bootstrap.Tooltip(info.el, {
+                        title: `${info.event.title}<br>
+                       ${info.event.start ? info.event.start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : ''} - 
+                       ${info.event.end ? info.event.end.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : ''}
+                       ${info.event.extendedProps.status ? '<br>Estado: ' + info.event.extendedProps.status : ''}`,
+                        placement: 'top',
+                        html: true,
+                        container: 'body'
+                    });
+                },
+
+                // Resto de la configuración existente
+                select: function (e) {
+                    // Tu código existente
+                },
+                eventClick: function (e) {
+                    // Tu código existente
+                },
+                events: [...AlumnoView.events, ...AlumnoView.teacherEvents],
+                selectMirror: true,
+                selectAllow: function (selectInfo) {
+                    // Tu código existente
+                },
+                snapDuration: duracion,
+                selectMinDistance: 0,
+
+                // Manejar cambio de vista
+                viewDidMount: function (viewInfo) {
+                    // Actualizar botones de vista activa
+                    document.querySelectorAll('.calendar-view-switcher .btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    const activeView = viewInfo.view.type;
+                    const btn = document.querySelector(`.calendar-view-switcher .btn[data-view="${activeView}"]`);
+                    if (btn) btn.classList.add('active');
+
+                    // Aplicar funcionalidad a slots no disponibles
+                    setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 100);
+                },
+
+                // Aplicar la funcionalidad en cambio de fechas
+                datesSet: function () {
+                    setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 100);
                 }
-            };
+            });
 
-            const formId = form.id;
-            const formConfig = formEndpoints[formId];
+            // Guardar referencia
+            AlumnoView.calendar = studentCalendar;
 
-            if (!formConfig) {
-                console.error(`No hay configuración para el formulario ${formId}`);
-                return;
-            }
+            // Renderizar calendario
+            studentCalendar.render();
 
-            // Obtener la URL del endpoint
-            const endpoint = typeof formConfig.endpoint === 'function'
-                ? formConfig.endpoint(form)
-                : formConfig.endpoint;
-
-            // Obtener los datos
-            const payload = formConfig.dataMapper(form);
-
-            // Preparar el botón
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn?.innerHTML;
-
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
-            }
-
-            try {
-                // Realizar la petición fetch
-                const response = await fetch(endpoint, {
-                    method: formConfig.method,
-                    headers: {
-                        'Authorization': 'Bearer ' + AlumnoView.jwtToken,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+            // Event listeners para botones personalizados
+            document.querySelectorAll('.calendar-view-switcher .btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const view = this.getAttribute('data-view');
+                    studentCalendar.changeView(view);
                 });
+            });
 
-                // Verificar si la respuesta es correcta
-                if (!response.ok) {
-                    const errorData = await response.json();
+            document.getElementById('goToToday')?.addEventListener('click', function () {
+                studentCalendar.today();
+            });
 
-                    // Mostrar mensaje específico para horario no disponible
-                    if (errorData.code === 'slot_not_available') {
-                        AlumnoView.mostrarNotificacion('error', errorData.message || 'Este horario ya no está disponible');
+            // Filtros de calendario
+            document.getElementById('showMyClassesOnly')?.addEventListener('change', function () {
+                AlumnoView.filterCalendarEvents();
+            });
 
-                        // Actualizar el calendario para reflejar el cambio
-                        AlumnoView.calendar.refetchEvents();
-                    } else {
-                        throw new Error(errorData.message || 'Error en la petición');
-                    }
-                    return; // Salir de la función si hay error
+            document.getElementById('showAvailableOnly')?.addEventListener('change', function () {
+                AlumnoView.filterCalendarEvents();
+            });
+
+            // Responsive: Ajustar vista según tamaño de pantalla
+            window.addEventListener('resize', function () {
+                const width = window.innerWidth;
+                if (width < 768 && studentCalendar.view.type === 'timeGridWeek') {
+                    studentCalendar.changeView('timeGridDay');
+                } else if (width >= 768 && studentCalendar.view.type === 'timeGridDay' &&
+                    !studentCalendar._calendarOptions.initialView.includes('Day')) {
+                    studentCalendar.changeView('timeGridWeek');
                 }
+            });
 
-                // Procesar la respuesta
-                const data = await response.json();
-                formConfig.onSuccess(data);
-            } catch (error) {
-                console.error(`${formId} error:`, error);
-                AlumnoView.mostrarNotificacion('error', `Error: ${error.message || 'Error de conexión'}`);
-            } finally {
-                // Restaurar el botón
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
+            // Aplicar funcionalidad a slots no disponibles
+            setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 200);
+        }
+
+        // Nueva función para filtrar eventos del calendario
+        static filterCalendarEvents() {
+            const showMine = document.getElementById('showMyClassesOnly')?.checked;
+            const showAvailable = document.getElementById('showAvailableOnly')?.checked;
+
+            if (!AlumnoView.calendar) return;
+
+            AlumnoView.calendar.getEvents().forEach(event => {
+                // Evento del alumno o todos si no está marcada la opción
+                const isMine = event.extendedProps.student_id === AlumnoView.alumnoId;
+                const shouldShowMine = !showMine || (showMine && isMine);
+
+                // Evento disponible o todos si no está marcada la opción
+                const isAvailable = !event.extendedProps.status || event.extendedProps.status === 'available';
+                const shouldShowAvailable = !showAvailable || (showAvailable && isAvailable);
+
+                // Aplicar visibilidad
+                if (shouldShowMine && shouldShowAvailable) {
+                    event.setProp('display', 'auto');
+                } else {
+                    event.setProp('display', 'none');
                 }
-            }
+            });
         }
 
         // Método para mostrar notificaciones no bloqueantes
@@ -481,7 +483,6 @@ jQuery(document).ready(function ($) {
                 selectable: true,
                 initialView: 'timeGridWeek',
                 expandRows: true,
-                // height: '100%',
                 buttonText: {
                     today: 'Hoy',
                     month: 'Mes',
@@ -503,6 +504,15 @@ jQuery(document).ready(function ($) {
                 slotMaxTime: teacherConfig.hora_fin || '21:00:00',  // Configuración de la hora de fin para los estudiantes
                 hiddenDays: diasNoDisponibles,  // Asegúrate de definir los días no disponibles si es necesario
                 select: function (e) {
+                    // Verificar las restricciones temporales
+                    const now = new Date();
+                    const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
+
+                    if (e.start < oneHourFromNow) {
+                        AlumnoView.mostrarNotificacion('warning', 'Debes reservar las clases con al menos 1 hora de antelación');
+                        return; // No abrir el modal
+                    }
+
                     // Al seleccionar un horario, se asignan los valores al formulario
                     const selectedDate = e.start.toISOString().split('T')[0];
                     const start = e.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -521,7 +531,6 @@ jQuery(document).ready(function ($) {
                         classCount: classesInSelectedDate
                     };
 
-                    // Actualizamos el formulario al abrir el modal (NO aquí)
                     AlumnoView.calendarModal.show();
                 },
                 eventClick: function (e) {
@@ -544,15 +553,22 @@ jQuery(document).ready(function ($) {
                         bookingPointsElement.textContent = classPrice;
                     }
 
-                    // Mostrar el modal con los detalles de la reserva
                     AlumnoView.calendarInfoModal.show();
                 },
                 events: [...AlumnoView.events, ...AlumnoView.teacherEvents],
-                selectMirror: false,  // No mostrar "fantasma" durante el arrastre
-
-                // Añadir estas propiedades
+                selectMirror: false,
                 selectAllow: function (selectInfo) {
-                    // 1. Verificar que no haya overlap con otros eventos
+                    // 1. Obtener fecha y hora actual más una hora de antelación
+                    const now = new Date();
+                    const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
+
+                    // 2. No permitir seleccionar fechas/horas pasadas o con menos de 1 hora de antelación
+                    if (selectInfo.start < oneHourFromNow) {
+                        return false;
+                    }
+
+                    // 3. Verificaciones existentes (solapamiento, duración)
+                    // Verificar que no haya overlap con otros eventos
                     const selectedStart = selectInfo.start.toISOString();
                     const selectedEnd = selectInfo.end.toISOString();
 
@@ -565,29 +581,34 @@ jQuery(document).ready(function ($) {
 
                     if (isSlotTaken) return false;
 
-                    // 2. Verificar que la duración de la selección sea exactamente la duración del slot
+                    // Verificar que la duración de la selección sea correcta
                     const selectedDuration = (selectInfo.end - selectInfo.start) / 60000; // en minutos
-                    const slotDuration = classDuration; // La duración que ya has definido
+                    const slotDuration = classDuration;
 
-                    // Permitir selección solo si coincide con la duración exacta de un slot
-                    return Math.abs(selectedDuration - slotDuration) < 1; // permitir 1 minuto de diferencia por redondeo
+                    return Math.abs(selectedDuration - slotDuration) < 1;
                 },
-                snapDuration: duracion,// Forzar a que la selección sea exactamente de la duración configurada
-                selectMinDistance: 0, // Requerido para que no se active el arrastre
+                snapDuration: duracion,
+                selectMinDistance: 0,
                 eventTimeFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
-                }, // Restringir la altura de los eventos para que sea exactamente la altura de un slot
+                },
+                dayCellDidMount: function (info) {
+                    var today = new Date();
+                    if (info.date < today.setHours(0, 0, 0, 0)) {
+                        info.el.classList.add('fc-day-past');
+                    }
+                }
             });
 
-            studentCalendar.render();
-
             AlumnoView.calendar = studentCalendar;
+            studentCalendar.render();
         }
     }
 
     // Initialize the view
     AlumnoView.init();
 
+    console.log('Estructura de FullCalendar:', document.querySelector('.fc'));
 });

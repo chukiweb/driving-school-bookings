@@ -15,7 +15,32 @@ class DSB_Booking_Service
         $start_time = sanitize_text_field($request->get_param('hora'));
         $end_param  = $request->get_param('end_time');
 
-        // NUEVO: Verificar límite de clases por fecha de la reserva
+        $today = date('Y-m-d');
+        if ($date < $today) {
+            return new WP_Error(
+                'past_date',
+                'No es posible reservar clases para fechas pasadas',
+                ['status' => 400]
+            );
+        }
+
+        // 2. Verificar tiempo mínimo de antelación (1 hora)
+        $current_datetime = new DateTime();
+        $class_datetime = new DateTime("{$date} {$start_time}");
+        $time_diff_seconds = $class_datetime->getTimestamp() - $current_datetime->getTimestamp();
+        $time_diff_hours = $time_diff_seconds / 3600;
+
+        $min_booking_hours = 1; // Mínimo 1 hora de antelación
+
+        if ($time_diff_hours < $min_booking_hours) {
+            return new WP_Error(
+                'insufficient_notice',
+                sprintf('Debes reservar las clases con al menos %d hora(s) de antelación', $min_booking_hours),
+                ['status' => 400]
+            );
+        }
+
+        // Verificar límite de clases por fecha de la reserva
         $daily_limit = DSB_Settings::get('daily_limit');
 
         // Contar cuántas clases activas tiene el estudiante en la fecha de la clase
@@ -138,6 +163,43 @@ class DSB_Booking_Service
         ]);
     }
 
+    public static function accept_booking($request)
+    {
+        $booking_id = intval($request->get_param('id'));
+
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            return new WP_Error('invalid_booking', 'Reserva inválida', ['status' => 400]);
+        }
+
+        // Obtenemos el token de la cabecera de autorización
+        $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
+
+        // Validamos y decodificamos el token para obtener el usuario
+        $decoded = DSB()->jwt->validate_token($token);
+
+        if (!$decoded || !isset($decoded->user->id)) {
+            return new WP_Error('unauthorized', 'Usuario no autenticado', ['status' => 401]);
+        }
+
+        // Extraemos el ID del usuario del token JWT decodificado
+        $current_user_id = $decoded->user->id;
+
+        // Verificamos que el usuario sea el dueño de la reserva
+        $teacher_id = get_post_meta($booking_id, 'teacher_id', true);
+
+        if (intval($current_user_id) !== intval($teacher_id)) {
+            return new WP_Error('unauthorized', 'No tienes permiso para aceptar esta reserva', ['status' => 403]);
+        }
+
+        // Actualizar el estado de la reserva a "accepted"
+        update_post_meta($booking_id, 'status', 'accepted');
+
+        return rest_ensure_response([
+            'message' => 'Reserva aceptada correctamente',
+            'newStatus' => 'accepted'
+        ]);
+    }
+
     public static function cancel_booking($request)
     {
         $booking_id = intval($request->get_param('id'));
@@ -166,6 +228,8 @@ class DSB_Booking_Service
             return new WP_Error('unauthorized', 'No tienes permiso para cancelar esta reserva', ['status' => 403]);
         }
 
+        // Obtener el estado actual de la reserva
+        $booking_status = get_post_meta($booking_id, 'status', true);
         // Verificar si la cancelación es con tiempo suficiente para reembolso
         $booking_date = get_post_meta($booking_id, 'date', true);
         $booking_time = get_post_meta($booking_id, 'time', true);
@@ -177,7 +241,7 @@ class DSB_Booking_Service
 
         // Reembolsar tokens si cancela con tiempo
         $refund = false;
-        if ($hours_diff >= $cancel_hours_limit) {
+        if ($hours_diff >= $cancel_hours_limit && $booking_status !== 'accepted') {
             $cost = get_post_meta($booking_id, 'cost', true);
             if ($cost) {
                 $current_tokens = intval(get_user_meta($student_id, 'class_points', true));

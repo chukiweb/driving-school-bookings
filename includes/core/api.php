@@ -70,6 +70,12 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission'],
         ]);
 
+        register_rest_route($this->namespace, '/bookings/accept/(?P<id>\d+)', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'accept_booking'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
+
         register_rest_route($this->namespace, '/bookings/cancel/(?P<id>\d+)', [
             'methods'               => 'POST',
             'callback'              => [$this, 'cancel_booking'],
@@ -230,6 +236,11 @@ class DSB_API
     public function create_booking($request)
     {
         return DSB_Booking_Service::create_booking($request);
+    }
+
+    public function accept_booking($request)
+    {
+        return DSB_Booking_Service::accept_booking($request);
     }
 
     public function cancel_booking($request)

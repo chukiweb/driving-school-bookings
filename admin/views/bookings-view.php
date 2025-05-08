@@ -138,6 +138,9 @@ class DSB_Bookings_View extends DSB_Base_View
             case 'create_booking':
                 $this->handle_create_booking_form();
                 break;
+            case 'accept_booking':
+                $this->handle_accept_booking_form();
+                break;
             case 'cancel_booking':
                 $this->handle_cancel_booking_form();
                 break;
@@ -179,6 +182,16 @@ class DSB_Bookings_View extends DSB_Base_View
             $this->render_notice('Reserva creada exitosamente');
         } else {
             $this->render_notice('Error al crear la reserva', 'error');
+        }
+    }
+
+    protected function handle_accept_booking_form()
+    {
+        if (isset($_POST['booking_id'])) {
+            $booking_id = intval($_POST['booking_id']);
+            update_post_meta($booking_id, 'status', 'accepted');
+
+            $this->render_notice('Reserva aceptada exitosamente');
         }
     }
 

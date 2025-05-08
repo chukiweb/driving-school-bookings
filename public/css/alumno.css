@@ -1,21 +1,71 @@
-/* CSS para notificaciones flotantes */
+/* === ESTILOS GENERALES === */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --past-time-bg: rgba(180, 180, 180, 0.5);
+    --recent-time-bg: rgba(255, 193, 7, 0.25);
+    --booked-bg: rgba(220, 53, 69, 0.3);
+    --booked-text: #dc3545;
+    --accepted-color: #28a745;
+    --pending-color: #ffc107;
+}
+
+body {
+    background-color: #f8f9fa;
+    padding-bottom: 0;
+    scroll-behavior: smooth;
+}
+
+section {
+    scroll-margin-top: 70px;
+}
+
+/* === NAVEGACIÓN === */
+.navbar .nav-link {
+    position: relative;
+    font-weight: 500;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: all 0.3s;
+    transform: translateX(-50%);
+}
+
+.navbar .nav-link:hover::after,
+.navbar .nav-link.active::after {
+    width: 70%;
+}
+
+/* === NOTIFICACIONES === */
 .dsb-notificacion {
     position: fixed;
     top: 20px;
     right: 20px;
     padding: 15px 20px;
     background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
     z-index: 9999;
-    transform: translateY(-20px);
+    transform: translateY(-20px) translateX(10px);
     opacity: 0;
     transition: transform 0.3s ease, opacity 0.3s ease;
-    max-width: 80%;
+    max-width: 90%;
+    width: 350px;
 }
 
 .dsb-notificacion.visible {
-    transform: translateY(0);
+    transform: translateY(0) translateX(0);
     opacity: 1;
 }
 
@@ -37,38 +87,7 @@
     color: #856404;
 }
 
-/* Estilos para eventos pendientes */
-.pending-event {
-    border-left: 4px solid #ffc107 !important;
-    opacity: 0.9;
-}
-
-/* Estilos para eventos aceptados */
-.accepted-event {
-    border-left: 4px solid #28a745 !important;
-}
-
-/* Efectos hover */
-.fc-event:hover {
-    opacity: 0.8;
-    transform: scale(1.01);
-    transition: all 0.2s;
-}
-
-.unavailable-event {
-    opacity: 0.7;
-    background-color: rgba(220, 53, 69, 0.3) !important;
-    border: none !important;
-    pointer-events: none;
-}
-
-/* Estilo para mostrar que no se puede seleccionar */
-.fc-timegrid-slot.unavailable {
-    cursor: not-allowed !important;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Estilos para el avatar y su carga */
+/* === PERFIL Y AVATAR === */
 .avatar-container {
     position: relative;
     display: inline-block;
@@ -79,11 +98,15 @@
     cursor: pointer;
     width: 150px;
     height: 150px;
-    margin: 0 auto;
     border-radius: 50%;
     overflow: hidden;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     transition: all 0.3s;
+}
+
+.avatar-wrapper:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(13, 110, 253, 0.3);
 }
 
 .avatar-wrapper:hover .avatar-overlay {
@@ -94,6 +117,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: all 0.3s;
 }
 
 .avatar-overlay {
@@ -102,7 +126,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.6);
     color: white;
     opacity: 0;
     transition: opacity 0.3s;
@@ -144,4 +168,357 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* === CALENDARIO Y EVENTOS === */
+#calendar {
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.calendar-responsive {
+    min-height: 600px;
+    height: calc(80vh - 150px);
+}
+
+/* Contenedores y estructura del calendario */
+.fc .fc-toolbar {
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.fc .fc-button {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: none !important;
+}
+
+.fc .fc-button:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+    background-color: #0a58ca;
+    border-color: #0a53be;
+}
+
+/* Mejoras en cabeceras de columnas */
+.fc .fc-col-header-cell {
+    background-color: #f8f9fa;
+}
+
+.fc .fc-col-header-cell-cushion {
+    padding: 8px 4px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Tipos de eventos */
+.fc-event {
+    border-radius: 4px;
+    padding: 2px;
+    margin: 1px 0;
+    font-size: 0.85rem;
+}
+
+.pending-event {
+    border-left: 4px solid var(--pending-color) !important;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #856404;
+}
+
+.accepted-event {
+    border-left: 4px solid var(--accepted-color) !important;
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #155724;
+}
+
+.unavailable-event {
+    background-color: var(--booked-bg) !important;
+    border: none !important;
+    color: var(--booked-text);
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+/* Mejoras para eventos en vista mes */
+.fc-daygrid-event {
+    padding: 3px 4px;
+    margin: 1px 0;
+    white-space: normal !important; /* Permitir wrap del texto */
+    line-height: 1.3;
+}
+
+.fc-daygrid-dot-event .fc-event-title {
+    font-weight: 500;
+}
+
+/* Slots de tiempo */
+.fc-timegrid-slot-label-cushion {
+    font-weight: 500;
+    color: #666;
+}
+
+.fc-timegrid-slot.fc-timegrid-slot-lane {
+    border-color: #eee;
+}
+
+.fc-timegrid-slot.unavailable {
+    cursor: not-allowed !important;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Estados de días y slots */
+.fc-day-past {
+    background-color: var(--past-time-bg);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Overlay para slots con diferente estado */
+.slot-cell-marker.past-time,
+div[class*='slot-cell-'].past-time {
+    background-color: var(--past-time-bg) !important;
+    position: relative;
+    pointer-events: none;
+    cursor: not-allowed !important;
+    z-index: 2;
+}
+
+.slot-cell-marker.recent-time,
+div[class*='slot-cell-'].recent-time {
+    background-color: var(--recent-time-bg) !important;
+    position: relative;
+    pointer-events: none;
+    cursor: not-allowed !important;
+    z-index: 2;
+}
+
+/* Indicadores de estado */
+.slot-cell-marker.past-time::after {
+    content: "No disponible";
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #666;
+}
+
+.slot-cell-marker.recent-time::after {
+    content: "Mín. 1h";
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: var(--booked-text);
+}
+
+/* Mejoras para eventos reservados (listado en vista mes) */
+.fc-daygrid-event-harness {
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+.fc-daygrid-event {
+    background-color: #f8f9fa;
+    border: 1px solid #eaeaea;
+}
+
+/* Indicadores visuales para reservas en vista mes */
+.fc-daygrid-day-bottom {
+    padding-top: 1px;
+}
+
+.fc-daygrid-day-bottom::before {
+    content: '';
+    display: block;
+    margin: 0 9px;
+}
+
+/* Hover en celdas del día */
+.fc-day:not(.fc-day-past):hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* === LEYENDA DEL CALENDARIO === */
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    font-size: 0.85rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.color-box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 3px;
+}
+
+.color-box.past {
+    background-color: var(--past-time-bg);
+    border: 1px solid rgba(150, 150, 150, 0.5);
+}
+
+.color-box.recent {
+    background-color: var(--recent-time-bg);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.color-box.booked {
+    background-color: var(--booked-bg);
+    border: 1px solid rgba(220, 53, 69, 0.5);
+}
+
+.color-box.available {
+    background-color: white;
+    border: 1px solid #ddd;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .calendar-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px;
+        font-size: 0.8rem;
+    }
+    
+    .calendar-responsive {
+        height: auto;
+        min-height: 500px;
+    }
+    
+    .avatar-wrapper {
+        width: 120px;
+        height: 120px;
+    }
+    
+    /* Ajustes para FullCalendar en móvil */
+    .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .fc .fc-toolbar-title {
+        font-size: 1rem;
+    }
+    
+    .fc .fc-button {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.5rem;
+    }
+    
+    .fc-event {
+        font-size: 0.75rem;
+    }
+    
+    /* Mejoras para vista día en móvil */
+    .fc-timeGridDay-view .fc-timegrid-event {
+        padding: 3px 4px;
+    }
+    
+    /* Mejoras para vista mes en móvil */
+    .fc-daygrid-day-number {
+        padding: 4px 6px !important;
+        font-size: 0.9rem;
+    }
+    
+    .fc-daygrid-day-events {
+        min-height: 20px;
+    }
+}
+
+/* === TARJETAS DE RESERVAS === */
+#reservas-container .card {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#reservas-container .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* === MODAL === */
+.modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+/* === ACORDEÓN === */
+.accordion-button:not(.collapsed) {
+    background-color: rgba(13, 110, 253, 0.1);
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+/* === MEJORAS DE ACCESIBILIDAD === */
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.btn:hover::after {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active::after {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: all 0.1s;
 }
