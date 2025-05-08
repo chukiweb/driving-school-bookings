@@ -72,10 +72,10 @@ class DSB_Student_Service
         ], 200);
     }
 
-    private static function get_student_bookings($student_id)
+    public static function get_student_bookings($student_id)
     {
         $args = [
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'meta_query' => [
                 [
                     'key' => 'student_id',

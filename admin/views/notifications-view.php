@@ -8,7 +8,7 @@ class DSB_Notifications_View extends DSB_Base_View {
 
     protected function get_data() {
         return get_posts([
-            'post_type' => 'notificacion',
+            'post_type' => 'dsb_notification',
             'posts_per_page' => -1,
         ]);
     }
@@ -19,7 +19,7 @@ class DSB_Notifications_View extends DSB_Base_View {
         $post_data = [
             'post_title' => sanitize_text_field($_POST['title']),
             'post_content' => wp_kses_post($_POST['message']),
-            'post_type' => 'notificacion',
+            'post_type' => 'dsb_notification',
             'post_status' => 'publish',
             'meta_input' => [
                 'type' => sanitize_text_field($_POST['type']),

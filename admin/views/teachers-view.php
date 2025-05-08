@@ -211,7 +211,7 @@ class DSB_Teachers_View extends DSB_Base_View
                 sanitize_text_field($_POST['student']),
                 $date
             ),
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'post_status' => 'publish',
             'meta_input' => [
                 'student_id' => sanitize_text_field($_POST['student']),
@@ -220,7 +220,7 @@ class DSB_Teachers_View extends DSB_Base_View
                 'date' => $date,
                 'time' => $start_time,
                 'end_time' => $end_time,
-                'status' => 'pending'
+                'status' => 'pending',
             ]
         ];
         $post_id = wp_insert_post($post_data);

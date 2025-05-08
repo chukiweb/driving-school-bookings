@@ -1,0 +1,147 @@
+/* CSS para notificaciones flotantes */
+.dsb-notificacion {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    z-index: 9999;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    max-width: 80%;
+}
+
+.dsb-notificacion.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.dsb-notificacion.success {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+    color: #155724;
+}
+
+.dsb-notificacion.error {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    color: #721c24;
+}
+
+.dsb-notificacion.warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+/* Estilos para eventos pendientes */
+.pending-event {
+    border-left: 4px solid #ffc107 !important;
+    opacity: 0.9;
+}
+
+/* Estilos para eventos aceptados */
+.accepted-event {
+    border-left: 4px solid #28a745 !important;
+}
+
+/* Efectos hover */
+.fc-event:hover {
+    opacity: 0.8;
+    transform: scale(1.01);
+    transition: all 0.2s;
+}
+
+.unavailable-event {
+    opacity: 0.7;
+    background-color: rgba(220, 53, 69, 0.3) !important;
+    border: none !important;
+    pointer-events: none;
+}
+
+/* Estilo para mostrar que no se puede seleccionar */
+.fc-timegrid-slot.unavailable {
+    cursor: not-allowed !important;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Estilos para el avatar y su carga */
+.avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.avatar-wrapper {
+    position: relative;
+    cursor: pointer;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    transition: all 0.3s;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-overlay i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.avatar-img.uploading {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
+
+/* Animación durante la carga */
+.avatar-wrapper::after {
+    content: '';
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--bs-primary);
+    animation: spin 1s linear infinite;
+}
+
+.avatar-wrapper:has(.uploading)::after {
+    display: block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -45,18 +45,9 @@ class DSB_JWT
         if (!session_id()) {
             session_start();
         }
+
         // Guarda en la sesión de PHP
         $_SESSION['jwt_token'] = $token;
-        // Y también en cookie para que PHP la lea en el front
-        setcookie(
-            'jwt_token',
-            $token,
-            time() + (DAY_IN_SECONDS * 7),
-            '/',
-            '',        // dominio (deja vacío para auto)
-            false,     // https only?
-            true       // httponly
-        );
     }
 
     public function validate_token($token)

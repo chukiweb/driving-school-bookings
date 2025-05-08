@@ -1,21 +1,25 @@
 <?php
 // core/auth.php
 
-class DSB_Auth {
-    public function __construct() {
+class DSB_Auth
+{
+    public function __construct()
+    {
         // Inicia la sesión si no existe
         add_action('init', [$this, 'maybe_start_session']);
         // Protege las rutas antes de cargar el template (prioridad 5 para ejecutarse antes del redirect de plantillas)
         add_action('template_redirect', [$this, 'protect_routes'], 5);
     }
 
-    public function maybe_start_session() {
+    public function maybe_start_session()
+    {
         if (!session_id()) {
             session_start();
         }
     }
 
-    public function protect_routes() {
+    public function protect_routes()
+    {
         // Identifica la vista solicitada por query var dsb_view
         $view = get_query_var('dsb_view');
 
@@ -25,7 +29,8 @@ class DSB_Auth {
         }
 
         // Recupera y valida el token de la sesión
-        $token = $_SESSION['jwt_token'] ?? ($_COOKIE['jwt_token'] ?? '');
+        $token = $_SESSION['jwt_token'] ?? '';
+
         $decoded = DSB()->jwt->validate_token($token);
 
         // Si intenta acceder al login (/acceso)

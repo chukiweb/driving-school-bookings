@@ -26,7 +26,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
             'teachers' => get_users(['role' => 'teacher']),
             'students' => get_users(['role' => 'student']),
             'vehicles' => get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]),
-            'bookings' => get_posts(['post_type' => 'reserva', 'posts_per_page' => -1])
+            'bookings' => get_posts(['post_type' => 'dsb_booking', 'posts_per_page' => -1])
         ];
     }
 
@@ -154,6 +154,9 @@ class DSB_Dashboard_View extends DSB_Base_View {
                         <th scope="row"><label for="class_cost">Coste por clase (créditos)</label></th>
                         <td><input type="number" step="0.1" id="class_cost" name="class_cost" value="<?php echo esc_attr($class_cost); ?>" class="regular-text"></td>
                     </tr>
+                    <tr>
+                        <th scope="row"><label for="class_duration">Duración de clase (minutos)</label></th>
+                        <td><input type="number" id="class_duration" name="class_duration" value="<?php echo esc_attr(DSB_Settings::get('class_duration')); ?>" class="regular-text"></td>
                 </table>
     
                 <p><button type="submit" class="button button-primary">Guardar ajustes</button></p>
@@ -208,7 +211,8 @@ class DSB_Dashboard_View extends DSB_Base_View {
             if (current_user_can('administrator')) {
                 DSB_Settings::update('cancelation_time_hours', intval($_POST['cancelation_time_hours']));
                 DSB_Settings::update('daily_limit', intval($_POST['daily_limit']));
-                DSB_Settings::update('class_cost', floatval($_POST['class_cost']));
+                DSB_Settings::update('class_cost', floatval($_POST['class_cost']));                
+                DSB_Settings::update('class_duration', intval($_POST['class_duration']));
             }
         }
     }

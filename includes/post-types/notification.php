@@ -23,7 +23,7 @@ class DSB_Notification {
             'show_in_rest' => true
         ];
 
-        register_post_type('notification', $args);
+        register_post_type('dsb_notification', $args);
     }
 
     public function register_fields() {

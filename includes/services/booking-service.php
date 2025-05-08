@@ -1,0 +1,199 @@
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class DSB_Booking_Service
+{
+    public static function create_booking($request)
+    {
+        // 1. Recoger y sanitizar parámetros del cuerpo
+        $student_id = intval($request->get_param('alumno'));
+        $teacher_id = intval($request->get_param('profesor'));
+        $vehicle_id = intval($request->get_param('vehiculo'));
+        $date       = sanitize_text_field($request->get_param('fecha'));
+        $start_time = sanitize_text_field($request->get_param('hora'));
+        $end_param  = $request->get_param('end_time');
+
+        // NUEVO: Verificar límite de clases por fecha de la reserva
+        $daily_limit = DSB_Settings::get('daily_limit');
+
+        // Contar cuántas clases activas tiene el estudiante en la fecha de la clase
+        $existing_bookings = get_posts([
+            'post_type' => 'dsb_booking',
+            'meta_query' => [
+                'relation' => 'AND',
+                ['key' => 'student_id', 'value' => $student_id, 'compare' => '='],
+                ['key' => 'date', 'value' => $date, 'compare' => '='],
+                ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
+            ],
+            'posts_per_page' => -1
+        ]);
+
+        if (count($existing_bookings) >= $daily_limit) {
+            return new WP_Error(
+                'daily_limit_exceeded',
+                sprintf('No puedes reservar más de %d clase(s) para el día %s', $daily_limit, date('d/m/Y', strtotime($date))),
+                ['status' => 400]
+            );
+        }
+
+        // Verificar que no existan reservas para el mismo profesor en la misma fecha y hora
+        $existing_teacher_bookings = get_posts([
+            'post_type' => 'dsb_booking',
+            'meta_query' => [
+                'relation' => 'AND',
+                ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '='],
+                ['key' => 'date', 'value' => $date, 'compare' => '='],
+                ['key' => 'time', 'value' => $start_time, 'compare' => '='],
+                ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
+            ],
+            'posts_per_page' => -1
+        ]);
+
+        if (!empty($existing_teacher_bookings)) {
+            return new WP_Error(
+                'slot_not_available',
+                sprintf(
+                    'El horario seleccionado (%s %s) ya no está disponible. Por favor, seleccione otro horario.',
+                    date('d/m/Y', strtotime($date)),
+                    $start_time
+                ),
+                ['status' => 400]
+            );
+        }
+
+        // 2. Verificar saldo de tokens del alumno
+        $class_cost = DSB_Settings::get('class_cost');
+        $student_tokens = intval(get_user_meta($student_id, 'class_points', true));
+
+        // Si el estudiante no tiene suficientes tokens
+        if ($student_tokens < $class_cost) {
+            return new WP_Error(
+                'insufficient_tokens',
+                sprintf(
+                    'No tienes suficientes créditos para esta reserva. Necesitas: %s, tienes: %s',
+                    $class_cost,
+                    $student_tokens
+                ),
+                ['status' => 400]
+            );
+        }
+
+        // 3. Calcular hora de fin si no viene en el request
+        if (! empty($end_param)) {
+            $end_time = sanitize_text_field($end_param);
+        } else {
+            // Obtener la duración de clase desde la configuración del profesor
+            $teacher_config = get_user_meta($teacher_id, 'dsb_clases_config', true);
+
+            // Si el profesor tiene configuración de duración, usarla; si no, usar el valor global
+            $class_duration = !empty($teacher_config['duracion'])
+                ? intval($teacher_config['duracion'])
+                : DSB_Settings::get('class_duration');
+
+            $dt_inicio = new DateTime("{$date} {$start_time}");
+            $dt_fin    = clone $dt_inicio;
+            $dt_fin->modify('+' . $class_duration . ' minutes');
+            $end_time = $dt_fin->format('H:i');
+        }
+
+        // 4. Preparar datos del post
+        $post_data = [
+            'post_type' => 'dsb_booking',
+            'post_title' => sprintf('Reserva %s - %s | %s', $date, $start_time, $student_id),
+            'post_status' => 'publish',
+            'meta_input' => [
+                'student_id' => $student_id,
+                'teacher_id' => $teacher_id,
+                'vehicle_id' => $vehicle_id,
+                'date' => $date,
+                'time' => $start_time,
+                'end_time' => $end_time,
+                'status' => 'pending',
+                'cost' => $class_cost, // Guardamos el costo para referencia y posibles reembolsos
+            ],
+        ];
+
+        // 5. Insertar el post y manejar errores
+        $post_id = wp_insert_post($post_data);
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
+
+        // 6. Restar tokens al estudiante
+        $new_balance = $student_tokens - $class_cost;
+        update_user_meta($student_id, 'class_points', $new_balance);
+
+        // 7. Devolver respuesta con ID y datos de la reserva
+        return rest_ensure_response([
+            'success'   => true,
+            'id'        => $post_id,
+            'date'      => $date,
+            'startTime' => $start_time,
+            'endTime'   => $end_time,
+            'cost'      => $class_cost,
+            'newBalance' => $new_balance,
+            'status'    => 'pending'
+        ]);
+    }
+
+    public static function cancel_booking($request)
+    {
+        $booking_id = intval($request->get_param('id'));
+
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            return new WP_Error('invalid_booking', 'Reserva inválida', ['status' => 400]);
+        }
+
+        // Obtenemos el token de la cabecera de autorización
+        $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
+
+        // Validamos y decodificamos el token para obtener el usuario
+        $decoded = DSB()->jwt->validate_token($token);
+
+        if (!$decoded || !isset($decoded->user->id)) {
+            return new WP_Error('unauthorized', 'Usuario no autenticado', ['status' => 401]);
+        }
+
+        // Extraemos el ID del usuario del token JWT decodificado
+        $current_user_id = $decoded->user->id;
+
+        // Verificamos que el usuario sea el dueño de la reserva
+        $student_id = get_post_meta($booking_id, 'student_id', true);
+
+        if (intval($current_user_id) !== intval($student_id)) {
+            return new WP_Error('unauthorized', 'No tienes permiso para cancelar esta reserva', ['status' => 403]);
+        }
+
+        // Verificar si la cancelación es con tiempo suficiente para reembolso
+        $booking_date = get_post_meta($booking_id, 'date', true);
+        $booking_time = get_post_meta($booking_id, 'time', true);
+        $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
+        $now = new DateTime();
+
+        $hours_diff = ($class_datetime->getTimestamp() - $now->getTimestamp()) / 3600;
+        $cancel_hours_limit = DSB_Settings::get('cancelation_time_hours');
+
+        // Reembolsar tokens si cancela con tiempo
+        $refund = false;
+        if ($hours_diff >= $cancel_hours_limit) {
+            $cost = get_post_meta($booking_id, 'cost', true);
+            if ($cost) {
+                $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
+                update_user_meta($student_id, 'class_points', $current_tokens + $cost);
+                $refund = true;
+            }
+        }
+
+        // Actualizar el estado de la reserva
+        update_post_meta($booking_id, 'status', 'cancelled');
+
+        return rest_ensure_response([
+            'message' => 'Reserva cancelada correctamente',
+            'refund' => $refund,
+            'refund_amount' => $refund ? floatval(get_post_meta($booking_id, 'cost', true)) : 0,
+            'newBalance' => floatval(get_user_meta($student_id, 'class_points', true)) // Añadir esto
+        ]);
+    }
+}

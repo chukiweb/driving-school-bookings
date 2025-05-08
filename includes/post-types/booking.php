@@ -40,7 +40,7 @@ class DSB_Booking {
             'show_in_rest' => true
         ];
 
-        register_post_type('booking', $args);
+        register_post_type('dsb_booking', $args);
     }
 
     public function register_taxonomies() {

@@ -238,9 +238,69 @@ class DSB_User_Manager
         }
 
         // 5) Asunto y cabeceras
-        $subject = __( 'Acceso a tu cuenta en la Autoescuela', 'driving-school-bookings' );
+        $subject = __('Acceso a tu cuenta en la Autoescuela', 'driving-school-bookings');
 
         // 6) Enviar
         return (bool) wp_mail($user->user_email, $subject, $message, $headers);
     }
+
+    public function get_user_by_id($user_id)
+    {
+        $user = get_user_by('id', $user_id);
+        if (! $user) {
+            return new WP_Error('no_user', 'Usuario no encontrado');
+        }
+        if (! in_array($user->roles[0], ['student', 'teacher'])) {
+            return new WP_Error('invalid_role', 'El usuario no es un alumno o profesor');
+        }
+
+        if ($user->roles[0] === 'teacher') {
+            $user_data = $this->get_teacher($user);
+        } else {
+            $user_data = $this->get_student($user);
+        }
+
+        return $user_data;
+    }
+
+    public function get_student($student)
+    {
+        $student_data = [];
+
+        $avatar_id = get_user_meta($student->id, 'user_avatar', true);
+        $avatar_url = ($avatar_id) ? wp_get_attachment_url($avatar_id) : get_avatar_url($student->ID);
+
+        $teacher = get_user_by('id', get_user_meta($student->ID, 'assigned_teacher', true));
+
+        $vehicle_id = get_user_meta($teacher->ID, 'assigned_vehicle', true);
+        $vehicle_name = get_the_title($vehicle_id);
+
+        $student_data = [
+            'id' => $student->ID,
+            'dni' => get_user_meta($student->ID, 'dni', true),
+            'name' => $student->display_name,
+            'email' => $student->user_email,
+            'avatar' => $avatar_url,
+            'phone' => get_user_meta($student->ID, 'phone', true),
+            'birth_date' => date_i18n('d/m/Y', strtotime(get_user_meta($student->ID, 'birth_date', true))),
+            'address' => get_user_meta($student->ID, 'address', true),
+            'city' => get_user_meta($student->ID, 'city', true),
+            'cp' => get_user_meta($student->ID, 'postal_code', true),
+            'license_type' => get_user_meta($student->ID, 'license_type', true),
+            'teacher' => [
+                'id' => $teacher->ID,
+                'name' => $teacher->display_name,
+                'vehicle_id' => $vehicle_id,
+                'vehicle_name' => $vehicle_name,
+                'config' => get_user_meta($teacher->ID, 'dsb_clases_config', true),
+            ],
+            'bookings' => DSB_Calendar_Service::get_student_calendar($student->ID),
+            'class_points' => get_user_meta($student->ID, 'class_points', true),
+        ];
+
+        return $student_data;
+    }
+
+    public function get_teacher($teacher)
+    {}
 }
