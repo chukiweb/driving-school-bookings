@@ -1,22 +1,719 @@
+/* === ESTILOS GENERALES === */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --past-time-bg: rgba(180, 180, 180, 0.5);
+    --recent-time-bg: rgba(255, 193, 7, 0.25);
+    --booked-bg: rgba(220, 53, 69, 0.3);
+    --booked-text: #dc3545;
+    --accepted-color: #28a745;
+    --pending-color: #ffc107;
+}
+
 body {
-    background-color: #fdf6d8;
+    background-color: #f8f9fa;
+    padding-bottom: 0;
+    scroll-behavior: smooth;
 }
 
-.container {
-    max-width: 400px;
-    margin: auto;
+section {
+    scroll-margin-top: 70px;
 }
 
-.btn-warning {
-    background-color: #f9d342;
-    border: none;
+/* === NAVEGACIÓN === */
+.navbar .nav-link {
+    position: relative;
+    font-weight: 500;
+}
+
+.navbar .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: all 0.3s;
+    transform: translateX(-50%);
+}
+
+.navbar .nav-link:hover::after,
+.navbar .nav-link.active::after {
+    width: 70%;
+}
+
+/* === NOTIFICACIONES === */
+.dsb-notificacion {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    max-width: 90%;
+    width: 350px;
+}
+
+.dsb-notificacion.visible {
+    transform: translateY(0) translateX(0);
+    opacity: 1;
+}
+
+.dsb-notificacion.success {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+    color: #155724;
+}
+
+.dsb-notificacion.error {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    color: #721c24;
+}
+
+.dsb-notificacion.warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+/* === PERFIL Y AVATAR === */
+.avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.avatar-wrapper {
+    position: relative;
+    cursor: pointer;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s;
+}
+
+.avatar-wrapper:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(13, 110, 253, 0.3);
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: all 0.3s;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-overlay i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.avatar-img.uploading {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
+
+/* Animación durante la carga */
+.avatar-wrapper::after {
+    content: '';
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+}
+
+.avatar-wrapper:has(.uploading)::after {
+    display: block;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* === DASHBOARD DEL PROFESOR === */
+.stats-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+    height: 100%;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .card-body {
+    position: relative;
+    z-index: 1;
+}
+
+.stats-card .stats-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.stats-card .stats-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.stats-card .stats-title {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+}
+
+.stats-card.pending {
+    background: linear-gradient(135deg, var(--warning-color), #fd7e14);
+}
+
+.stats-card.today {
+    background: linear-gradient(135deg, var(--primary-color), #6610f2);
+}
+
+.stats-card.total {
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+}
+
+/* Lista de estudiantes */
+.student-list {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.student-item {
+    transition: all 0.3s;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.student-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* === CALENDARIO Y EVENTOS === */
+#calendar {
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+#calendario .card {
+    height: calc(100% - 60px);
+}
+
+#calendario .card .card-body {
+    height: calc(100% - 40px);
+}
+
+.fc, .fc .fc-view, .fc .fc-view-harness, .fc-view-harness-active {
+    height: 100% !important;
+}
+
+.calendar-responsive {
+    min-height: 650px;
+    height: calc(80vh - 120px);
+    overflow: auto;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .card-body.p-0 {
+        height: 60vh; /* Un poco más pequeño para móviles */
+    }
+    
+    .calendar-responsive {
+        min-height: 400px; /* Altura mínima para móviles */
+    }
+}
+
+@media (max-height: 600px) {
+    .card-body.p-0 {
+        height: 50vh; /* Para dispositivos con poca altura */
+    }
+}
+
+.card-body.p-0 {
+    height: 70vh; /* Altura base del viewport */
+}
+
+@media (max-width: 768px) {
+    .calendar-responsive {
+        height: 600px;
+        min-height: 500px;
+    }
+}
+
+/* Mejoras de visibilidad en las celdas del calendario */
+.fc .fc-timegrid-slot-minor {
+    border-top-style: dashed;
+    border-top-color: #eaeaea;
+}
+
+.fc .fc-col-header-cell {
+    background-color: #f8f9fa;
+    padding: 8px 0;
+}
+
+.fc .fc-col-header-cell-cushion {
+    padding: 8px 4px;
+    font-weight: 600;
+    color: #333;
+    text-decoration: none !important;
+    font-size: 1rem;
+}
+
+/* Mejorar visibilidad de la hora actual */
+.fc .fc-timegrid-now-indicator-line {
+    border-color: #dc3545;
+    border-width: 2px;
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+    border-color: #dc3545;
+    border-width: 5px;
+}
+
+/* Mejoras para los eventos (clases) */
+.fc-event {
+    border-radius: 6px !important;
+    padding: 2px 6px !important;
+    margin: 1px 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+}
+
+/* Personalización de eventos por estado */
+.fc-event.pending-event {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+    border-left: 4px solid var(--warning-color) !important;
+    color: #856404 !important;
+}
+
+.fc-event.accepted-event {
+    background-color: rgba(40, 167, 69, 0.2) !important;
+    border-left: 4px solid var(--success-color) !important;
+    color: #155724 !important;
+}
+
+.fc-event.past-event {
+    background-color: rgba(108, 117, 125, 0.2) !important;
+    border-left: 4px solid var(--secondary-color) !important;
+    color: #383d41 !important;
+    opacity: 0.8;
+}
+
+/* Mejora a la visualización de título y hora de eventos */
+.fc-event-title {
+    font-weight: 500;
+    white-space: normal !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin: 2px 0;
+    font-size: 0.85rem;
+}
+
+.fc-event-time {
+    font-weight: 600;
+    font-size: 0.8rem !important;
+    opacity: 0.9;
+    margin-right: 4px;
+}
+
+/* Iconos para eventos según estado */
+.fc-event.pending-event .fc-event-title:before {
+    content: "⌛ ";
+}
+
+.fc-event.accepted-event .fc-event-title:before {
+    content: "✓ ";
+}
+
+/* Mejora de leyenda */
+.calendar-legend {
+    background-color: #f8f9fa;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.color-box {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.color-box.available {
+    background-color: #fff;
+}
+
+.color-box.pending {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 4px solid var(--warning-color);
+}
+
+.color-box.accepted {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-left: 4px solid var(--success-color);
+}
+
+.color-box.past {
+    background-color: rgba(108, 117, 125, 0.2);
+    border-left: 4px solid var(--secondary-color);
+    opacity: 0.8;
+}
+
+/* Mejoras responsivas */
+@media (max-width: 768px) {
+    .fc-toolbar.fc-header-toolbar {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        margin: 0 0 0.5rem 0 !important;
+        width: 100%;
+    }
+
+    .fc-toolbar-title {
+        font-size: 1.2rem !important;
+    }
+
+    .fc-event-title {
+        font-size: 0.75rem;
+        -webkit-line-clamp: 1;
+    }
+
+    .fc-event {
+        padding: 1px 4px !important;
+    }
+}
+
+/* Mejoras para tooltip */
+.event-tooltip {
+    position: absolute;
+    z-index: 10000;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    max-width: 300px;
+    transition: opacity 0.2s;
+}
+
+.event-tooltip-header {
     font-weight: bold;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.btn-warning:hover {
-    background-color: #eac22d;
+.event-tooltip-status {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
 }
 
-.rounded-circle {
-    border: 3px solid #f9d342;
+.event-tooltip-status.pending {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #856404;
+}
+
+.event-tooltip-status.accepted {
+    background-color: rgba(40, 167, 69, 0.2);
+    color: #155724;
+}
+
+.event-tooltip-content {
+    margin-top: 5px;
+}
+
+.event-tooltip-detail {
+    margin: 3px 0;
+    display: flex;
+    align-items: center;
+}
+
+.event-tooltip-detail i {
+    margin-right: 5px;
+    width: 16px;
+    text-align: center;
+}
+
+/* === LEYENDA DEL CALENDARIO === */
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    font-size: 0.85rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.color-box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 3px;
+}
+
+.color-box.past {
+    background-color: var(--past-time-bg);
+    border: 1px solid rgba(150, 150, 150, 0.5);
+}
+
+.color-box.recent {
+    background-color: var(--recent-time-bg);
+    border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.color-box.booked {
+    background-color: var(--booked-bg);
+    border: 1px solid rgba(220, 53, 69, 0.5);
+}
+
+.color-box.pending {
+    background-color: rgba(255, 193, 7, 0.15);
+    border-left: 4px solid var(--pending-color);
+}
+
+.color-box.accepted {
+    background-color: rgba(40, 167, 69, 0.15);
+    border-left: 4px solid var(--accepted-color);
+}
+
+.color-box.unavailable {
+    background-color: rgba(180, 180, 180, 0.3);
+    border: 1px solid #ccc;
+}
+
+/* === MODAL === */
+.modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+.student-detail-row {
+    transition: transform 0.3s;
+}
+
+.student-detail-row:hover {
+    transform: translateY(-2px);
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .calendar-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px;
+        font-size: 0.8rem;
+    }
+
+    .calendar-responsive {
+        height: 100% !important;
+        min-height: 600px;
+        overflow: auto;
+    }
+
+    .avatar-wrapper {
+        width: 120px;
+        height: 120px;
+    }
+
+    /* Ajustes para FullCalendar en móvil */
+    .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1rem;
+    }
+
+    .fc .fc-button {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .fc-event {
+        font-size: 0.75rem;
+    }
+
+    /* Mejoras para vista día en móvil */
+    .fc-timeGridDay-view .fc-timegrid-event {
+        padding: 3px 4px;
+    }
+
+    /* Para tablas en móvil */
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+
+    .stats-card .stats-number {
+        font-size: 1.5rem;
+    }
+
+    .stats-card .stats-icon {
+        font-size: 2rem;
+    }
+}
+
+/* === BOTONES Y EFECTOS === */
+.btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.btn:hover::after {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active::after {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: all 0.1s;
+}
+
+/* Estilos para el botón de cierre de sesión */
+.logout-btn {
+    transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: 4px;
+}
+
+.logout-btn .bi {
+    font-size: 1.1rem;
+}
+
+@media (max-width: 991px) {
+    .logout-btn {
+        margin-top: 8px;
+        padding: 8px;
+        text-align: center;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 4px;
+    }
 }

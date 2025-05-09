@@ -30,6 +30,12 @@ class DSB_API
             'permission_callback'   => '__return_true'
         ]);
 
+        register_rest_route($this->namespace, '/auth/logout', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'logout'],
+            'permission_callback'   => '__return_true'
+        ]);
+
         register_rest_route($this->namespace, '/auth/refresh', [
             'methods'               => 'POST',
             'callback'              => [$this, 'refresh_token'],
@@ -197,6 +203,26 @@ class DSB_API
         ];
     }
 
+    public function logout($request)
+    {
+        // Destruir el token JWT de la sesión
+        if (!session_id()) {
+            session_start();
+        }
+
+        // Eliminar el token de la sesión
+        unset($_SESSION['jwt_token']);
+
+        // Destruir la sesión por completo
+        session_destroy();
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente',
+            'redirect' => '/acceso'
+        ]);
+    }
+
     public function get_bookings($request)
     {
         $page = isset($request['page']) ? intval($request['page']) : 1;
@@ -248,19 +274,7 @@ class DSB_API
         return DSB_Booking_Service::cancel_booking($request);
     }
 
-    // private function format_booking($post)
-    // {
-    //     return [
-    //         'id' => $post->ID,
-    //         'student' => get_field('student', $post->ID),
-    //         'teacher' => get_field('teacher', $post->ID),
-    //         'vehicle' => get_field('vehicle', $post->ID),
-    //         'date' => get_field('booking_date', $post->ID),
-    //         'duration' => get_field('duration', $post->ID),
-    //         'price' => get_field('price', $post->ID),
-    //         'status' => get_field('payment_status', $post->ID)
-    //     ];
-    // }
+
 
     private function format_user($user)
     {

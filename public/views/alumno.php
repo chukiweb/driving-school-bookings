@@ -155,6 +155,11 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                             <i class="bi bi-calendar-plus me-1"></i>Reservar
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link logout-btn" href="#">
+                            <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -320,7 +325,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                     <span class="badge <?= $badge_class ?>"><?= $badge_text ?></span>
                                 </div>
                                 <div class="card-body d-flex justify-content-around">
-                                    
+
                                     <div class="d-flex mb-2">
                                         <div class="me-3 text-primary">
                                             <i class="bi bi-calendar fs-5"></i>

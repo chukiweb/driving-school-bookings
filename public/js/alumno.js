@@ -64,6 +64,12 @@ jQuery(document).ready(function ($) {
         }
 
         static setupEventListeners() {
+
+            document.querySelector('.logout-btn')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                AlumnoView.handleLogout();
+            });
+
             // Asignar evento click a los botones generados dinámicamente
             document.addEventListener('click', function (event) {
                 if (event.target.classList.contains('ver-detalles')) {
@@ -150,6 +156,35 @@ jQuery(document).ready(function ($) {
                     }
                 }
             });
+        }
+
+        static async handleLogout() {
+            try {
+                // Mostrar confirmación antes de cerrar sesión
+                if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                    return;
+                }
+
+                const response = await fetch(`${AlumnoView.apiUrl}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AlumnoView.jwtToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirigir a la página de acceso
+                    window.location.href = data.redirect || '/acceso';
+                } else {
+                    throw new Error(data.message || 'Error al cerrar sesión');
+                }
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                AlumnoView.mostrarNotificacion('error', `Error: ${error.message}`);
+            }
         }
 
         static async handleFormSubmit(form) {
