@@ -56,8 +56,6 @@ jQuery(document).ready(function ($) {
                 };
             });
 
-            console.log("Eventos del profesor:", AlumnoView.teacherEvents);
-
             // Initialize the calendar
             AlumnoView.initializeCalendar();
 
@@ -152,6 +150,178 @@ jQuery(document).ready(function ($) {
                     }
                 }
             });
+        }
+
+        static async handleFormSubmit(form) {
+            // Mapeo de formularios a sus respectivos endpoints y configuraciones
+            const formEndpoints = {
+                'studentCalendarForm': {
+                    endpoint: `${AlumnoView.apiUrl}/bookings`,
+                    method: 'POST',
+                    dataMapper: (form) => ({
+                        alumno: AlumnoView.alumnoId,
+                        profesor: AlumnoView.teacherId,
+                        vehiculo: AlumnoView.alumnoData.teacher.vehicle_id,
+                        fecha: form.querySelector('input[name="date"]').value,
+                        hora: form.querySelector('input[name="time"]').value,
+                        end_time: form.querySelector('input[name="end_time"]').value
+                    }),
+                    onSuccess: (res) => {
+                        // Ocultar modal
+                        AlumnoView.calendarModal.hide();
+
+                        // Actualizar el saldo visible
+                        AlumnoView.actualizarSaldo(res.newBalance);
+
+                        // Mostrar notificación sin bloquear con alert
+                        AlumnoView.mostrarNotificacion('success', `Reserva creada correctamente el ${res.date} a las ${res.startTime}`);
+
+                        // Estado inicial de la reserva (normalmente 'pending')
+                        // Verifica si el backend devuelve el estado, sino usa 'pending' como predeterminado
+                        const status = res.status || 'pending';
+
+                        // Determinar color basado en el estado
+                        const backgroundColor = status === 'pending' ? '#ffc107' : '#28a745';
+                        const className = status === 'pending' ? 'pending-event' : 'accepted-event';
+
+                        // Añadir el nuevo evento al calendario con color según su estado
+                        AlumnoView.calendar.addEvent({
+                            id: res.id,
+                            title: `Clase con ${AlumnoView.alumnoData.teacher.name}`,
+                            start: `${res.date}T${res.startTime}`,
+                            end: `${res.date}T${res.endTime}`,
+                            backgroundColor: backgroundColor,
+                            borderColor: backgroundColor,
+                            classNames: [className], // Aplicamos la clase CSS según estado
+                            status: status // Guardamos el estado en el evento para referencia futura
+                        });
+
+                        // Actualizar la lista de reservas en memoria
+                        AlumnoView.reservas.push({
+                            id: res.id,
+                            date: res.date,
+                            start: res.startTime,
+                            end: res.endTime,
+                            teacher_name: AlumnoView.alumnoData.teacher.name,
+                            vehicle: AlumnoView.alumnoData.teacher.vehicle_name,
+                            status: status // Usamos el estado real en lugar de 'active'
+                        });
+                    }
+                },
+                'studentCalendarInfoForm': {
+                    endpoint: (form) => {
+                        const bookingId = form.querySelector('input[name="booking_id"]').value;
+                        return `${AlumnoView.apiUrl}/bookings/cancel/${bookingId}`;
+                    },
+                    method: 'POST',
+                    dataMapper: (form) => ({}),
+                    onSuccess: (res) => {
+                        // Obtener el ID de la reserva cancelada
+                        const bookingId = form.querySelector('input[name="booking_id"]').value;
+
+                        // Ocultar modal
+                        AlumnoView.calendarInfoModal.hide();
+
+                        // Actualizar el saldo si hubo reembolso
+                        if (res.refund && res.refund_amount > 0) {
+                            // Si el backend ya nos devuelve el nuevo saldo, lo usamos directamente
+                            if (res.newBalance !== undefined) {
+                                AlumnoView.actualizarSaldo(res.newBalance);
+                            } else {
+                                // Si no, calculamos el nuevo saldo sumando el reembolso al saldo actual
+                                const currentBalance = parseFloat(AlumnoView.alumnoData.class_points);
+                                const newBalance = currentBalance + parseFloat(res.refund_amount);
+                                AlumnoView.actualizarSaldo(newBalance);
+                            }
+
+                            // Mensaje específico para reembolso
+                            AlumnoView.mostrarNotificacion('success',
+                                `Reserva cancelada correctamente. Se han devuelto ${res.refund_amount} créditos a tu cuenta.`);
+                        } else {
+                            // Mensaje sin reembolso
+                            AlumnoView.mostrarNotificacion('success', 'Reserva cancelada correctamente');
+                        }
+
+                        // Eliminar el evento del calendario
+                        const evento = AlumnoView.calendar.getEventById(bookingId);
+                        if (evento) {
+                            evento.remove();
+                        }
+
+                        // Actualizar el estado en la lista de reservas
+                        const reservaIndex = AlumnoView.reservas.findIndex(r => r.id == bookingId);
+                        if (reservaIndex >= 0) {
+                            AlumnoView.reservas[reservaIndex].status = 'cancelled';
+                        }
+                    }
+                }
+            };
+
+            const formId = form.id;
+            const formConfig = formEndpoints[formId];
+
+            if (!formConfig) {
+                console.error(`No hay configuración para el formulario ${formId}`);
+                return;
+            }
+
+            // Obtener la URL del endpoint
+            const endpoint = typeof formConfig.endpoint === 'function'
+                ? formConfig.endpoint(form)
+                : formConfig.endpoint;
+
+            // Obtener los datos
+            const payload = formConfig.dataMapper(form);
+
+            // Preparar el botón
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn?.innerHTML;
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+            }
+
+            try {
+                // Realizar la petición fetch
+                const response = await fetch(endpoint, {
+                    method: formConfig.method,
+                    headers: {
+                        'Authorization': 'Bearer ' + AlumnoView.jwtToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                // Verificar si la respuesta es correcta
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    // Mostrar mensaje específico para horario no disponible
+                    if (errorData.code === 'slot_not_available') {
+                        AlumnoView.mostrarNotificacion('error', errorData.message || 'Este horario ya no está disponible');
+
+                        // Actualizar el calendario para reflejar el cambio
+                        AlumnoView.calendar.refetchEvents();
+                    } else {
+                        throw new Error(errorData.message || 'Error en la petición');
+                    }
+                    return; // Salir de la función si hay error
+                }
+
+                // Procesar la respuesta
+                const data = await response.json();
+                formConfig.onSuccess(data);
+            } catch (error) {
+                console.error(`${formId} error:`, error);
+                AlumnoView.mostrarNotificacion('error', `Error: ${error.message || 'Error de conexión'}`);
+            } finally {
+                // Restaurar el botón
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            }
         }
 
         static actualizarSaldo(nuevoSaldo) {

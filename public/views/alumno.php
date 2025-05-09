@@ -292,9 +292,10 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                         <div class="col-md-6 col-lg-4">
                             <div class="card h-100 shadow-sm">
                                 <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold">
-                                        <?= date('d/m/Y', is_numeric($booking['date']) ? $booking['date'] : strtotime($booking['date'])) ?>
-                                    </span>
+                                    <!-- <span class="fw-bold">
+                                        <? //= date('d/m/Y', is_numeric($booking['date']) ? $booking['date'] : strtotime($booking['date'])) 
+                                        ?>
+                                    </span> -->
                                     <?php
                                     $badge_class = '';
                                     $badge_text = '';
@@ -318,7 +319,17 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                     ?>
                                     <span class="badge <?= $badge_class ?>"><?= $badge_text ?></span>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body d-flex justify-content-around">
+                                    
+                                    <div class="d-flex mb-2">
+                                        <div class="me-3 text-primary">
+                                            <i class="bi bi-calendar fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Calendario</small>
+                                            <p class="mb-0 fw-medium"><?= date('d/m/Y', is_numeric($booking['date']) ? $booking['date'] : strtotime($booking['date'])) ?></p>
+                                        </div>
+                                    </div>
                                     <div class="d-flex mb-2">
                                         <div class="me-3 text-primary">
                                             <i class="bi bi-clock fs-5"></i>
@@ -328,13 +339,14 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                             <p class="mb-0 fw-medium"><?= $booking['start'] ?></p>
                                         </div>
                                     </div>
-                                    <div class="d-flex mb-2">
+                                    <!-- <div class="d-flex mb-2">
                                         <div class="me-3 text-primary">
                                             <i class="bi bi-person fs-5"></i>
                                         </div>
                                         <div>
                                             <small class="text-muted">Profesor</small>
-                                            <p class="mb-0 fw-medium"><?= $booking['teacher_name'] ?></p>
+                                            <p class="mb-0 fw-medium"><? //= $booking['teacher_name'] 
+                                                                        ?></p>
                                         </div>
                                     </div>
                                     <div class="d-flex">
@@ -343,9 +355,10 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                         </div>
                                         <div>
                                             <small class="text-muted">Vehículo</small>
-                                            <p class="mb-0 fw-medium"><?= $booking['vehicle'] ?></p>
+                                            <p class="mb-0 fw-medium"><? //= $booking['vehicle'] 
+                                                                        ?></p>
                                         </div>
-                                    </div>
+                                    </div> -->
                                 </div>
                                 <div class="card-footer border-top-0 bg-white">
                                     <button class="btn btn-outline-primary w-100 ver-detalles" data-bs-toggle="modal" data-bs-target="#detalleReservaModal" data-id="<?= $booking['id'] ?>">
@@ -395,7 +408,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                     </div>
 
                     <!-- Filtros de calendario (opcional) -->
-                    <div class="calendar-filters p-2 px-3 border-bottom bg-light">
+                    <!-- <div class="calendar-filters p-2 px-3 border-bottom bg-light">
                         <div class="row g-2 align-items-center">
                             <div class="col-auto">
                                 <label class="col-form-label col-form-label-sm">Filtrar:</label>
@@ -413,7 +426,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Contenedor del calendario con ajustes responsive -->
                     <div class="card-body p-0">
