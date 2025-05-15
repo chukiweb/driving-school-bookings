@@ -145,6 +145,12 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission'],
         ]);
 
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/config', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'update_teacher_config'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
+
         /**
          * STUDENT ENDPOINT
          */
@@ -359,10 +365,16 @@ class DSB_API
         return DSB_Teacher_Service::get_teacher($teacher_id);
     }
 
-    public function update_teacher($request)
+    // public function update_teacher($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::get_professor_availability($teacher_id);
+    // }
+
+    public function update_teacher_config($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_professor_availability($teacher_id);
+        return DSB_Teacher_Service::update_teacher_config($request, $teacher_id);
     }
 
     // public function get_teacher_availability($request)

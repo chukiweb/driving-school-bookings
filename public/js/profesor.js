@@ -48,7 +48,7 @@ jQuery(document).ready(function ($) {
             // Formulario de configuración de horario
             document.getElementById('horario-config-form')?.addEventListener('submit', function (e) {
                 e.preventDefault();
-                ProfesorView.handleHorarioSubmit(this);
+                ProfesorView.handleTeacherConfigSubmit(this);
             });
 
             // Botones para ver detalles de alumnos
@@ -656,7 +656,7 @@ jQuery(document).ready(function ($) {
             }
         }
 
-        static async handleHorarioSubmit(form) {
+        static async handleTeacherConfigSubmit(form) {
             // Recolectar datos del formulario
             const formData = new FormData(form);
             const dias = formData.getAll('dias[]');
@@ -679,7 +679,7 @@ jQuery(document).ready(function ($) {
             };
 
             try {
-                const response = await fetch(`${ProfesorView.apiUrl}/teachers/${ProfesorView.profesorData.id}/classes`, {
+                const response = await fetch(`${ProfesorView.apiUrl}/teachers/${ProfesorView.profesorData.id}/config`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
