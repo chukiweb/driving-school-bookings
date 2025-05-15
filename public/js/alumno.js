@@ -571,7 +571,7 @@ jQuery(document).ready(function ($) {
             }, duracion);
         }
 
-        static handleAvatarUpload(event) {
+        static async handleAvatarUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -580,13 +580,13 @@ jQuery(document).ready(function ($) {
             const maxSize = 2 * 1024 * 1024; // 2MB
 
             if (!allowedTypes.includes(file.type)) {
-                AlumnoView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
-                return;
+            AlumnoView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
+            return;
             }
 
             if (file.size > maxSize) {
-                AlumnoView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
-                return;
+            AlumnoView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
+            return;
             }
 
             const formData = new FormData();
@@ -597,37 +597,35 @@ jQuery(document).ready(function ($) {
             const originalSrc = avatarElement.src;
             avatarElement.classList.add('uploading');
 
-            fetch(`${AlumnoView.apiUrl}/users/me/avatar`, {
+            try {
+            const response = await fetch(`${AlumnoView.apiUrl}/users/me/avatar`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer ' + AlumnoView.jwtToken
+                'Authorization': 'Bearer ' + AlumnoView.jwtToken
                 },
                 body: formData
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || 'Error al subir la imagen');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Actualizar la imagen con la nueva URL
-                        avatarElement.src = data.url;
-                        AlumnoView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
-                    } else {
-                        throw new Error(data.message || 'Error al subir la imagen');
-                    }
-                })
-                .catch(error => {
-                    avatarElement.src = originalSrc; // Restaurar la imagen original
-                    AlumnoView.mostrarNotificacion('error', `Error: ${error.message}`);
-                })
-                .finally(() => {
-                    avatarElement.classList.remove('uploading');
-                });
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al subir la imagen');
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Actualizar la imagen con la nueva URL
+                avatarElement.src = data.url;
+                AlumnoView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
+            } else {
+                throw new Error(data.message || 'Error al subir la imagen');
+            }
+            } catch (error) {
+            avatarElement.src = originalSrc; // Restaurar la imagen original
+            AlumnoView.mostrarNotificacion('error', `Error: ${error.message}`);
+            } finally {
+            avatarElement.classList.remove('uploading');
+            }
         }
 
         static mostrarDetalles(id) {

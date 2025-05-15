@@ -42,7 +42,7 @@ jQuery(document).ready(function ($) {
 
             document.querySelector('.logout-btn')?.addEventListener('click', function (e) {
                 e.preventDefault();
-                AlumnoView.handleLogout();
+                ProfesorView.handleLogout();
             });
 
             // Formulario de configuración de horario
@@ -165,7 +165,7 @@ jQuery(document).ready(function ($) {
         }
 
         static initializeCalendar() {
-            const calendarElement = document.getElementById('teacher-calendar');
+            const calendarElement = document.getElementById('calendar');
             if (!calendarElement) {
                 console.error("No se encontró el elemento del calendario");
                 return;
@@ -222,7 +222,6 @@ jQuery(document).ready(function ($) {
 
             // Opciones avanzadas del calendario
             const calendarOptions = {
-                height: '100%',
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
                 headerToolbar: {
                     left: 'prev,next',
@@ -230,13 +229,13 @@ jQuery(document).ready(function ($) {
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 slotDuration: duracion,
-                slotLabelInterval: '01:00',
                 allDaySlot: false,
                 scrollTime: '08:00:00',
                 slotMinTime: config.hora_inicio || '08:00:00',
                 slotMaxTime: config.hora_fin || '20:00:00',
                 hiddenDays: diasNoDisponibles,
                 height: 'auto',
+                expandRows: true,
                 locale: 'es',
                 events: events,
                 nowIndicator: true,
@@ -278,25 +277,24 @@ jQuery(document).ready(function ($) {
                     const tooltip = document.createElement('div');
                     tooltip.classList.add('event-tooltip');
                     tooltip.innerHTML = `
-                <div class="event-tooltip-header">
-                    ${event.title}
-                    <span class="event-tooltip-status ${status}">${status === 'pending' ? 'Pendiente' : status === 'accepted' ? 'Aceptada' : 'N/A'}</span>
-                </div>
-                <div class="event-tooltip-content">
-                    <div class="event-tooltip-detail">
-                        <i class="bi bi-person"></i> ${event.extendedProps.studentName}
-                    </div>
-                    <div class="event-tooltip-detail">
-                        <i class="bi bi-calendar"></i> ${event.extendedProps.date}
-                    </div>
-                    <div class="event-tooltip-detail">
-                        <i class="bi bi-clock"></i> ${event.extendedProps.time} - ${event.extendedProps.endTime}
-                    </div>
-                    <div class="event-tooltip-detail">
-                        <i class="bi bi-car-front"></i> ${event.extendedProps.vehicle || 'No especificado'}
-                    </div>
-                </div>
-            `;
+                        <div class="event-tooltip-header">
+                            ${event.title}
+                            <span class="event-tooltip-status ${status}">${status === 'pending' ? 'Pendiente' : status === 'accepted' ? 'Aceptada' : 'N/A'}</span>
+                        </div>
+                        <div class="event-tooltip-content">
+                            <div class="event-tooltip-detail">
+                                <i class="bi bi-person"></i> ${event.extendedProps.studentName}
+                            </div>
+                            <div class="event-tooltip-detail">
+                                <i class="bi bi-calendar"></i> ${event.extendedProps.date}
+                            </div>
+                            <div class="event-tooltip-detail">
+                                <i class="bi bi-clock"></i> ${event.extendedProps.time} - ${event.extendedProps.endTime}
+                            </div>
+                            <div class="event-tooltip-detail">
+                                <i class="bi bi-car-front"></i> ${event.extendedProps.vehicle || 'No especificado'}
+                            </div>
+                        </div>`;
 
                     // Mostrar tooltip al hover
                     element.addEventListener('mouseenter', function () {
@@ -605,18 +603,18 @@ jQuery(document).ready(function ($) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Validar tipo y tamaño
+            // Validar tipo y tamaño en el cliente
             const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
             const maxSize = 2 * 1024 * 1024; // 2MB
 
             if (!allowedTypes.includes(file.type)) {
-                ProfesorView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
-                return;
+            ProfesorView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
+            return;
             }
 
             if (file.size > maxSize) {
-                ProfesorView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
-                return;
+            ProfesorView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
+            return;
             }
 
             const formData = new FormData();
@@ -628,32 +626,33 @@ jQuery(document).ready(function ($) {
             avatarElement.classList.add('uploading');
 
             try {
-                const response = await fetch(`${ProfesorView.apiUrl}/users/me/avatar`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + ProfesorView.jwtToken
-                    },
-                    body: formData
-                });
+            const response = await fetch(`${ProfesorView.apiUrl}/users/me/avatar`, {
+                method: 'POST',
+                headers: {
+                'Authorization': 'Bearer ' + ProfesorView.jwtToken
+                },
+                body: formData
+            });
 
-                if (!response.ok) {
-                    throw new Error('Error al subir la imagen');
-                }
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al subir la imagen');
+            }
 
-                const data = await response.json();
-
-                if (data.success) {
-                    avatarElement.src = data.url;
-                    ProfesorView.mostrarNotificacion('success', 'Imagen de perfil actualizada correctamente');
-                } else {
-                    throw new Error(data.message || 'Error desconocido');
-                }
-
+            const data = await response.json();
+            
+            if (data.success) {
+                // Actualizar la imagen con la nueva URL
+                avatarElement.src = data.url;
+                ProfesorView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
+            } else {
+                throw new Error(data.message || 'Error al subir la imagen');
+            }
             } catch (error) {
-                avatarElement.src = originalSrc;
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+            avatarElement.src = originalSrc; // Restaurar la imagen original
+            ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
             } finally {
-                avatarElement.classList.remove('uploading');
+            avatarElement.classList.remove('uploading');
             }
         }
 

@@ -206,7 +206,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                         <div class="col-lg-4 mb-4 mb-lg-0 text-center">
                             <div class="avatar-container mb-3">
                                 <div class="avatar-wrapper mx-auto">
-                                    <img id="teacher-avatar" src="<?php echo esc_url($teacher['avatar']); ?>" alt="Avatar de <?= esc_attr($teacher['display_name']); ?>" class="rounded-circle avatar-img">
+                                    <img id="teacher-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($teacher['id'])); ?>" alt="Avatar de <?= esc_attr($teacher['display_name']); ?>" class="rounded-circle avatar-img">
                                     <div class="avatar-overlay">
                                         <i class="bi bi-camera-fill"></i>
                                         <span>Cambiar foto</span>
@@ -378,7 +378,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="flex-shrink-0">
-                                                    <img src="<?= get_avatar_url($student['id'], ['size' => 40]) ?>" alt="Avatar" class="rounded-circle" width="40">
+                                                    <img src="<?= esc_url(DSB_User_Service::get_avatar_url($student['id'])); ?>" alt="Avatar" class="rounded-circle" width="40">
                                                 </div>
                                                 <div class="ms-2">
                                                     <h6 class="mb-0"><?= esc_html($student['display_name']) ?></h6>
@@ -460,7 +460,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
 
                 <!-- Calendario con contenedor mejorado para responsividad -->
                 <div class="card-body p-0">
-                    <div id="teacher-calendar" class="calendar-responsive"></div>
+                    <div id="calendar" class="calendar-responsive"></div>
                 </div>
 
                 <!-- Controles adicionales y ayuda -->

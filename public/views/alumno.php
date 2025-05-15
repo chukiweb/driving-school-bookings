@@ -174,7 +174,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                         <div class="col-lg-4 mb-4 mb-lg-0 text-center">
                             <div class="avatar-container mb-3">
                                 <div class="avatar-wrapper mx-auto">
-                                    <img id="estudiante-avatar" src="<?php echo esc_url(DSB_User_Service::get_avatar_url($user['id'])); ?>" alt="Avatar de <?= esc_attr($user['name']); ?>" class="rounded-circle avatar-img">
+                                    <img id="estudiante-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($user['id'])); ?>" alt="Avatar de <?= esc_attr($user['name']); ?>" class="rounded-circle avatar-img">
                                     <div class="avatar-overlay">
                                         <i class="bi bi-camera-fill"></i>
                                         <span>Cambiar foto</span>
