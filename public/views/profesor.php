@@ -151,7 +151,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
 <html lang="es">
 
 <head>
-    <title>DrivingApp - Panel del Profesor</title>
+    <title>Autoescuela Universitaria - Panel del Profesor</title>
     <?php wp_head(); ?>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -165,7 +165,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <i class="bi bi-car-front-fill me-2"></i>DrivingApp
+                <i class="bi bi-car-front-fill me-2"></i>Autoescuela Universitaria
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -201,63 +201,85 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
         <!-- Perfil del profesor -->
         <section id="perfil" class="mb-5">
             <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-lg-4 mb-4 mb-lg-0 text-center">
-                            <div class="avatar-container mb-3">
-                                <div class="avatar-wrapper mx-auto">
-                                    <img id="teacher-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($teacher['id'])); ?>" alt="Avatar de <?= esc_attr($teacher['display_name']); ?>" class="rounded-circle avatar-img">
-                                    <div class="avatar-overlay">
-                                        <i class="bi bi-camera-fill"></i>
-                                        <span>Cambiar foto</span>
-                                    </div>
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-container me-3">
+                            <div class="avatar-wrapper" style="width: 70px; height: 70px;">
+                                <img id="teacher-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($teacher['id'])); ?>" alt="Avatar de <?= esc_attr($teacher['display_name']); ?>" class="rounded-circle avatar-img">
+                                <div class="avatar-overlay">
+                                    <i class="bi bi-camera-fill"></i>
+                                    <span class="d-none d-md-inline">Cambiar</span>
                                 </div>
-                                <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">
+                            </div>
+                            <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">
+                        </div>
+                        <div class="ms-auto text-center">
+                            <div class="bg-primary text-white rounded-3 px-3 py-2 text-center">
+                                <span class="fs-4 fw-bold"><?= count($teacher['students']) ?></span>
+                                <div><small>alumnos</small></div>
                             </div>
                         </div>
-                        <div class="col-lg-8">
-                            <h2 id="teacher-name" class="mb-3 text-center text-lg-start"><?= esc_html($teacher['display_name']) ?></h2>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-envelope-fill me-2"></i>Email</h6>
-                                            <p id="teacher-email" class="card-text"><?= esc_html($teacher['email']) ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-people me-2"></i>Alumnos asignados</h6>
-                                            <p id="assigned-students" class="card-text"><?= count($teacher['students']) ?> alumnos</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-car-front-fill me-2"></i>Vehículo</h6>
-                                            <p id="assigned-car" class="card-text"><?= esc_html($teacher['vehicle']) ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-primary text-white border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-white"><i class="bi bi-calendar-event me-2"></i>Estadísticas</h6>
-                                            <div class="d-flex justify-content-around text-center">
-                                                <div>
-                                                    <p class="mb-0 fs-4"><?= $today_count ?></p>
-                                                    <small>Clases hoy</small>
+                    </div>
+                    <div class="flex-grow-1 mt-2">
+                        <h4 id="teacher-name" class="mb-1"><?= esc_html($teacher['display_name']) ?></h4>
+                        <p id="teacher-email" class="text-muted mb-0 small"><?= esc_html($teacher['email']) ?></p>
+                    </div>
+                </div>
+                <div class="card-footer bg-white p-0">
+                    <div class="accordion accordion-flush" id="profileAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#profileDetails">
+                                    <i class="bi bi-info-circle me-2"></i> Detalles del perfil
+                                </button>
+                            </h2>
+                            <div id="profileDetails" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-car-front-fill"></i>
                                                 </div>
                                                 <div>
-                                                    <p class="mb-0 fs-4"><?= $pending_count ?></p>
-                                                    <small>Pendientes</small>
+                                                    <small class="text-muted d-block">Vehículo</small>
+                                                    <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']) ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-calendar-check"></i>
                                                 </div>
                                                 <div>
-                                                    <p class="mb-0 fs-4"><?= $total_count ?></p>
-                                                    <small>Total</small>
+                                                    <small class="text-muted d-block">Clases hoy</small>
+                                                    <p class="mb-0"><?= $today_count ?> clases</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-hourglass-split"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Pendientes</small>
+                                                    <p class="mb-0"><?= $pending_count ?> reservas</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-calendar-date"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Total reservas</small>
+                                                    <p class="mb-0"><?= $total_count ?> clases</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -265,17 +287,14 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="card-footer bg-white p-0">
-                    <div class="accordion accordion-flush" id="configAccordion">
+
                         <div class="accordion-item">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#configCollapse">
-                                    <i class="bi bi-gear me-2"></i>Configuración de horarios
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#configCollapse">
+                                    <i class="bi bi-gear me-2"></i> Configuración de horarios
                                 </button>
                             </h2>
-                            <div id="configCollapse" class="accordion-collapse collapse" data-bs-parent="#configAccordion">
+                            <div id="configCollapse" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
                                 <div class="accordion-body">
                                     <form id="horario-config-form" class="dsb-form">
                                         <div class="row">
@@ -343,66 +362,284 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
 
         <!-- Alumnos asignados -->
         <section id="alumnos" class="mb-5">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="mb-0"><i class="bi bi-people-fill me-2"></i>Mis Alumnos</h3>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 d-flex align-items-center">
+                            <i class="bi bi-people-fill me-2 text-primary"></i>
+                            Mis Alumnos
+                            <span class="badge bg-primary rounded-pill ms-2"><?= count($teacher['students']) ?></span>
+                        </h5>
+                        <div>
+                            <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#alumnosOffcanvas">
+                                <i class="bi bi-search me-1"></i> Buscar y filtrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Mostrar estadísticas resumidas -->
+                    <div class="row g-0 border-bottom">
+                        <div class="col-4 border-end p-3 text-center">
+                            <?php
+                            // Contar alumnos con clases pendientes
+                            $alumnos_pendientes = 0;
+                            $alumno_ids_pendientes = [];
+                            foreach ($bookings as $booking) {
+                                if ($booking['status'] === 'pending' && !in_array($booking['student_id'], $alumno_ids_pendientes)) {
+                                    $alumno_ids_pendientes[] = $booking['student_id'];
+                                    $alumnos_pendientes++;
+                                }
+                            }
+                            ?>
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="stat-icon bg-warning-subtle rounded-circle p-2 mb-2">
+                                    <i class="bi bi-hourglass text-warning fs-4"></i>
+                                </div>
+                                <h2 class="fs-4 mb-0"><?= $alumnos_pendientes ?></h2>
+                                <div class="text-muted small">Con citas pendientes</div>
+                            </div>
+                        </div>
+                        <div class="col-4 border-end p-3 text-center">
+                            <?php
+                            // Contar alumnos con citas hoy
+                            $alumnos_hoy = 0;
+                            $alumno_ids_hoy = [];
+                            $today = date('Y-m-d');
+                            foreach ($bookings as $booking) {
+                                if ($booking['date'] === $today && $booking['status'] !== 'cancelled' && !in_array($booking['student_id'], $alumno_ids_hoy)) {
+                                    $alumno_ids_hoy[] = $booking['student_id'];
+                                    $alumnos_hoy++;
+                                }
+                            }
+                            ?>
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="stat-icon bg-success-subtle rounded-circle p-2 mb-2">
+                                    <i class="bi bi-calendar-check text-success fs-4"></i>
+                                </div>
+                                <h2 class="fs-4 mb-0"><?= $alumnos_hoy ?></h2>
+                                <div class="text-muted small">Con clases hoy</div>
+                            </div>
+                        </div>
+                        <div class="col-4 p-3 text-center">
+                            <?php
+                            // Contar alumnos sin clases recientes (últimos 30 días)
+                            $alumnos_sin_clases_recientes = count($teacher['students']);
+                            $alumno_ids_con_clases = [];
+                            $treinta_dias = date('Y-m-d', strtotime('-30 days'));
+                            foreach ($bookings as $booking) {
+                                if (strtotime($booking['date']) >= strtotime($treinta_dias) && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
+                                    $alumno_ids_con_clases[] = $booking['student_id'];
+                                }
+                            }
+                            $alumnos_sin_clases_recientes = count($teacher['students']) - count($alumno_ids_con_clases);
+                            ?>
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="stat-icon bg-danger-subtle rounded-circle p-2 mb-2">
+                                    <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                                </div>
+                                <h2 class="fs-4 mb-0"><?= $alumnos_sin_clases_recientes ?></h2>
+                                <div class="text-muted small">Sin clases recientes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mostrar alumnos destacados (por ejemplo, con clases hoy) -->
+                    <div class="p-3">
+                        <h6 class="border-bottom pb-2 mb-3">Alumnos con clases hoy</h6>
+
+                        <?php if (empty($alumno_ids_hoy)): ?>
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle me-2"></i>No hay alumnos con clases programadas para hoy
+                            </div>
+                        <?php else: ?>
+                            <div class="list-group list-group-flush">
+                                <?php
+                                $alumnos_mostrados = 0;
+                                foreach ($teacher['students'] as $student):
+                                    if (in_array($student['id'], $alumno_ids_hoy) && $alumnos_mostrados < 3):
+                                        $alumnos_mostrados++;
+
+                                        // Encontrar las clases de hoy para este alumno
+                                        $clases_hoy = [];
+                                        foreach ($bookings as $booking) {
+                                            if ($booking['student_id'] == $student['id'] && $booking['date'] === $today && $booking['status'] !== 'cancelled') {
+                                                $clases_hoy[] = $booking;
+                                            }
+                                        }
+                                ?>
+                                        <div class="list-group-item px-0">
+                                            <div class="d-flex align-items-center">
+                                                <img src="<?= esc_url(DSB_User_Service::get_avatar_url($student['id'])); ?>" alt="Avatar" class="rounded-circle me-3" width="42">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-0"><?= esc_html($student['display_name']) ?></h6>
+                                                    <div class="d-flex flex-wrap gap-2 mt-1">
+                                                        <?php foreach ($clases_hoy as $index => $clase):
+                                                            if ($index < 2): // Mostrar máximo 2 clases
+                                                        ?>
+                                                                <span class="badge bg-light text-dark">
+                                                                    <i class="bi bi-clock me-1"></i><?= $clase['time'] ?>
+                                                                </span>
+                                                            <?php
+                                                            endif;
+                                                            if ($index == 2): // Indicar si hay más clases
+                                                            ?>
+                                                                <span class="badge bg-light text-dark">+<?= count($clases_hoy) - 2 ?> más</span>
+                                                        <?php
+                                                            endif;
+                                                        endforeach;
+                                                        ?>
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-primary ver-alumno" data-id="<?= $student['id'] ?>">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                <?php endif;
+                                endforeach; ?>
+                            </div>
+
+                            <?php if (count($alumno_ids_hoy) > 3): ?>
+                                <div class="text-center mt-2">
+                                    <button class="btn btn-link btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#alumnosOffcanvas">
+                                        Ver todos (<?= count($alumno_ids_hoy) ?>) <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Alumno</th>
-                                <th>Correo</th>
-                                <th>Licencia</th>
-                                <th>Clases</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($teacher['students'])): ?>
-                                <tr>
-                                    <td colspan="5" class="text-center py-4">No tienes alumnos asignados</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($teacher['students'] as $student):
+            <!-- Panel lateral con búsqueda y filtros avanzados -->
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="alumnosOffcanvas" aria-labelledby="alumnosOffcanvasLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="alumnosOffcanvasLabel">
+                        <i class="bi bi-people-fill me-2"></i>Todos mis alumnos
+                    </h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <!-- Buscador con filtros -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchStudentOffcanvas" placeholder="Buscar por nombre o email...">
+                            <button class="btn btn-primary" type="button" id="searchStudentBtn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <select class="form-select" id="studentFilter">
+                            <option value="all">Todos los alumnos</option>
+                            <option value="today">Con clases hoy</option>
+                            <option value="pending">Con clases pendientes</option>
+                            <option value="inactive">Sin clases recientes</option>
+                        </select>
+                    </div>
+
+                    <!-- Lista de alumnos con paginación -->
+                    <div class="student-list-container" id="studentListContainer">
+                        <?php if (empty($teacher['students'])): ?>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>No tienes alumnos asignados
+                            </div>
+                        <?php else: ?>
+                            <div class="list-group list-group-flush" id="studentList">
+                                <?php foreach ($teacher['students'] as $index => $student):
                                     // Contando clases del alumno
                                     $student_classes = 0;
+                                    $pending_classes = 0;
+                                    $today_classes = 0;
+                                    $recent_classes = 0; // clases en los últimos 30 días
+
                                     foreach ($bookings as $booking) {
-                                        if ($booking['student_id'] == $student['id'] && $booking['status'] !== 'cancelled') {
-                                            $student_classes++;
+                                        if ($booking['student_id'] == $student['id']) {
+                                            if ($booking['status'] !== 'cancelled') {
+                                                $student_classes++;
+
+                                                if ($booking['date'] === $today) {
+                                                    $today_classes++;
+                                                }
+
+                                                if (strtotime($booking['date']) >= strtotime($treinta_dias)) {
+                                                    $recent_classes++;
+                                                }
+                                            }
+
+                                            if ($booking['status'] === 'pending') {
+                                                $pending_classes++;
+                                            }
                                         }
                                     }
+
+                                    $license_type = get_user_meta($student['id'], 'license_type', true);
+
+                                    // Agregar data-attributes para facilitar el filtrado y búsqueda con JavaScript
+                                    $data_attrs = 'data-name="' . esc_attr(strtolower($student['display_name'])) . '" ';
+                                    $data_attrs .= 'data-email="' . esc_attr(strtolower($student['email'])) . '" ';
+                                    $data_attrs .= 'data-pending="' . ($pending_classes > 0 ? 'true' : 'false') . '" ';
+                                    $data_attrs .= 'data-today="' . ($today_classes > 0 ? 'true' : 'false') . '" ';
+                                    $data_attrs .= 'data-inactive="' . ($recent_classes == 0 ? 'true' : 'false') . '" ';
+                                    $data_attrs .= 'data-license="' . esc_attr(strtolower($license_type)) . '"';
                                 ?>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="flex-shrink-0">
-                                                    <img src="<?= esc_url(DSB_User_Service::get_avatar_url($student['id'])); ?>" alt="Avatar" class="rounded-circle" width="40">
-                                                </div>
-                                                <div class="ms-2">
-                                                    <h6 class="mb-0"><?= esc_html($student['display_name']) ?></h6>
-                                                </div>
+                                    <div class="list-group-item list-group-item-action p-3 student-item" <?= $data_attrs ?>>
+                                        <div class="d-flex align-items-center mb-2">
+                                            <img src="<?= esc_url(DSB_User_Service::get_avatar_url($student['id'])); ?>" alt="Avatar" class="rounded-circle me-3" width="48">
+                                            <div>
+                                                <h6 class="mb-0"><?= esc_html($student['display_name']) ?></h6>
+                                                <p class="text-muted small mb-0"><?= esc_html($student['email']) ?></p>
                                             </div>
-                                        </td>
-                                        <td><?= esc_html($student['email']) ?></td>
-                                        <td>
-                                            <?php
-                                            $license_type = get_user_meta($student['id'], 'license_type', true);
-                                            echo $license_type ? esc_html($license_type) : 'No especificado';
-                                            ?>
-                                        </td>
-                                        <td><?= $student_classes ?> clases</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary ver-alumno" data-id="<?= $student['id'] ?>">
-                                                <i class="bi bi-eye"></i> Ver detalles
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <?php if ($license_type): ?>
+                                                <span class="badge bg-light text-dark">
+                                                    <i class="bi bi-card-checklist me-1"></i><?= esc_html($license_type) ?>
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <span class="badge bg-light text-dark">
+                                                <i class="bi bi-calendar-check me-1"></i><?= $student_classes ?> clases
+                                            </span>
+
+                                            <?php if ($pending_classes > 0): ?>
+                                                <span class="badge bg-warning">
+                                                    <i class="bi bi-hourglass me-1"></i><?= $pending_classes ?> pendientes
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <?php if ($today_classes > 0): ?>
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-clock me-1"></i>Hoy
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="d-flex justify-content-end">
+                                            <button class="btn btn-sm btn-outline-primary ver-alumno" data-id="<?= $student['id'] ?>" data-bs-dismiss="offcanvas">
+                                                <i class="bi bi-eye me-1"></i> Ver detalles
                                             </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                    </div>
                                 <?php endforeach; ?>
+                            </div>
+
+                            <!-- Paginación simple para manejar muchos alumnos -->
+                            <?php if (count($teacher['students']) > 15): ?>
+                                <div class="d-flex justify-content-between align-items-center mt-3" id="studentPagination">
+                                    <button class="btn btn-sm btn-outline-secondary" id="prevPage" disabled>
+                                        <i class="bi bi-chevron-left"></i> Anterior
+                                    </button>
+                                    <span id="paginationInfo">Página <span id="currentPage">1</span> de <span id="totalPages"><?= ceil(count($teacher['students']) / 15) ?></span></span>
+                                    <button class="btn btn-sm btn-outline-secondary" id="nextPage">
+                                        Siguiente <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
+
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </section>
@@ -425,25 +662,12 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                             </label>
                         </div>
                     </div>
-                    <div class="calendar-view-switcher">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary" data-view="dayGridMonth">
-                                <i class="bi bi-calendar-month me-1 d-none d-sm-inline"></i>Mes
-                            </button>
-                            <button type="button" class="btn btn-outline-primary active" data-view="timeGridWeek">
-                                <i class="bi bi-calendar-week me-1 d-none d-sm-inline"></i>Semana
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" data-view="timeGridDay">
-                                <i class="bi bi-calendar-day me-1 d-none d-sm-inline"></i>Día
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm overflow-hidden">
                 <!-- Leyenda de colores mejorada -->
-                <div class="calendar-legend p-2 px-3 border-bottom d-flex flex-wrap align-items-center justify-content-center gap-3">
+                <div class="calendar-legend p-2 px-3 border-bottom d-flex flex-wrap justify-content-center gap-3">
                     <div class="legend-item">
                         <span class="color-box available"></span> Disponible
                     </div>
@@ -645,11 +869,11 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
         <div class="container">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start">
-                    <h5>DrivingApp</h5>
+                    <h5>Autoescuela Universitaria</h5>
                     <p class="small">La mejor app para tu autoescuela</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="small">© <?= date('Y') ?> DrivingApp. Todos los derechos reservados.</p>
+                    <p class="small">© <?= date('Y') ?> Autoescuela Universitaria. Todos los derechos reservados.</p>
                 </div>
             </div>
         </div>

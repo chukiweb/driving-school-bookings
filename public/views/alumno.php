@@ -115,7 +115,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
 <html lang="es">
 
 <head>
-    <title>App Driving - Bienvenido</title>
+    <title>Autoescuela Universitaria - Alumno</title>
     <?php wp_head(); ?>
     <meta charset="utf-8">
     <meta name="author" content="Roma & Nico">
@@ -133,7 +133,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <i class="bi bi-car-front-fill me-2"></i>DrivingApp
+                <i class="bi bi-car-front-fill me-2"></i>Autoescuela Universitaria
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -167,71 +167,76 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
 
     <div class="container py-4">
         <!-- Perfil del alumno -->
-        <section id="perfil" class="mb-5">
+        <section id="perfil" class="mb-4">
             <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-lg-4 mb-4 mb-lg-0 text-center">
-                            <div class="avatar-container mb-3">
-                                <div class="avatar-wrapper mx-auto">
-                                    <img id="estudiante-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($user['id'])); ?>" alt="Avatar de <?= esc_attr($user['name']); ?>" class="rounded-circle avatar-img">
-                                    <div class="avatar-overlay">
-                                        <i class="bi bi-camera-fill"></i>
-                                        <span>Cambiar foto</span>
-                                    </div>
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-container me-3">
+                            <div class="avatar-wrapper" style="width: 70px; height: 70px;">
+                                <img id="estudiante-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($user['id'])); ?>" alt="Avatar de <?= esc_attr($user['name']); ?>" class="rounded-circle avatar-img">
+                                <div class="avatar-overlay">
+                                    <i class="bi bi-camera-fill"></i>
+                                    <span class="d-none d-md-inline">Cambiar</span>
                                 </div>
-                                <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">
                             </div>
+                            <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">
                         </div>
-                        <div class="col-lg-8">
-                            <h2 id="estudiante-name" class="mb-3 text-center text-lg-start"><?= $user['name'] ?></h2>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-envelope-fill me-2"></i>Email</h6>
-                                            <p id="estudiante-email" class="card-text"><?= $user['email'] ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-person-badge me-2"></i>Profesor</h6>
-                                            <p id="assigned-teacher" class="card-text"><?= $user['teacher']['name'] ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-light border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-car-front-fill me-2"></i>Vehículo</h6>
-                                            <p id="assigned-car" class="card-text"><?= $user['teacher']['vehicle_name'] ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100 bg-success text-white border-0">
-                                        <div class="card-body">
-                                            <h6 class="card-subtitle mb-2 text-white"><i class="bi bi-coin me-2"></i>Saldo Actual</h6>
-                                            <p class="card-text fs-4 fw-bold saldo-actual"><?= $user['class_points'] ?></p>
-                                            <small>puntos</small>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="ms-auto text-center">
+                            <div class="bg-success text-white rounded-3 px-3 py-2">
+                                <span class="saldo-actual fs-4 fw-bold"><?= $user['class_points'] ?></span>
+                                <div><small>puntos</small></div>
                             </div>
                         </div>
                     </div>
+                    <div class="flex-grow-1 mt-2">
+                        <h4 id="estudiante-name" class="mb-1"><?= $user['name'] ?></h4>
+                        <p id="estudiante-email" class="text-muted mb-0 small"><?= $user['email'] ?></p>
+                    </div>
                 </div>
                 <div class="card-footer bg-white p-0">
-                    <div class="accordion accordion-flush" id="infoAccordion">
+                    <div class="accordion accordion-flush" id="profileAccordion">
                         <div class="accordion-item">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#infoCollapse">
-                                    <i class="bi bi-info-circle me-2"></i> Información de tarifas y políticas
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#profileDetails">
+                                    <i class="bi bi-info-circle me-2"></i> Detalles del perfil
                                 </button>
                             </h2>
-                            <div id="infoCollapse" class="accordion-collapse collapse" data-bs-parent="#infoAccordion">
+                            <div id="profileDetails" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-person-badge"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Profesor</small>
+                                                    <p id="assigned-teacher" class="mb-0"><?= $user['teacher']['name'] ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-car-front-fill"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Vehículo</small>
+                                                    <p id="assigned-car" class="mb-0"><?= $user['teacher']['vehicle_name'] ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#infoCollapse">
+                                    <i class="bi bi-tag me-2"></i> Tarifas y políticas
+                                </button>
+                            </h2>
+                            <div id="infoCollapse" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
                                 <div class="accordion-body">
                                     <div class="row g-3">
                                         <div class="col-md-4">
@@ -277,103 +282,285 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
         </section>
 
         <!-- Mis Reservas -->
-        <section id="reservas" class="mb-5">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="mb-0"><i class="bi bi-calendar-check me-2"></i>Mis Reservas</h3>
-                <a href="#calendario" class="btn btn-primary btn-sm">
-                    <i class="bi bi-plus-circle me-1"></i> Nueva Reserva
-                </a>
+        <section id="reservas" class="mb-4">
+            <!-- Resumen de reservas con notificaciones -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="calendar-icon bg-light rounded p-2 me-3">
+                                    <i class="bi bi-calendar2-week text-primary fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">Mis Clases</h5>
+                                    <p class="text-muted small mb-0">
+                                        <?php
+                                        $proximas = array_filter($bookings, function ($b) {
+                                            return $b['status'] != 'cancelled' && strtotime($b['date']) >= strtotime('today');
+                                        });
+                                        echo count($proximas) > 0
+                                            ? 'Tienes ' . count($proximas) . ' clase(s) programada(s)'
+                                            : 'No tienes clases programadas';
+                                        ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#reservasOffcanvas">
+                                Ver todas <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <?php if (!empty($proximas)):
+                            // Ordenar por fecha y hora
+                            usort($proximas, function ($a, $b) {
+                                $date_compare = strtotime($a['date']) - strtotime($b['date']);
+                                if ($date_compare == 0) {
+                                    return strtotime($a['start']) - strtotime($b['start']);
+                                }
+                                return $date_compare;
+                            });
+                            $next = reset($proximas); // Primera clase
+
+                            // Determinar el estado y su color
+                            $badge_class = '';
+                            $badge_text = '';
+                            switch ($next['status']) {
+                                case 'pending':
+                                    $badge_class = 'bg-warning';
+                                    $badge_text = 'Pendiente';
+                                    break;
+                                case 'accepted':
+                                    $badge_class = 'bg-success';
+                                    $badge_text = 'Confirmada';
+                                    break;
+                                default:
+                                    $badge_class = 'bg-secondary';
+                                    $badge_text = ucfirst($next['status']);
+                            }
+                        ?>
+                            <div class="list-group-item p-0">
+                                <div class="px-3 py-2 bg-light small fw-bold">Próxima clase</div>
+                                <div class="p-3">
+                                    <div class="mb-1">
+                                        <span class="badge <?= $badge_class ?>"><?= $badge_text ?></span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="bi bi-calendar-date text-primary me-2"></i>
+                                                <strong><?= date('d/m/Y', strtotime($next['date'])) ?></strong>
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-clock text-primary me-2"></i>
+                                                <span><?= $next['start'] ?> - <?= $next['end'] ?></span>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary ver-detalles"
+                                            data-bs-toggle="modal" data-bs-target="#detalleReservaModal"
+                                            data-id="<?= $next['id'] ?>">
+                                            <i class="bi bi-eye me-1"></i> Ver detalles
+                                        </button>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center small text-muted">
+                                        <div>
+                                            <i class="bi bi-person me-1"></i> <?= $next['teacher_name'] ?? $user['teacher']['name'] ?>
+                                        </div>
+                                        <div>
+                                            <i class="bi bi-car-front me-1"></i> <?= $next['vehicle'] ?? $user['teacher']['vehicle_name'] ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="list-group-item p-0">
+                            <div class="d-grid">
+                                <a href="#calendario" class="btn btn-primary m-2">
+                                    <i class="bi bi-plus-circle me-2"></i>Reservar nueva clase
+                                </a>
+                            </div>
+                        </div>
+
+                        <?php if ($classes_today > 0): ?>
+                            <div class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="calendar-icon bg-success-subtle rounded p-2 me-3">
+                                        <i class="bi bi-calendar-day text-success fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Hoy tienes clase</h6>
+                                        <p class="small text-muted mb-0">
+                                            <?= $classes_today ?> clase<?= $classes_today > 1 ? 's' : '' ?> para hoy
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
 
-            <div class="row gy-3" id="reservas-container">
-                <?php if (empty($bookings)): ?>
-                    <div class="col-12">
+            <!-- Panel lateral que aparece al hacer clic en "Ver todas" -->
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="reservasOffcanvas" aria-labelledby="reservasOffcanvasLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="reservasOffcanvasLabel">
+                        <i class="bi bi-calendar-check me-2"></i>Todas mis reservas
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <?php if (empty($bookings)): ?>
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle me-2"></i>No tienes reservas activas. ¡Haz tu primera reserva ahora!
                         </div>
-                    </div>
-                <?php else: ?>
-                    <?php foreach ($bookings as $booking): ?>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 shadow-sm">
-                                <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
-                                    <!-- <span class="fw-bold">
-                                        <? //= date('d/m/Y', is_numeric($booking['date']) ? $booking['date'] : strtotime($booking['date'])) 
-                                        ?>
-                                    </span> -->
-                                    <?php
-                                    $badge_class = '';
-                                    $badge_text = '';
-                                    switch ($booking['status']) {
-                                        case 'pending':
-                                            $badge_class = 'bg-warning';
-                                            $badge_text = 'Pendiente';
-                                            break;
-                                        case 'accepted':
-                                            $badge_class = 'bg-success';
-                                            $badge_text = 'Aceptada';
-                                            break;
-                                        case 'cancelled':
-                                            $badge_class = 'bg-danger';
-                                            $badge_text = 'Cancelada';
-                                            break;
-                                        default:
-                                            $badge_class = 'bg-secondary';
-                                            $badge_text = $booking['status'];
-                                    }
-                                    ?>
-                                    <span class="badge <?= $badge_class ?>"><?= $badge_text ?></span>
-                                </div>
-                                <div class="card-body d-flex justify-content-around">
+                    <?php else: ?>
+                        <!-- Pestañas para filtrar reservas -->
+                        <ul class="nav nav-tabs mb-3" id="reservasTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="proximas-tab" data-bs-toggle="tab" data-bs-target="#proximas" type="button" role="tab">
+                                    Próximas <span class="badge rounded-pill bg-primary ms-1"><?= count($proximas) ?></span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="historial-tab" data-bs-toggle="tab" data-bs-target="#historial" type="button" role="tab">
+                                    Historial
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="canceladas-tab" data-bs-toggle="tab" data-bs-target="#canceladas" type="button" role="tab">
+                                    Canceladas
+                                </button>
+                            </li>
+                        </ul>
 
-                                    <div class="d-flex mb-2">
-                                        <div class="me-3 text-primary">
-                                            <i class="bi bi-calendar fs-5"></i>
+                        <div class="tab-content">
+                            <!-- Próximas reservas -->
+                            <div class="tab-pane fade show active" id="proximas" role="tabpanel">
+                                <div class="list-group">
+                                    <?php foreach ($proximas as $booking): ?>
+                                        <?php
+                                        $badge_class = '';
+                                        $badge_text = '';
+                                        switch ($booking['status']) {
+                                            case 'pending':
+                                                $badge_class = 'bg-warning';
+                                                $badge_text = 'Pendiente';
+                                                break;
+                                            case 'accepted':
+                                                $badge_class = 'bg-success';
+                                                $badge_text = 'Confirmada';
+                                                break;
+                                            default:
+                                                $badge_class = 'bg-secondary';
+                                                $badge_text = ucfirst($booking['status']);
+                                        }
+                                        ?>
+                                        <div class="list-group-item list-group-item-action p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="badge <?= $badge_class ?>"><?= $badge_text ?></span>
+                                                <small class="text-muted"><?= date('d/m/Y', strtotime($booking['date'])) ?></small>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <div class="mb-1"><strong><?= $booking['start'] ?> - <?= $booking['end'] ?></strong></div>
+                                                    <div class="small text-muted">
+                                                        <i class="bi bi-person me-1"></i>
+                                                        <?= $booking['teacher_name'] ?? $user['teacher']['name'] ?>
+                                                    </div>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-primary ver-detalles"
+                                                    data-bs-toggle="modal" data-bs-target="#detalleReservaModal"
+                                                    data-id="<?= $booking['id'] ?>" data-bs-dismiss="offcanvas">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <small class="text-muted">Calendario</small>
-                                            <p class="mb-0 fw-medium"><?= date('d/m/Y', is_numeric($booking['date']) ? $booking['date'] : strtotime($booking['date'])) ?></p>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex mb-2">
-                                        <div class="me-3 text-primary">
-                                            <i class="bi bi-clock fs-5"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Hora</small>
-                                            <p class="mb-0 fw-medium"><?= $booking['start'] ?></p>
-                                        </div>
-                                    </div>
-                                    <!-- <div class="d-flex mb-2">
-                                        <div class="me-3 text-primary">
-                                            <i class="bi bi-person fs-5"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Profesor</small>
-                                            <p class="mb-0 fw-medium"><? //= $booking['teacher_name'] 
-                                                                        ?></p>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex">
-                                        <div class="me-3 text-primary">
-                                            <i class="bi bi-car-front fs-5"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Vehículo</small>
-                                            <p class="mb-0 fw-medium"><? //= $booking['vehicle'] 
-                                                                        ?></p>
-                                        </div>
-                                    </div> -->
-                                </div>
-                                <div class="card-footer border-top-0 bg-white">
-                                    <button class="btn btn-outline-primary w-100 ver-detalles" data-bs-toggle="modal" data-bs-target="#detalleReservaModal" data-id="<?= $booking['id'] ?>">
-                                        <i class="bi bi-eye me-1"></i> Ver detalles
-                                    </button>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
+
+                            <!-- Historial de reservas -->
+                            <div class="tab-pane fade" id="historial" role="tabpanel">
+                                <?php
+                                $pasadas = array_filter($bookings, function ($b) {
+                                    return $b['status'] != 'cancelled' && strtotime($b['date']) < strtotime('today');
+                                });
+
+                                if (empty($pasadas)): ?>
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>No tienes clases en tu historial.
+                                    </div>
+                                <?php else: ?>
+                                    <div class="list-group">
+                                        <?php foreach ($pasadas as $booking): ?>
+                                            <div class="list-group-item list-group-item-action p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="badge bg-secondary">Completada</span>
+                                                    <small class="text-muted"><?= date('d/m/Y', strtotime($booking['date'])) ?></small>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <div class="mb-1"><strong><?= $booking['start'] ?> - <?= $booking['end'] ?></strong></div>
+                                                        <div class="small text-muted">
+                                                            <i class="bi bi-person me-1"></i>
+                                                            <?= $booking['teacher_name'] ?? $user['teacher']['name'] ?>
+                                                        </div>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-secondary ver-detalles"
+                                                        data-bs-toggle="modal" data-bs-target="#detalleReservaModal"
+                                                        data-id="<?= $booking['id'] ?>" data-bs-dismiss="offcanvas">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Reservas canceladas -->
+                            <div class="tab-pane fade" id="canceladas" role="tabpanel">
+                                <?php
+                                $canceladas = array_filter($bookings, function ($b) {
+                                    return $b['status'] == 'cancelled';
+                                });
+
+                                if (empty($canceladas)): ?>
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>No tienes clases canceladas.
+                                    </div>
+                                <?php else: ?>
+                                    <div class="list-group">
+                                        <?php foreach ($canceladas as $booking): ?>
+                                            <div class="list-group-item list-group-item-action p-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="badge bg-danger">Cancelada</span>
+                                                    <small class="text-muted"><?= date('d/m/Y', strtotime($booking['date'])) ?></small>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <div class="mb-1"><strong><?= $booking['start'] ?> - <?= $booking['end'] ?></strong></div>
+                                                        <div class="small text-muted">
+                                                            <i class="bi bi-person me-1"></i>
+                                                            <?= $booking['teacher_name'] ?? $user['teacher']['name'] ?>
+                                                        </div>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-danger ver-detalles"
+                                                        data-bs-toggle="modal" data-bs-target="#detalleReservaModal"
+                                                        data-id="<?= $booking['id'] ?>" data-bs-dismiss="offcanvas">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </section>
 
@@ -381,22 +568,11 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
         <section id="calendario" class="mb-5">
             <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
                 <h3 class="mb-0"><i class="bi bi-calendar-plus me-2"></i>Reservar Clase</h3>
-                <div class="calendar-view-switcher btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-primary" data-view="dayGridMonth">
-                        <i class="bi bi-calendar-month me-1 d-none d-sm-inline"></i>Mes
-                    </button>
-                    <button type="button" class="btn btn-outline-primary active" data-view="timeGridWeek">
-                        <i class="bi bi-calendar-week me-1 d-none d-sm-inline"></i>Semana
-                    </button>
-                    <button type="button" class="btn btn-outline-primary" data-view="timeGridDay">
-                        <i class="bi bi-calendar-day me-1 d-none d-sm-inline"></i>Día
-                    </button>
-                </div>
             </div>
 
             <div class="card border-0 shadow-sm overflow-hidden">
                 <!-- Leyenda de colores mejorada -->
-                <div class="calendar-legend bg-light p-2 px-3 border-bottom d-flex flex-wrap justify-content-center gap-3">
+                <div class="calendar-legend p-2 px-3 border-bottom d-flex flex-wrap justify-content-center gap-3">
                     <div class="legend-item">
                         <span class="color-box available"></span> Disponible
                     </div>
@@ -407,55 +583,33 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                         <span class="color-box past"></span> Pasado
                     </div>
                     <div class="legend-item">
-                        <span class="color-box recent"></span>
-                        <1h
-                            </div>
+                        <span class="color-box recent"></span> &lt;1h
                     </div>
+                </div>
 
-                    <!-- Filtros de calendario (opcional) -->
-                    <!-- <div class="calendar-filters p-2 px-3 border-bottom bg-light">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-auto">
-                                <label class="col-form-label col-form-label-sm">Filtrar:</label>
-                            </div>
-                            <div class="col-auto">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="showMyClassesOnly" checked>
-                                    <label class="form-check-label small" for="showMyClassesOnly">Mis clases</label>
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="showAvailableOnly">
-                                    <label class="form-check-label small" for="showAvailableOnly">Solo disponibles</label>
-                                </div>
-                            </div>
+                <!-- Contenedor del calendario con ajustes responsive -->
+                <div class="card-body p-0">
+                    <div id="calendar" class="calendar-responsive"></div>
+                </div>
+
+                <!-- Info extra y atajos -->
+                <div class="card-footer bg-white py-2 px-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center">
+                        <div class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> Haz clic en un horario disponible para reservar
                         </div>
-                    </div> -->
-
-                    <!-- Contenedor del calendario con ajustes responsive -->
-                    <div class="card-body p-0">
-                        <div id="calendar" class="calendar-responsive"></div>
-                    </div>
-
-                    <!-- Info extra y atajos -->
-                    <div class="card-footer bg-white py-2 px-3">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center">
-                            <div class="small text-muted">
-                                <i class="bi bi-info-circle me-1"></i> Haz clic en un horario disponible para reservar
-                            </div>
-                            <div>
-                                <button id="goToToday" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-calendar-check me-1"></i>Hoy
-                                </button>
-                            </div>
+                        <div>
+                            <button id="goToToday" class="btn btn-sm btn-outline-secondary mt-2">
+                                <i class="bi bi-calendar-check me-1"></i>Hoy
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
         </section>
     </div>
 
-    <!-- Modales (sin cambios para mantener compatibilidad con JS) -->
+    <!-- Modales -->
     <div class="modal fade" id="studentCalendarModal">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -668,11 +822,11 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
         <div class="container">
             <div class="row">
                 <div class="col-md-6 text-center text-md-start">
-                    <h5>DrivingApp</h5>
+                    <h5>Autoescuela Universitaria</h5>
                     <p class="small">La mejor app para tu autoescuela</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="small">© <?= date('Y') ?> DrivingApp. Todos los derechos reservados.</p>
+                    <p class="small">© <?= date('Y') ?> Autoescuela Universitaria. Todos los derechos reservados.</p>
                 </div>
             </div>
         </div>

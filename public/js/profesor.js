@@ -29,6 +29,9 @@ jQuery(document).ready(function ($) {
 
             // Verificar token de sesión
             ProfesorView.checkSession();
+
+            // Configurar filtros de estudiantes
+            ProfesorView.setupStudentFilters();
         }
 
         static checkSession() {
@@ -164,6 +167,116 @@ jQuery(document).ready(function ($) {
             }
         }
 
+        static setupStudentFilters() {
+            const searchInput = document.getElementById('searchStudentOffcanvas');
+            const filterSelect = document.getElementById('studentFilter');
+            const studentItems = document.querySelectorAll('.student-item');
+            const itemsPerPage = 15;
+            let currentPage = 1;
+            let filteredItems = [...studentItems];
+
+            // Función para filtrar estudiantes
+            const filterStudents = () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const filterValue = filterSelect.value;
+
+                filteredItems = [...studentItems].filter(item => {
+                    const matchesSearch = searchTerm === '' ||
+                        item.dataset.name.includes(searchTerm) ||
+                        item.dataset.email.includes(searchTerm);
+
+                    let matchesFilter = true;
+                    if (filterValue === 'today') matchesFilter = item.dataset.today === 'true';
+                    else if (filterValue === 'pending') matchesFilter = item.dataset.pending === 'true';
+                    else if (filterValue === 'inactive') matchesFilter = item.dataset.inactive === 'true';
+
+                    return matchesSearch && matchesFilter;
+                });
+
+                // Ocultar todos los items primero
+                studentItems.forEach(item => item.style.display = 'none');
+
+                const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
+
+                const paginationExists = document.getElementById('studentPagination');
+                if (paginationExists) {
+                    document.getElementById('totalPages').textContent = totalPages;
+                    currentPage = 1;
+                    document.getElementById('currentPage').textContent = currentPage;
+                    document.getElementById('prevPage').disabled = true;
+                    document.getElementById('nextPage').disabled = totalPages <= 1;
+                }
+
+                // Mostrar items de la página actual
+                showCurrentPage();
+
+                // Mostrar mensaje si no hay resultados
+                const noResults = document.getElementById('noResults');
+                const studentListContainer = document.getElementById('studentListContainer');
+
+                if (filteredItems.length === 0) {
+                    if (!noResults && studentListContainer) {
+                        const message = document.createElement('div');
+                        message.id = 'noResults';
+                        message.className = 'alert alert-info mt-3';
+                        message.innerHTML = '<i class="bi bi-info-circle me-2"></i>No se encontraron alumnos que coincidan con tu búsqueda';
+                        studentListContainer.appendChild(message);
+                    }
+                } else if (noResults) {
+                    noResults.remove();
+                }
+            };
+
+            // Función para mostrar la página actual
+            const showCurrentPage = () => {
+                const start = (currentPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                const pageItems = filteredItems.slice(start, end);
+
+                pageItems.forEach(item => item.style.display = 'block');
+            };
+
+            // Event listeners
+            searchInput.addEventListener('input', filterStudents);
+            filterSelect.addEventListener('change', filterStudents);
+
+            // Paginación
+            document.getElementById('prevPage')?.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    document.getElementById('currentPage').textContent = currentPage;
+                    document.getElementById('prevPage').disabled = currentPage === 1;
+                    document.getElementById('nextPage').disabled = false;
+
+                    studentItems.forEach(item => item.style.display = 'none');
+                    showCurrentPage();
+                }
+            });
+
+            document.getElementById('nextPage')?.addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    document.getElementById('currentPage').textContent = currentPage;
+                    document.getElementById('prevPage').disabled = false;
+                    document.getElementById('nextPage').disabled = currentPage === totalPages;
+
+                    studentItems.forEach(item => item.style.display = 'none');
+                    showCurrentPage();
+                }
+            });
+
+            // Inicialización
+            if (studentItems.length > itemsPerPage) {
+                // Inicializar la primera página
+                studentItems.forEach((item, index) => {
+                    if (index >= itemsPerPage) {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+
         static initializeCalendar() {
             const calendarElement = document.getElementById('calendar');
             if (!calendarElement) {
@@ -279,7 +392,14 @@ jQuery(document).ready(function ($) {
                     tooltip.innerHTML = `
                         <div class="event-tooltip-header">
                             ${event.title}
-                            <span class="event-tooltip-status ${status}">${status === 'pending' ? 'Pendiente' : status === 'accepted' ? 'Aceptada' : 'N/A'}</span>
+                            <span class="event-tooltip-status ${status}">
+                              ${{
+                            'pending': 'Pendiente',
+                            'accepted': 'Aceptada',
+                            'cancelled': 'Cancelada'
+                        }[status] || 'N/A'
+                        }
+                            </span>
                         </div>
                         <div class="event-tooltip-content">
                             <div class="event-tooltip-detail">
@@ -608,13 +728,13 @@ jQuery(document).ready(function ($) {
             const maxSize = 2 * 1024 * 1024; // 2MB
 
             if (!allowedTypes.includes(file.type)) {
-            ProfesorView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
-            return;
+                ProfesorView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
+                return;
             }
 
             if (file.size > maxSize) {
-            ProfesorView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
-            return;
+                ProfesorView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
+                return;
             }
 
             const formData = new FormData();
@@ -626,33 +746,33 @@ jQuery(document).ready(function ($) {
             avatarElement.classList.add('uploading');
 
             try {
-            const response = await fetch(`${ProfesorView.apiUrl}/users/me/avatar`, {
-                method: 'POST',
-                headers: {
-                'Authorization': 'Bearer ' + ProfesorView.jwtToken
-                },
-                body: formData
-            });
+                const response = await fetch(`${ProfesorView.apiUrl}/users/me/avatar`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + ProfesorView.jwtToken
+                    },
+                    body: formData
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al subir la imagen');
-            }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al subir la imagen');
+                }
 
-            const data = await response.json();
-            
-            if (data.success) {
-                // Actualizar la imagen con la nueva URL
-                avatarElement.src = data.url;
-                ProfesorView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
-            } else {
-                throw new Error(data.message || 'Error al subir la imagen');
-            }
+                const data = await response.json();
+
+                if (data.success) {
+                    // Actualizar la imagen con la nueva URL
+                    avatarElement.src = data.url;
+                    ProfesorView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
+                } else {
+                    throw new Error(data.message || 'Error al subir la imagen');
+                }
             } catch (error) {
-            avatarElement.src = originalSrc; // Restaurar la imagen original
-            ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                avatarElement.src = originalSrc; // Restaurar la imagen original
+                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
             } finally {
-            avatarElement.classList.remove('uploading');
+                avatarElement.classList.remove('uploading');
             }
         }
 

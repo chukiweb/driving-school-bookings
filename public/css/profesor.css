@@ -226,8 +226,12 @@ section {
 
 /* Lista de estudiantes */
 .student-list {
-    max-height: 600px;
+    /* max-height: 600px; */
     overflow-y: auto;
+}
+
+#alumnos .card-body {
+    height: auto;
 }
 
 .student-item {
@@ -712,8 +716,11 @@ section {
     .logout-btn {
         margin-top: 8px;
         padding: 8px;
-        text-align: center;
         background-color: rgba(220, 53, 69, 0.1);
         border-radius: 4px;
     }
+}
+
+label.btn.btn-outline-warning {
+    background-color: #5b5b5b;
 }
