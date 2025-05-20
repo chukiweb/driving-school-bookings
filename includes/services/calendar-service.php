@@ -12,40 +12,77 @@ class DSB_Calendar_Service
     {
         $teacher_id = intval($teacher_id);
 
-        $events = get_posts([
-            'post_type'      => 'dsb_booking',
-            'meta_query'     => [
-                ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '=']
-            ],
-            'posts_per_page' => -1,
-        ]);
+    $events = get_posts([
+        'post_type'      => 'dsb_booking',
+        'meta_query'     => [
+            ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '=']
+        ],
+        'posts_per_page' => -1,
+    ]);
 
-        $result = [];
-        foreach ($events as $event) {
-            $date       = get_post_meta($event->ID, 'date',      true);
-            $start_time = get_post_meta($event->ID, 'time',      true);
-            $end_time   = get_post_meta($event->ID, 'end_time',  true);
-            $student_id = get_post_meta($event->ID, 'student_id', true);
+    $result = [];
+    foreach ($events as $event) {
+        $date       = get_post_meta($event->ID, 'date',      true);
+        $start_time = get_post_meta($event->ID, 'time',      true);
+        $end_time   = get_post_meta($event->ID, 'end_time',  true);
+        $student_id = get_post_meta($event->ID, 'student_id', true);
+        $status     = get_post_meta($event->ID, 'status',    true);
 
-            $student = get_user_by('ID', $student_id);
-            $student_name = $student
-                ? "{$student->first_name} {$student->last_name}"
-                : 'Reservado';
-
-            $color = self::generate_color_for_id($student_id);
-
-            $result[] = [
-                'id'              => $event->ID,
-                'title'           => $student_name,
-                'start'           => "{$date}T{$start_time}",
-                'end'             => "{$date}T{$end_time}",
-                'backgroundColor' => $color,
-                'borderColor'     => $color,
-                'textColor'       => '#000',
-            ];
+        // Si está cancelada, no la incluimos en los eventos del calendario
+        if ($status === 'cancelled') {
+            continue;
         }
 
-        return $result;
+        // Si es un bloque de tiempo bloqueado, usamos formato especial
+        if ($status === 'blocked') {
+            $reason = get_post_meta($event->ID, 'reason', true) ?: 'Horario no disponible';
+            $result[] = [
+                'id'              => $event->ID,
+                'title'           => $reason,
+                'start'           => "{$date}T{$start_time}",
+                'end'             => "{$date}T{$end_time}",
+                'backgroundColor' => '#dc3545', // Rojo para bloqueados
+                'borderColor'     => '#b02a37',
+                'textColor'       => '#fff',
+                'className'       => 'blocked-event',
+                'extendedProps'   => [
+                    'status' => 'blocked',
+                    'reason' => $reason
+                ]
+            ];
+            continue;
+        }
+
+        // Para reservas normales (pending o accepted)
+        $student = get_user_by('ID', $student_id);
+        $student_name = $student
+            ? "{$student->first_name} {$student->last_name}"
+            : 'Reservado';
+
+        // Color según el estado
+        if ($status === 'pending') {
+            $color = '#ffc107'; // Amarillo para pendientes
+        } else {
+            $color = '#28a745'; // Verde para aceptadas
+        }
+
+        $result[] = [
+            'id'              => $event->ID,
+            'title'           => $student_name,
+            'start'           => "{$date}T{$start_time}",
+            'end'             => "{$date}T{$end_time}",
+            'backgroundColor' => $color,
+            'borderColor'     => $color,
+            'textColor'       => '#000',
+            'extendedProps'   => [
+                'status'      => $status,
+                'studentId'   => $student_id,
+                'studentName' => $student_name
+            ]
+        ];
+    }
+
+    return $result;
     }
 
     public static function get_student_calendar($student_id): array
@@ -122,7 +159,7 @@ class DSB_Calendar_Service
     
             // Color según estado
             $color = $status === 'pending' ? '#ffc107' : '#28a745'; // amarillo para pending, verde para activas
-    
+
             $result[] = [
                 'id'              => $event->ID,
                 'title'           => "Clase con {$teacher_name}",

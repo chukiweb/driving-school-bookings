@@ -171,6 +171,10 @@ section {
 }
 
 /* === CALENDARIO Y EVENTOS === */
+.fc-event-main {
+    color: black !important;
+}
+
 #calendar {
     background-color: white;
     border-radius: 10px;

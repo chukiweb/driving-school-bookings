@@ -11,7 +11,8 @@ class DSB_Settings
                 'cancelation_time_hours' => 24,
                 'daily_limit' => 2,
                 'class_cost' => 1,
-                'class_duration' => 45, // Añadir duración predeterminada (45 minutos)
+                'class_duration' => 45,
+                'default_booking_status' => 'accepted',
             ]
         );
     }

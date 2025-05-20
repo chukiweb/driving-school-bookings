@@ -15,7 +15,10 @@ class DSB_Teacher_Service
                 'errors' => ['No se proporcionó un ID válido']
             ], 400);
         }
-        $vehicle_id = get_user_meta($teacher_id, 'assigned_vehicle', true);
+        // Obtener vehículos
+        $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true);
+        $moto_id = get_user_meta($teacher_id, 'assigned_motorcycle', true)? : null;
+        
         $first_name = get_user_meta($teacher_id, 'first_name', true);
         $last_name = get_user_meta($teacher_id, 'last_name', true);
 
@@ -46,7 +49,16 @@ class DSB_Teacher_Service
                 'display_name' => $user->display_name,
                 'avatar' => $avatar_url,
                 'students' => $students,
-                'vehicle_id' => $vehicle_id,
+                'vehicle' => [
+                    'a' => [
+                        'id' => $moto_id ? : null,
+                        'name' => get_the_title($moto_id) ? : null,
+                    ],
+                    'b' => [
+                        'id' => $coche_id,
+                        'name' => get_the_title($coche_id),
+                    ],
+                ],
             ]
         ], 200);
     }
@@ -73,7 +85,8 @@ class DSB_Teacher_Service
                     'id' => $student->ID,
                     'username' => $student->user_login,
                     'email' => $student->user_email,
-                    'display_name' => $student->display_name
+                    'display_name' => $student->display_name,
+                    'license_type' => get_user_meta($student->ID, 'license_type', true),
                 ];
             }
         }

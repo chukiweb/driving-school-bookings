@@ -10,6 +10,8 @@ jQuery(document).ready(function ($) {
         static apiUrl = DSB_CONFIG.apiBaseUrl;
         static jwtToken = DSB_CONFIG.jwtToken;
         static selectedBookingId = null;
+        static blockModeActive = false;
+        static createBookingModeActive = false;
 
         static init() {
             // Inicializar datos
@@ -20,6 +22,8 @@ jQuery(document).ready(function ($) {
             ProfesorView.bookingDetailModal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
             ProfesorView.studentDetailModal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
             ProfesorView.rejectConfirmModal = new bootstrap.Modal(document.getElementById('rejectConfirmModal'));
+            ProfesorView.blockTimeModal = new bootstrap.Modal(document.getElementById('blockTimeModal'));
+            ProfesorView.createBookingModal = new bootstrap.Modal(document.getElementById('createBookingModal'));
 
             // Inicializar calendario
             ProfesorView.initializeCalendar();
@@ -77,7 +81,7 @@ jQuery(document).ready(function ($) {
             // Confirmar rechazo
             document.getElementById('confirmRejectBtn')?.addEventListener('click', function () {
                 const bookingId = document.getElementById('reject-booking-id').value;
-                ProfesorView.rejectBooking(bookingId);
+                ProfesorView.cancelBooking(bookingId);
             });
 
             // Filtros de calendario
@@ -135,6 +139,234 @@ jQuery(document).ready(function ($) {
                     this.classList.add('active');
                 });
             });
+
+            // Evento para activar el modo de bloqueo de horario
+            document.getElementById('blockTimeBtn')?.addEventListener('click', function () {
+                ProfesorView.activateBlockMode();
+            });
+
+            // Guardar bloqueo de horario
+            document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
+                ProfesorView.saveTimeBlock();
+            });
+
+            // Crear reserva para alumno
+            document.getElementById('createBookingBtn')?.addEventListener('click', function () {
+                ProfesorView.showCreateBookingForm();
+            });
+
+            // Guardar reserva para alumno
+            document.getElementById('saveBookingBtn')?.addEventListener('click', function () {
+                ProfesorView.createBookingForStudent();
+            });
+
+            // Rellenar licencia de conducir en el modal de crear reserva
+            document.getElementById('student_select')?.addEventListener('change', function () {
+                const selectedOption = this.options[this.selectedIndex].value;
+                const inputLicense = document.getElementById('license_type');
+                const studentLicense = ProfesorView.profesorData.students.find(alumno => alumno.id == selectedOption).license_type;
+
+                if (studentLicense) {
+                    inputLicense.value = studentLicense;
+                }
+            });
+        }
+
+        static activateBlockMode() {
+            ProfesorView.blockModeActive = true;
+            ProfesorView.createBookingModeActive = false;
+
+            // Cambiar cursor para indicar modo de bloqueo
+            document.getElementById('calendar').classList.add('block-mode');
+
+            // Mostrar notificación
+            ProfesorView.mostrarNotificacion('info', 'Modo de bloqueo activado. Seleccione una franja horaria para bloquear.');
+
+            // Cambiar estado visual del botón
+            document.getElementById('blockTimeBtn').classList.remove('btn-outline-danger');
+            document.getElementById('blockTimeBtn').classList.add('btn-danger');
+        }
+
+        static handleTimeBlockSelection(info) {
+            // Desactivar modo bloqueo
+            ProfesorView.blockModeActive = false;
+            document.getElementById('calendar').classList.remove('block-mode');
+            document.getElementById('blockTimeBtn').classList.remove('btn-danger');
+            document.getElementById('blockTimeBtn').classList.add('btn-outline-danger');
+
+            // Llenar modal con información de la selección
+            document.getElementById('block_start_date').value = info.startStr.substring(0, 10);
+            document.getElementById('block_start_time').value = info.startStr.substring(11, 16);
+            document.getElementById('block_end_date').value = info.endStr.substring(0, 10);
+            document.getElementById('block_end_time').value = info.endStr.substring(11, 16);
+
+            // Mostrar modal de bloqueo
+            ProfesorView.blockTimeModal.show();
+        }
+
+        static async saveTimeBlock() {
+            const startDate = document.getElementById('block_start_date').value;
+            const startTime = document.getElementById('block_start_time').value;
+            const endDate = document.getElementById('block_end_date').value;
+            const endTime = document.getElementById('block_end_time').value;
+            const reason = document.getElementById('block_reason').value || 'Horario no disponible';
+
+            try {
+                const response = await fetch(`${ProfesorView.apiUrl}/teachers/block-time`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    },
+                    body: JSON.stringify({
+                        teacher_id: ProfesorView.profesorData.id,
+                        date: startDate,
+                        start_time: startTime,
+                        end_time: endTime,
+                        reason: reason
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al bloquear horario');
+                }
+
+                const data = await response.json();
+
+                // Añadir el bloqueo al calendario
+                ProfesorView.calendar.addEvent({
+                    id: `block-${data.id}`,
+                    title: reason,
+                    start: `${startDate}T${startTime}`,
+                    end: `${endDate}T${endTime}`,
+                    extendedProps: {
+                        status: 'blocked',
+                        reason: reason
+                    },
+                    classNames: ['blocked-event'],
+                    backgroundColor: '#dc3545',
+                    borderColor: '#b02a37'
+                });
+
+                // Ocultar modal y mostrar notificación
+                ProfesorView.blockTimeModal.hide();
+                ProfesorView.mostrarNotificacion('success', 'Horario bloqueado correctamente');
+
+            } catch (error) {
+                console.error('Error al bloquear horario:', error);
+                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+            }
+        }
+
+        static showCreateBookingForm() {
+            ProfesorView.createBookingModeActive = true;
+            ProfesorView.blockModeActive = false;
+
+            // Cambiar cursor para indicar modo de creación
+            document.getElementById('calendar').classList.add('create-mode');
+
+            // Mostrar notificación
+            ProfesorView.mostrarNotificacion('info', 'Seleccione la franja horaria para la nueva clase');
+        }
+
+        static async handleBookingSelection(info) {
+            // Desactivar modo creación
+            ProfesorView.createBookingModeActive = false;
+            document.getElementById('calendar').classList.remove('create-mode');
+
+            // Verificar si la franja está bloqueada
+            const events = ProfesorView.calendar.getEvents();
+            for (const event of events) {
+                if (event.extendedProps.status === 'blocked' && ((info.start >= event.start && info.start < event.end) || (info.end > event.start && info.end <= event.end))) {
+
+                    ProfesorView.mostrarNotificacion('error', 'La franja horaria seleccionada está bloqueada');
+                    return;
+                }
+            }
+
+            // Llenar modal con información de la selección
+            document.getElementById('new_booking_date').value = info.startStr.substring(0, 10);
+            document.getElementById('new_booking_start_time').value = info.startStr.substring(11, 16);
+            document.getElementById('new_booking_end_time').value = info.endStr.substring(11, 16);
+
+            // Mostrar modal de creación de reserva
+            ProfesorView.createBookingModal.show();
+        }
+
+        /**
+         * Guarda una reserva para un alumno
+         */
+        static async createBookingForStudent() {
+            const date = document.getElementById('new_booking_date').value;
+            const startTime = document.getElementById('new_booking_start_time').value;
+            const endTime = document.getElementById('new_booking_end_time').value;
+            const studentId = document.getElementById('student_select').value;
+            const vehicle = document.getElementById('license_type').value === 'B' ? ProfesorView.profesorData.vehicle.b.name : ProfesorView.profesorData.vehicle.a.name;
+
+            if (!studentId) {
+                ProfesorView.mostrarNotificacion('error', 'Debe seleccionar un alumno');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${ProfesorView.apiUrl}/bookings/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    },
+                    body: JSON.stringify({
+                        alumno: studentId,
+                        profesor: ProfesorView.profesorData.id,
+                        vehiculo: vehicle,
+                        fecha: date,
+                        hora: startTime,
+                        end_time: endTime,
+                        status: 'accepted',
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al crear la reserva');
+                }
+
+                const data = await response.json();
+
+                // Añadir la reserva al calendario
+                const studentName = document.getElementById('student_select').options[document.getElementById('student_select').selectedIndex].text;
+
+                ProfesorView.calendar.addEvent({
+                    id: data.id,
+                    title: `Clase con ${studentName}`,
+                    start: `${date}T${startTime}`,
+                    end: `${date}T${endTime}`,
+                    extendedProps: {
+                        status: 'accepted',
+                        studentName: studentName,
+                        studentId: studentId,
+                        vehicle: vehicle,
+                        date: date,
+                        time: startTime,
+                        endTime: endTime
+                    },
+                    className: 'accepted-event',
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745'
+                });
+
+                // Ocultar modal y mostrar notificación
+                ProfesorView.createBookingModal.hide();
+                ProfesorView.mostrarNotificacion('success', 'Reserva creada correctamente');
+
+                // Actualizar la lista de reservas
+                await ProfesorView.loadBookings();
+
+            } catch (error) {
+                console.error('Error al crear la reserva:', error);
+                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+            }
         }
 
         // Añadir este método para manejar el cierre de sesión
@@ -313,7 +545,8 @@ jQuery(document).ready(function ($) {
                 const eventClass = booking.status === 'pending' ? 'pending-event' :
                     booking.status === 'accepted' ? 'accepted-event' :
                         booking.status === 'cancelled' ? 'cancelled-event' :
-                            new Date(booking.date) < new Date() ? 'past-event' : '';
+                            booking.status === 'blocked' ? 'blocked-event' :
+                                new Date(booking.date) < new Date() ? 'past-event' : '';
 
                 return {
                     id: booking.id,
@@ -347,7 +580,6 @@ jQuery(document).ready(function ($) {
                 slotMinTime: config.hora_inicio || '08:00:00',
                 slotMaxTime: config.hora_fin || '20:00:00',
                 hiddenDays: diasNoDisponibles,
-                height: 'auto',
                 expandRows: true,
                 locale: 'es',
                 events: events,
@@ -369,12 +601,53 @@ jQuery(document).ready(function ($) {
                         dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'numeric' }
                     }
                 },
+                selectable: true,
+                selectAllow: function (selectInfo) {
+                    // Obtiene el día de inicio y fin de la selección
+                    var startDay = selectInfo.start.getDate();
+                    var endDay = selectInfo.end.getDate();
+                    var startMonth = selectInfo.start.getMonth();
+                    var endMonth = selectInfo.end.getMonth();
+                    var startYear = selectInfo.start.getFullYear();
+                    var endYear = selectInfo.end.getFullYear();
+
+                    // Permite la selección solo si el día, mes y año son iguales
+                    return (startDay === endDay) && (startMonth === endMonth) && (startYear === endYear);
+                },
+                select: function (info) {
+                    // Verificar si estamos en modo bloqueo
+                    if (ProfesorView.blockModeActive) {
+                        ProfesorView.handleTimeBlockSelection(info);
+                    } else if (ProfesorView.createBookingModeActive) {
+                        ProfesorView.handleBookingSelection(info);
+                    }
+                },
 
                 // Mejora de visualización de eventos
                 eventDidMount: function (info) {
                     const event = info.event;
                     const element = info.el;
                     const status = event.extendedProps.status;
+
+                    if (status === 'cancelled') {
+                        element.style.display = 'none';
+                        return;
+                    }
+
+                    // Estilo especial para eventos de bloqueo
+                    if (status === 'blocked') {
+                        element.classList.add('blocked-event');
+                        element.style.backgroundColor = '#dc3545';
+                        element.style.borderColor = '#b02a37';
+
+                        // Añadir ícono de bloqueo
+                        const timeText = element.querySelector('.fc-event-time');
+                        if (timeText) {
+                            timeText.innerHTML = '<i class="bi bi-lock-fill"></i> ' + timeText.innerHTML;
+                        }
+
+                        return;
+                    }
 
                     // Añadir atributos para accesibilidad
                     element.setAttribute('aria-label', `Clase con ${event.extendedProps.studentName} - ${event.extendedProps.date} a las ${event.extendedProps.time}`);
@@ -384,6 +657,8 @@ jQuery(document).ready(function ($) {
                         element.classList.add('pending-event');
                     } else if (status === 'accepted') {
                         element.classList.add('accepted-event');
+                    } else if (status === 'blocked') {
+                        element.classList.add('blocked-event');
                     }
 
                     // Agregar tooltip personalizado con información detallada
@@ -396,7 +671,8 @@ jQuery(document).ready(function ($) {
                               ${{
                             'pending': 'Pendiente',
                             'accepted': 'Aceptada',
-                            'cancelled': 'Cancelada'
+                            'cancelled': 'Cancelada',
+                            'blocked': 'Bloqueada'
                         }[status] || 'N/A'
                         }
                             </span>
@@ -455,7 +731,8 @@ jQuery(document).ready(function ($) {
                     document.getElementById('student_name').value = event.extendedProps.studentName;
                     document.getElementById('booking_status').value = status === 'pending' ? 'Pendiente' :
                         status === 'accepted' ? 'Aceptada' :
-                            status === 'cancelled' ? 'Cancelada' : 'Desconocido';
+                            status === 'cancelled' ? 'Cancelada' :
+                                status === 'blocked' ? 'Bloqueada' : 'Desconocido';
                     document.getElementById('booking_date').value = event.extendedProps.date;
                     document.getElementById('booking_time').value = `${event.extendedProps.time} - ${event.extendedProps.endTime}`;
                     document.getElementById('booking_vehicle').value = event.extendedProps.vehicle || 'No especificado';
@@ -471,6 +748,9 @@ jQuery(document).ready(function ($) {
                     } else if (status === 'accepted') {
                         acceptBtn.style.display = 'none';
                         rejectBtn.textContent = 'Cancelar';
+                    } else if (status === 'blocked') {
+                        acceptBtn.style.display = 'none';
+                        rejectBtn.textContent = 'Eliminar bloqueo';
                     } else {
                         acceptBtn.style.display = 'none';
                         rejectBtn.style.display = 'none';
@@ -579,6 +859,7 @@ jQuery(document).ready(function ($) {
                 case 'pending': return 'Pendiente';
                 case 'accepted': return 'Aceptada';
                 case 'cancelled': return 'Cancelada';
+                case 'blocked': return 'Bloqueada';
                 default: return status;
             }
         }
@@ -630,11 +911,11 @@ jQuery(document).ready(function ($) {
             }
         }
 
-        static async rejectBooking(bookingId) {
+        static async cancelBooking(bookingId) {
             if (!bookingId) return;
 
             try {
-                const response = await fetch(`${ProfesorView.apiUrl}/bookings/reject/${bookingId}`, {
+                const response = await fetch(`${ProfesorView.apiUrl}/bookings/cancel/${bookingId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -986,4 +1267,6 @@ jQuery(document).ready(function ($) {
 
     // Inicializar la vista
     ProfesorView.init();
+
+    console.log('ProfesorData', ProfesorView.profesorData);
 });

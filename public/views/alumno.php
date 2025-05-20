@@ -176,7 +176,6 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                 <img id="estudiante-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($user['id'])); ?>" alt="Avatar de <?= esc_attr($user['name']); ?>" class="rounded-circle avatar-img">
                                 <div class="avatar-overlay">
                                     <i class="bi bi-camera-fill"></i>
-                                    <span class="d-none d-md-inline">Cambiar</span>
                                 </div>
                             </div>
                             <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">

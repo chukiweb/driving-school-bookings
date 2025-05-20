@@ -24,14 +24,14 @@ function dsb_get_teacher_data()
         'duracion' => 45
     ];
 
-    // Obtener vehículo
-    $vehicle_id = $teacher['vehicle_id'];
-    if ($vehicle_id) {
-        $vehicle = get_post($vehicle_id);
-        $teacher['vehicle'] = $vehicle ? $vehicle->post_title : 'Sin vehículo asignado';
-    } else {
-        $teacher['vehicle'] = 'Sin vehículo asignado';
-    }
+    // Obtener nombre del vehículo
+    // $vehicle_id = $teacher['vehicle_id'];
+    // if ($vehicle_id) {
+    //     $vehicle = get_post($vehicle_id);
+    //     $teacher['vehicle'] = $vehicle ? $vehicle->post_title : 'Sin vehículo asignado';
+    // } else {
+    //     $teacher['vehicle'] = 'Sin vehículo asignado';
+    // }
 
     return $teacher;
 }
@@ -73,7 +73,7 @@ function dsb_get_teacher_bookings()
 
             $bookings[] = [
                 'id' => $booking_id,
-                'title' => "Clase con {$student_name}",
+                'title' => "Reservado con {$student_name}",
                 'start' => "{$date}T{$time}",
                 'end' => "{$date}T{$end_time}",
                 'status' => $status,
@@ -111,6 +111,9 @@ $total_count = 0;
 $today = date('Y-m-d');
 
 foreach ($bookings as $booking) {
+    if ($booking['status'] === 'blocked') {
+        continue; // Ignorar reservas bloqueadas
+    }
     if ($booking['status'] === 'pending') {
         $pending_count++;
     }
@@ -208,7 +211,6 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                 <img id="teacher-avatar" src="<?= esc_url(DSB_User_Service::get_avatar_url($teacher['id'])); ?>" alt="Avatar de <?= esc_attr($teacher['display_name']); ?>" class="rounded-circle avatar-img">
                                 <div class="avatar-overlay">
                                     <i class="bi bi-camera-fill"></i>
-                                    <span class="d-none d-md-inline">Cambiar</span>
                                 </div>
                             </div>
                             <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif" style="display: none;">
@@ -242,8 +244,18 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                                     <i class="bi bi-car-front-fill"></i>
                                                 </div>
                                                 <div>
-                                                    <small class="text-muted d-block">Vehículo</small>
-                                                    <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']) ?></p>
+                                                    <small class="text-muted d-block">Coche</small>
+                                                    <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']['b']['name']) ?></p>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-bicycle"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Moto</small>
+                                                    <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']['a']['name']) ?></p>
                                                 </div>
                                             </div>
                                         </div>
@@ -428,6 +440,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                             $alumno_ids_con_clases = [];
                             $treinta_dias = date('Y-m-d', strtotime('-30 days'));
                             foreach ($bookings as $booking) {
+                                if (empty($booking['student_id'])) continue;
                                 if (strtotime($booking['date']) >= strtotime($treinta_dias) && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
                                     $alumno_ids_con_clases[] = $booking['student_id'];
                                 }
@@ -575,15 +588,13 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                         }
                                     }
 
-                                    $license_type = get_user_meta($student['id'], 'license_type', true);
-
                                     // Agregar data-attributes para facilitar el filtrado y búsqueda con JavaScript
                                     $data_attrs = 'data-name="' . esc_attr(strtolower($student['display_name'])) . '" ';
                                     $data_attrs .= 'data-email="' . esc_attr(strtolower($student['email'])) . '" ';
                                     $data_attrs .= 'data-pending="' . ($pending_classes > 0 ? 'true' : 'false') . '" ';
                                     $data_attrs .= 'data-today="' . ($today_classes > 0 ? 'true' : 'false') . '" ';
                                     $data_attrs .= 'data-inactive="' . ($recent_classes == 0 ? 'true' : 'false') . '" ';
-                                    $data_attrs .= 'data-license="' . esc_attr(strtolower($license_type)) . '"';
+                                    $data_attrs .= 'data-license="' . esc_attr(strtolower($student['license_type'])) . '"';
                                 ?>
                                     <div class="list-group-item list-group-item-action p-3 student-item" <?= $data_attrs ?>>
                                         <div class="d-flex align-items-center mb-2">
@@ -594,9 +605,9 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                             </div>
                                         </div>
                                         <div class="d-flex flex-wrap gap-2 mb-2">
-                                            <?php if ($license_type): ?>
+                                            <?php if ($student['license_type']): ?>
                                                 <span class="badge bg-light text-dark">
-                                                    <i class="bi bi-card-checklist me-1"></i><?= esc_html($license_type) ?>
+                                                    <i class="bi bi-card-checklist me-1"></i><?= esc_html($student['license_type']) ?>
                                                 </span>
                                             <?php endif; ?>
 
@@ -699,6 +710,15 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                         <button id="goToToday" class="btn btn-sm btn-primary">
                             <i class="bi bi-calendar-check me-1"></i>Hoy
                         </button>
+
+                        <div class="btn-group" role="group">
+                            <button id="blockTimeBtn" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Bloquear horario">
+                                <i class="bi bi-lock-fill"></i> Bloquear horario
+                            </button>
+                            <button id="createBookingBtn" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Crear reserva">
+                                <i class="bi bi-calendar-plus"></i> Crear reserva
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -860,6 +880,97 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" id="confirmRejectBtn" class="btn btn-danger">Rechazar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para bloquear horario -->
+    <div class="modal fade" id="blockTimeModal" tabindex="-1" aria-labelledby="blockTimeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="blockTimeModalLabel">Bloquear horario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="blockTimeForm">
+                        <div class="mb-3">
+                            <label for="block_start_date" class="form-label">Fecha inicio</label>
+                            <input type="date" class="form-control" id="block_start_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="block_start_time" class="form-label">Hora inicio</label>
+                            <input type="time" class="form-control" id="block_start_time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="block_end_date" class="form-label">Fecha fin</label>
+                            <input type="date" class="form-control" id="block_end_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="block_end_time" class="form-label">Hora fin</label>
+                            <input type="time" class="form-control" id="block_end_time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="block_reason" class="form-label">Motivo (opcional)</label>
+                            <input type="text" class="form-control" id="block_reason" placeholder="Indique el motivo del bloqueo">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="saveBlockBtn">Bloquear horario</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear reserva -->
+    <div class="modal fade" id="createBookingModal" tabindex="-1" aria-labelledby="createBookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createBookingModalLabel">Crear reserva para alumno</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createBookingForm">
+                        <div class="mb-3">
+                            <label for="new_booking_date" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="new_booking_date" readonly>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label for="new_booking_start_time" class="form-label">Hora inicio</label>
+                                <input type="time" class="form-control" id="new_booking_start_time" readonly>
+                            </div>
+                            <div class="col">
+                                <label for="new_booking_end_time" class="form-label">Hora fin</label>
+                                <input type="time" class="form-control" id="new_booking_end_time" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="student_select" class="form-label">Alumno</label>
+                            <select class="form-select" id="student_select" required>
+                                <option value="">Seleccione un alumno</option>
+                                <?php foreach ($teacher['students'] as $student): ?>
+                                    <option value="<?= esc_attr($student['id']) ?>"><?= esc_html($student['display_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="license_type" class="form-label">Permiso</label>
+                            <input type="text" class="form-control" id="license_type" value="" disabled>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Esta reserva se creará con estado "Aceptada" automáticamente.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveBookingBtn">Crear reserva</button>
                 </div>
             </div>
         </div>

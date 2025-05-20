@@ -191,7 +191,7 @@ jQuery(document).ready(function ($) {
             // Mapeo de formularios a sus respectivos endpoints y configuraciones
             const formEndpoints = {
                 'studentCalendarForm': {
-                    endpoint: `${AlumnoView.apiUrl}/bookings`,
+                    endpoint: `${AlumnoView.apiUrl}/bookings/create`,
                     method: 'POST',
                     dataMapper: (form) => ({
                         alumno: AlumnoView.alumnoId,
@@ -216,8 +216,10 @@ jQuery(document).ready(function ($) {
                         const status = res.status || 'pending';
 
                         // Determinar color basado en el estado
-                        const backgroundColor = status === 'pending' ? '#ffc107' : '#28a745';
-                        const className = status === 'pending' ? 'pending-event' : 'accepted-event';
+                        const backgroundColor = status === 'pending' ? '#ffc107' : 
+                                                        'accepted' ? '#28a745' : '#dc3545';
+                        const className = status === 'pending' ? 'pending-event' : 
+                                                        'accepted' ? 'accepted-event' : 'unavailable-event';
 
                         // Añadir el nuevo evento al calendario con color según su estado
                         AlumnoView.calendar.addEvent({

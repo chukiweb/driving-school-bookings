@@ -253,6 +253,10 @@ section {
 }
 
 /* === CALENDARIO Y EVENTOS === */
+.fc-event-main {
+    color: black !important;
+}
+
 #calendar {
     background-color: white;
     border-radius: 10px;
@@ -723,4 +727,32 @@ section {
 
 label.btn.btn-outline-warning {
     background-color: #5b5b5b;
+}
+
+/* Estilos para el modo bloqueo y creación */
+.block-mode {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23dc3545"><path d="M18 10v-4c0-3.313-2.687-6-6-6s-6 2.687-6 6v4h-3v14h18v-14h-3zm-10 0v-4c0-2.206 1.794-4 4-4s4 1.794 4 4v4h-8z"/></svg>'), auto;
+}
+
+.create-mode {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%230d6efd"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm6 13h-5v5h-2v-5h-5v-2h5v-5h2v5h5v2z"/></svg>'), auto;
+}
+
+/* Estilos para eventos de bloqueo */
+.blocked-event {
+    background-color: #dc3545 !important;
+    border-color: #b02a37 !important;
+    color: #fff !important;
+    opacity: 0.85;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.2) 10px,
+        rgba(255, 255, 255, 0.2) 20px
+    ) !important;
+}
+
+.blocked-event:hover {
+    opacity: 1;
 }
