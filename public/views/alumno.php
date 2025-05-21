@@ -108,6 +108,19 @@ function dsb_enqueue_alumno_assets()
         ]
     );
     wp_enqueue_script('fullcalendar-js', plugin_dir_url(__FILE__) . '../lib/fullcalendar.js', array('jquery'), '', true);
+
+    // Añadir script de Pusher Beams
+    wp_enqueue_script('dsb-pusher-init', plugin_dir_url(__FILE__) . '../js/pusher-init.js', [], '1.0.0', true);
+
+    // Configuración para Pusher Beams
+    wp_localize_script(
+        'dsb-pusher-init',
+        'DSB_PUSHER',
+        [
+            'serviceWorkerUrl' => plugin_dir_url(__FILE__) . '/service-worker.js',
+            'instanceId' => '02609d94-0e91-4039-baf6-7d9d04b1fb6e', // Reemplaza con tu ID de instancia de Pusher Beams
+        ]
+    );
 }
 add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
 ?>
