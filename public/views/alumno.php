@@ -89,52 +89,29 @@ function dsb_get_teacher_bookings_data()
     return $formatted_bookings;
 }
 
-// Incluir estilos y scripts específicos para esta vista
-function dsb_enqueue_alumno_assets()
-{
-    wp_enqueue_script('jquery');
-    wp_enqueue_style('dsb-alumno-css', plugin_dir_url(__FILE__) . '../css/alumno.css', [], '1.0.0', 'all');
-    wp_enqueue_script('dsb-alumno-js', plugin_dir_url(__FILE__) . '../js/alumno.js', [], '1.0.0', true);
-    wp_localize_script('dsb-alumno-js', 'studentData', dsb_get_student_data());
-    wp_localize_script('dsb-alumno-js', 'bookingsData', dsb_get_bookings_data());
-    wp_localize_script('dsb-alumno-js', 'teacherBookingsData', dsb_get_teacher_bookings_data());
-    wp_localize_script(
-        'dsb-alumno-js',
-        'DSB_CONFIG',
-        [
-            'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
-            'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
-            'classDuration' => DSB_Settings::get('class_duration'),
-        ]
-    );
-    wp_enqueue_script('fullcalendar-js', plugin_dir_url(__FILE__) . '../lib/fullcalendar.js', array('jquery'), '', true);
+$css_base_url = plugin_dir_url(__FILE__) . '../css/';
+$js_base_url = plugin_dir_url(__FILE__) . '../js/';
+$lib_base_url = plugin_dir_url(__FILE__) . '../lib/';
+$plugin_url = plugin_dir_url(__FILE__);
 
-    // Añadir script de Pusher Beams
-    wp_enqueue_script('dsb-pusher-init', plugin_dir_url(__FILE__) . '../js/pusher-init.js', [], '1.0.0', true);
+$js_config = [
+    'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
+    'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
+    'classDuration' => DSB_Settings::get('class_duration'),
+];
 
-    // Configuración para Pusher Beams
-    wp_localize_script(
-        'dsb-pusher-init',
-        'DSB_PUSHER',
-        [
-            'serviceWorkerUrl' => plugin_dir_url(__FILE__) . '/service-worker.js',
-            'instanceId' => '02609d94-0e91-4039-baf6-7d9d04b1fb6e', // Reemplaza con tu ID de instancia de Pusher Beams
-        ]
-    );
-}
-add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <title>Autoescuela Universitaria - Alumno</title>
-    <?php wp_head(); ?>
     <meta charset="utf-8">
     <meta name="author" content="Roma & Nico">
     <meta name="description" content="Aplicación de autoescuela">
     <meta name="keywords" content="Autoescuela">
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="<?= $css_base_url ?>alumno.css">
     <link rel="icon" type="image/x-icon" href="">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
@@ -637,8 +614,8 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
                                     <i class="bi bi-coin"></i>
                                 </div>
                                 <div>
-                                    Esta reserva costará <strong><?php echo esc_html(DSB_Settings::get('class_cost')); ?></strong> créditos.
-                                    <br>Tu saldo actual es de <strong class="saldo-actual"><?php echo esc_html($user['class_points']); ?></strong> créditos.
+                                    Esta reserva costará <strong><?= esc_html(DSB_Settings::get('class_cost')); ?></strong> créditos.
+                                    <br>Tu saldo actual es de <strong class="saldo-actual"><?= esc_html($user['class_points']); ?></strong> créditos.
                                 </div>
                             </div>
                         </div>
@@ -844,7 +821,27 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_alumno_assets');
         </div>
     </footer>
 
-    <?php wp_footer(); ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?= $lib_base_url ?>fullcalendar.min.js"></script>
+    <script src="<?= $lib_base_url ?>fullcalendar.js"></script>
+
+        <script>
+        // Pasar datos desde PHP a JavaScript
+        const studentData = <?= json_encode(dsb_get_student_data()); ?>;
+        const bookingsData = <?= json_encode(dsb_get_bookings_data()); ?>;
+        const teacherBookingsData = <?= json_encode(dsb_get_teacher_bookings_data()); ?>;
+        const DSB_CONFIG = <?= json_encode($js_config); ?>;
+        const DSB_PUSHER = {
+            serviceWorkerUrl: '<?= $plugin_url; ?>/service-worker.js',
+            instanceId: '02609d94-0e91-4039-baf6-7d9d04b1fb6e'
+        };
+    </script>
+    
+    <!-- Nuestros scripts -->
+    <script src="<?= $js_base_url; ?>alumno.js"></script>
+    <script src="<?= $js_base_url; ?>pusher-init.js"></script>
+
 </body>
 
 </html>

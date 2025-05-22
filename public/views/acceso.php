@@ -3,11 +3,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-function dsb_enqueue_acceso_assets() {
-    wp_enqueue_style('dsb-acceso-css', plugin_dir_url(__FILE__) . '../css/acceso.css', [], '1.0.0', 'all');
-    wp_enqueue_script('dsb-acceso-js', plugin_dir_url(__FILE__) . '../js/acceso.js', [], '1.0.0', true);
-}
-add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
+$css_base_url = plugin_dir_url(__FILE__) . '../css/';
+
+$js_base_url = plugin_dir_url(__FILE__) . '../js/';
+
 ?>
 
 <!DOCTYPE html>
@@ -16,10 +15,11 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso a Driving App</title>
-    
+
+    <link rel="stylesheet" href="<?= $css_base_url ?>acceso.css">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <?php wp_head(); ?>
 </head>
 <body class="bg-light d-flex align-items-center justify-content-center vh-100">
 
@@ -52,6 +52,6 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_acceso_assets');
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <?php wp_footer(); ?>
+    <script src="<?= $js_base_url ?>acceso.js"></script>
 </body>
 </html>

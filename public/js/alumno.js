@@ -1,4 +1,4 @@
-jQuery(document).ready(function ($) {
+document.addEventListener('DOMContentLoaded', function () {
 
     class AlumnoView {
         static reservas = [];
@@ -484,11 +484,11 @@ jQuery(document).ready(function ($) {
                 return;
             }
 
-            $("#modal-fecha").text(new Date(reserva.date).toLocaleDateString("es-ES"));
-            $("#modal-hora").text(reserva.start);
-            $("#modal-profesor").text(reserva.teacher_name);
-            $("#modal-vehiculo").text(reserva.vehicle);
-            $("#modal-estado").text(reserva.status);
+            document.getElementById('modal-fecha').textContent = new Date(reserva.date).toLocaleDateString("es-ES");
+            document.getElementById('modal-hora').textContent = reserva.start;
+            document.getElementById('modal-profesor').textContent = reserva.teacher_name;
+            document.getElementById('modal-vehiculo').textContent = reserva.vehicle;
+            document.getElementById('modal-estado').textContent = reserva.status;
         }
 
         static initializeCalendar() {
