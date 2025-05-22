@@ -136,7 +136,6 @@ $js_config = [
     'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
 ];
 ?>
-?>
 <!DOCTYPE html>
 <html lang="es">
 
