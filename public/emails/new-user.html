@@ -1,11 +1,57 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Bienvenido</title></head>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Bienvenido a {{app_name}}</title>
+ <style>
+    body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,sans-serif; color:#333 }
+    .container { max-width:600px; margin:0 auto; background:#fff }
+    .header { padding:20px; text-align:center; background:#FFED00 }
+    .content { padding:30px 20px }
+    .content h1 { font-size:24px; margin-bottom:10px }
+    .content p { font-size:16px; line-height:1.5; margin:15px 0 }
+    .btn { display:inline-block; padding:12px 20px; margin:20px 0; background:#0073e6; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold }
+    .footer { padding:15px 20px; font-size:12px; color:#777; text-align:center; background:#f0f0f0 }
+    .footer a { color:#0073e6; text-decoration:none }
+  </style>
+</head>
 <body>
-  <p>Hola {{first_name}},</p>
-  <p>Tu cuenta ha sido creada correctamente.</p>
-  <p><a href="{{reset_link}}">Haz clic aquí</a> para establecer tu contraseña.</p>
-  <p>Tu usuario es <strong>{{username}}</strong>.</p>
-  <p>¡Nos vemos pronto!</p>
+  <div class="container">
+    <div class="header">
+      <img 
+        src="{{app_logo}}" 
+        alt="Logo Autoescuela Universitaria" 
+        width="200" 
+        style="display:block; margin:0 auto; height:auto;">
+    </div>
+    <div class="content">
+      <h1>¡Hola {{first_name}}!</h1>
+      <p>Tu cuenta en la APP de <strong>{{app_name}}</strong> se ha creado correctamente.</p>
+      <p>Tus datos para acceder son los siguientes.</p>
+      <p><strong>Usuario:</strong> {{username}}.</p>
+      <p>Para establecer tu contraseña, haz clic en el botón.</p>
+      <p style="text-align:center;">
+        <a class="btn" href="{{reset_link}}">Establecer mi contraseña</a>
+      </p>
+      <p>O haz clic en esta URL:<br>
+        <a href="{{reset_link}}">{{reset_link}}</a>
+      </p>
+      <hr>
+      <p>Para acceder a la aplicación haz clic el botón:</p>
+      <p style="text-align:center;">
+        <a class="btn" href="{{url_acceso}}">Ir a la app</a>
+      </p>
+	<p>O haz clic en esta URL:<br>
+        <a href="{{url_acceso}}">{{url_acceso}}</a>
+      </p>
+      <p>Si tienes dudas, responde a este correo y te ayudaremos.</p>
+      <p>¡Nos vemos pronto!</p>
+      <p>— El equipo de Autoescuela Universitaria</p>
+    </div>
+    <div class="footer">
+      <p>Autoescuela Universitaria · Calle Ejemplo 123, Ciudad · <a href="url_sitio}}">www.autoescuelauniversitaria.es</a></p>
+      <p>Si no solicitaste este correo, ignóralo.</p>
+    </div>
+  </div>
 </body>
 </html>
