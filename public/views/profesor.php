@@ -424,10 +424,10 @@ $js_config = [
                             // Contar alumnos sin clases recientes (últimos 30 días)
                             $alumnos_sin_clases_recientes = count($teacher['students']);
                             $alumno_ids_con_clases = [];
-                            $treinta_dias = date('Y-m-d', strtotime('-30 days'));
+                            $today = date('Y-m-d');
                             foreach ($bookings as $booking) {
                                 if (empty($booking['student_id'])) continue;
-                                if (strtotime($booking['date']) >= strtotime($treinta_dias) && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
+                                if ($booking['date'] === $today && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
                                     $alumno_ids_con_clases[] = $booking['student_id'];
                                 }
                             }
@@ -438,7 +438,7 @@ $js_config = [
                                     <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
                                 </div>
                                 <h2 class="fs-4 mb-0"><?= $alumnos_sin_clases_recientes ?></h2>
-                                <div class="text-muted small"></div>
+                                <div class="text-muted small">No han reservado hoy</div>
                             </div>
                         </div>
                     </div>
@@ -992,8 +992,9 @@ $js_config = [
         };
     </script>
 
-    <script src="<?= $js_base_url; ?>profesor.js"></script>
+    <!-- Nuestros scritps -->
     <script src="<?= $js_base_url; ?>pusher-init.js"></script>
+    <script src="<?= $js_base_url; ?>profesor.js"></script>
 </body>
 
 </html>

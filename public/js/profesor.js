@@ -120,10 +120,10 @@ jQuery(document).ready(function ($) {
             });
 
             document.getElementById('refreshCalendar')?.addEventListener('click', function () {
-                ProfesorView.mostrarNotificacion('info', 'Actualizando calendario...');
+                window.mostrarNotificacion('', 'Actualizando calendario...');
                 ProfesorView.loadBookings().then(() => {
                     ProfesorView.calendar.refetchEvents();
-                    ProfesorView.mostrarNotificacion('success', 'Calendario actualizado');
+                    window.mostrarNotificacion('', 'Calendario actualizado', 'success');
                 });
             });
 
@@ -180,7 +180,7 @@ jQuery(document).ready(function ($) {
             document.getElementById('calendar').classList.add('block-mode');
 
             // Mostrar notificación
-            ProfesorView.mostrarNotificacion('info', 'Modo de bloqueo activado. Seleccione una franja horaria para bloquear.');
+            window.mostrarNotificacion('', 'Modo de bloqueo activado. Seleccione una franja horaria para bloquear.', 'info');
 
             // Cambiar estado visual del botón
             document.getElementById('blockTimeBtn').classList.remove('btn-outline-danger');
@@ -251,11 +251,11 @@ jQuery(document).ready(function ($) {
 
                 // Ocultar modal y mostrar notificación
                 ProfesorView.blockTimeModal.hide();
-                ProfesorView.mostrarNotificacion('success', 'Horario bloqueado correctamente');
+                window.mostrarNotificacion('', 'Horario bloqueado correctamente', 'success');
 
             } catch (error) {
                 console.error('Error al bloquear horario:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
@@ -267,7 +267,7 @@ jQuery(document).ready(function ($) {
             document.getElementById('calendar').classList.add('create-mode');
 
             // Mostrar notificación
-            ProfesorView.mostrarNotificacion('info', 'Seleccione la franja horaria para la nueva clase');
+            window.mostrarNotificacion('', 'Seleccione la franja horaria para la nueva clase', 'info');
         }
 
         static async handleBookingSelection(info) {
@@ -280,7 +280,7 @@ jQuery(document).ready(function ($) {
             for (const event of events) {
                 if (event.extendedProps.status === 'blocked' && ((info.start >= event.start && info.start < event.end) || (info.end > event.start && info.end <= event.end))) {
 
-                    ProfesorView.mostrarNotificacion('error', 'La franja horaria seleccionada está bloqueada');
+                    window.mostrarNotificacion('No permitido', 'La franja horaria seleccionada está bloqueada', 'error');
                     return;
                 }
             }
@@ -305,7 +305,7 @@ jQuery(document).ready(function ($) {
             const vehicle = document.getElementById('license_type').value === 'B' ? ProfesorView.profesorData.vehicle.b.name : ProfesorView.profesorData.vehicle.a.name;
 
             if (!studentId) {
-                ProfesorView.mostrarNotificacion('error', 'Debe seleccionar un alumno');
+                window.mostrarNotificacion('Error', 'Debe seleccionar un alumno', 'error');
                 return;
             }
 
@@ -358,14 +358,14 @@ jQuery(document).ready(function ($) {
 
                 // Ocultar modal y mostrar notificación
                 ProfesorView.createBookingModal.hide();
-                ProfesorView.mostrarNotificacion('success', 'Reserva creada correctamente');
+                window.mostrarNotificacion('', 'Reserva creada correctamente', 'success');
 
                 // Actualizar la lista de reservas
                 await ProfesorView.loadBookings();
 
             } catch (error) {
                 console.error('Error al crear la reserva:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
@@ -395,7 +395,7 @@ jQuery(document).ready(function ($) {
                 }
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
@@ -903,11 +903,11 @@ jQuery(document).ready(function ($) {
 
                 // Ocultar modal y mostrar notificación
                 ProfesorView.bookingDetailModal.hide();
-                ProfesorView.mostrarNotificacion('success', 'Reserva aceptada correctamente');
+                window.mostrarNotificacion('', 'Reserva aceptada correctamente', 'success');
 
             } catch (error) {
                 console.error('Error al aceptar la reserva:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
@@ -945,17 +945,17 @@ jQuery(document).ready(function ($) {
                 // Ocultar modales y mostrar notificación
                 ProfesorView.rejectConfirmModal.hide();
                 ProfesorView.bookingDetailModal.hide();
-                ProfesorView.mostrarNotificacion('success', 'Reserva rechazada correctamente');
+                window.mostrarNotificacion('', 'Reserva rechazada correctamente', 'success');
 
             } catch (error) {
                 console.error('Error al rechazar la reserva:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
         static async loadBookings() {
             try {
-                const response = await fetch(`${ProfesorView.apiUrl}/bookings/teacher`, {
+                const response = await fetch(`${ProfesorView.apiUrl}/teachers/${ProfesorView.profesorData.id}/calendar`, {
                     method: 'GET',
                     headers: {
                         'Authorization': 'Bearer ' + ProfesorView.jwtToken,
@@ -973,7 +973,7 @@ jQuery(document).ready(function ($) {
                 return data;
             } catch (error) {
                 console.error('Error al cargar reservas:', error);
-                ProfesorView.mostrarNotificacion('error', 'Error al cargar reservas');
+                window.mostrarNotificacion('', 'Error al cargar reservas', 'error');
                 return [];
             }
         }
@@ -1009,12 +1009,12 @@ jQuery(document).ready(function ($) {
             const maxSize = 2 * 1024 * 1024; // 2MB
 
             if (!allowedTypes.includes(file.type)) {
-                ProfesorView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
+                window.mostrarNotificacion('No permitido', 'Tipo de archivo no permitido. Use JPG, PNG o GIF', 'error');
                 return;
             }
 
             if (file.size > maxSize) {
-                ProfesorView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
+                window.mostrarNotificacion('No permitido', 'El archivo es demasiado grande (máx. 2MB)', 'error');
                 return;
             }
 
@@ -1045,13 +1045,13 @@ jQuery(document).ready(function ($) {
                 if (data.success) {
                     // Actualizar la imagen con la nueva URL
                     avatarElement.src = data.url;
-                    ProfesorView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
+                    window.mostrarNotificacion('', 'Imagen de perfil actualizada', 'success');
                 } else {
                     throw new Error(data.message || 'Error al subir la imagen');
                 }
             } catch (error) {
                 avatarElement.src = originalSrc; // Restaurar la imagen original
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             } finally {
                 avatarElement.classList.remove('uploading');
             }
@@ -1067,7 +1067,7 @@ jQuery(document).ready(function ($) {
 
             // Validar campos
             if (!dias.length || !hora_inicio || !hora_fin || !duracion) {
-                ProfesorView.mostrarNotificacion('error', 'Todos los campos son obligatorios');
+                window.mostrarNotificacion('Error', 'Todos los campos son obligatorios');
                 return;
             }
 
@@ -1106,7 +1106,7 @@ jQuery(document).ready(function ($) {
                 }
 
                 // Mostrar notificación
-                ProfesorView.mostrarNotificacion('success', 'Configuración de horario guardada correctamente');
+                window.mostrarNotificacion('', 'Configuración de horario guardada correctamente', 'success');
 
                 // Recargar el calendario para aplicar los nuevos cambios
                 ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
@@ -1124,7 +1124,7 @@ jQuery(document).ready(function ($) {
 
             } catch (error) {
                 console.error('Error al guardar la configuración:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
@@ -1226,42 +1226,8 @@ jQuery(document).ready(function ($) {
 
             } catch (error) {
                 console.error('Error al obtener datos del alumno:', error);
-                ProfesorView.mostrarNotificacion('error', `Error: ${error.message}`);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
-        }
-
-        // Método para mostrar notificaciones no bloqueantes
-        static mostrarNotificacion(tipo, mensaje, duracion = 3000) {
-            // Verificar si ya existe una notificación
-            let notificacion = document.querySelector('.dsb-notificacion');
-
-            if (!notificacion) {
-                // Crear elemento de notificación
-                notificacion = document.createElement('div');
-                notificacion.className = `dsb-notificacion ${tipo}`;
-                document.body.appendChild(notificacion);
-            } else {
-                // Actualizar clase de la notificación existente
-                notificacion.className = `dsb-notificacion ${tipo}`;
-            }
-
-            // Actualizar mensaje
-            notificacion.innerHTML = mensaje;
-
-            // Mostrar con animación
-            setTimeout(() => {
-                notificacion.classList.add('visible');
-            }, 10);
-
-            // Ocultar después de la duración especificada
-            setTimeout(() => {
-                notificacion.classList.remove('visible');
-                setTimeout(() => {
-                    if (notificacion.parentNode) {
-                        notificacion.parentNode.removeChild(notificacion);
-                    }
-                }, 300);
-            }, duracion);
         }
     }
 

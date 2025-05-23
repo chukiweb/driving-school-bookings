@@ -839,8 +839,8 @@ $js_config = [
     </script>
     
     <!-- Nuestros scripts -->
-    <script src="<?= $js_base_url; ?>alumno.js"></script>
     <script src="<?= $js_base_url; ?>pusher-init.js"></script>
+    <script src="<?= $js_base_url; ?>alumno.js"></script>
 
 </body>
 
