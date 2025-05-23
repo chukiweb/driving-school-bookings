@@ -125,42 +125,28 @@ foreach ($bookings as $booking) {
     }
 }
 
-// Enqueue assets
-function dsb_enqueue_profesor_assets()
-{
-    wp_enqueue_script('jquery');
-    wp_enqueue_style('fullcalendar-css', 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css', [], '5.11.3');
-    wp_enqueue_script('fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js', ['jquery'], '5.11.3', true);
-    wp_enqueue_script('fullcalendar-locales', 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js', ['fullcalendar-js'], '5.11.3', true);
+$css_base_url = plugin_dir_url(__FILE__) . '../css/';
+$js_base_url = plugin_dir_url(__FILE__) . '../js/';
+$lib_base_url = plugin_dir_url(__FILE__) . '../lib/';
+$plugin_url = plugin_dir_url(__FILE__);
 
-    wp_enqueue_style('dsb-profesor-css', plugin_dir_url(__FILE__) . '../css/profesor.css', [], '1.0.0', 'all');
-    wp_enqueue_script('dsb-profesor-js', plugin_dir_url(__FILE__) . '../js/profesor.js', ['jquery', 'fullcalendar-js'], '1.0.0', true);
-
-    // Pasar datos a JavaScript
-    wp_localize_script('dsb-profesor-js', 'teacherData', dsb_get_teacher_data());
-    wp_localize_script('dsb-profesor-js', 'bookingsData', dsb_get_teacher_bookings());
-    wp_localize_script(
-        'dsb-profesor-js',
-        'DSB_CONFIG',
-        [
-            'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
-            'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
-        ]
-    );
-}
-add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
+// Configuración para JavaScript
+$js_config = [
+    'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
+    'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
+];
 ?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <title>Autoescuela Universitaria - Panel del Profesor</title>
-    <?php wp_head(); ?>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="<?= $css_base_url ?>profesor.css">
 </head>
 
 <body class="bg-light">
@@ -438,10 +424,10 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                             // Contar alumnos sin clases recientes (últimos 30 días)
                             $alumnos_sin_clases_recientes = count($teacher['students']);
                             $alumno_ids_con_clases = [];
-                            $treinta_dias = date('Y-m-d', strtotime('-30 days'));
+                            $today = date('Y-m-d');
                             foreach ($bookings as $booking) {
                                 if (empty($booking['student_id'])) continue;
-                                if (strtotime($booking['date']) >= strtotime($treinta_dias) && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
+                                if ($booking['date'] === $today && !in_array($booking['student_id'], $alumno_ids_con_clases)) {
                                     $alumno_ids_con_clases[] = $booking['student_id'];
                                 }
                             }
@@ -452,7 +438,7 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
                                     <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
                                 </div>
                                 <h2 class="fs-4 mb-0"><?= $alumnos_sin_clases_recientes ?></h2>
-                                <div class="text-muted small">Sin clases recientes</div>
+                                <div class="text-muted small">No han reservado hoy</div>
                             </div>
                         </div>
                     </div>
@@ -990,7 +976,25 @@ add_action('wp_enqueue_scripts', 'dsb_enqueue_profesor_assets');
         </div>
     </footer>
 
-    <?php wp_footer(); ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?= $lib_base_url ?>fullcalendar.min.js"></script>
+    <script src="<?= $lib_base_url ?>fullcalendar.js"></script>
+
+    <script>
+        // Datos del profesor y reservas
+        const teacherData = <?= json_encode(dsb_get_teacher_data()); ?>;
+        const bookingsData = <?= json_encode(dsb_get_teacher_bookings()); ?>;
+        const DSB_CONFIG = <?= json_encode($js_config); ?>;
+        const DSB_PUSHER = {
+            serviceWorkerUrl: '<?= $plugin_url; ?>/service-worker.js',
+            instanceId: '02609d94-0e91-4039-baf6-7d9d04b1fb6e'
+        };
+    </script>
+
+    <!-- Nuestros scritps -->
+    <script src="<?= $js_base_url; ?>pusher-init.js"></script>
+    <script src="<?= $js_base_url; ?>profesor.js"></script>
 </body>
 
 </html>

@@ -7,6 +7,7 @@ class DSB_Init {
     public $api;
     public $roles;
     public $user_manager;
+    public $notifications;
 
     public static function getInstance() {
         if (self::$instance == null) {
@@ -50,7 +51,6 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
         require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
         require_once DSB_PLUGIN_DIR . 'core/api.php';
-        require_once DSB_PLUGIN_DIR . 'core/ajax.php';
         require_once DSB_PLUGIN_DIR . 'core/settings.php';
         require_once DSB_PLUGIN_DIR . 'core/roles.php';
         require_once DSB_PLUGIN_DIR . 'core/jwt.php';
@@ -66,6 +66,8 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/vehicles-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/students-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/bookings-view.php';
+
+        require_once DSB_PLUGIN_DIR . 'services/notification-service.php';
     }
 
     private function initClasses() {
@@ -77,13 +79,12 @@ class DSB_Init {
         new DSB_Notification();
         new DSB_Template();
         new DSB_Settings();
+        $this->notifications = new DSB_Notification_Service();
         $this->user_manager = new DSB_User_Manager();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
         $this->auth = new DSB_Auth();
-        DSB_Ajax_Handler::init(); // Aunque no hace falta almacenar nada realmente
-
     }
 
     private function initHooks() {
