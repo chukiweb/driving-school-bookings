@@ -13,6 +13,9 @@ jQuery(document).ready(function ($) {
 
         static init() {
             document.querySelectorAll('.button').forEach(button => {
+                if (button.type === 'submit') {
+                    return;
+                }
                 button.addEventListener('click', function (e) {
                     e.preventDefault();
                     const action = e.target.dataset.actionId;

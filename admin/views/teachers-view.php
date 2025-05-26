@@ -143,6 +143,9 @@ class DSB_Teachers_View extends DSB_Base_View
             case 'delete_booking':
                 $this->handle_delete_booking_form();
                 break;
+            case 'send_reset_password_email':
+                return $this->handle_send_reset_password_email();
+                break;
         }
     }
 
@@ -246,6 +249,13 @@ class DSB_Teachers_View extends DSB_Base_View
         }
     }
 
+    private function handle_send_reset_password_email()
+    {
+        $user_id = $_POST['user_id'];
+
+        $this->render_response(DSB()->user_manager->send_reset_password_email($user_id));
+    }
+
     protected function render_forms()
     {
 ?>
@@ -294,8 +304,8 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
                                 <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
-                                        <?php echo esc_html($vehiculo['title']); ?>
+                                    <option value="<?= esc_attr($vehiculo['id']); ?>">
+                                        <?= esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -305,8 +315,8 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
                                 <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
-                                        <?php echo esc_html($vehiculo['title']); ?>
+                                    <option value="<?= esc_attr($vehiculo['id']); ?>">
+                                        <?= esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -358,8 +368,8 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td> <select name="assigned_vehicle" class="form-control">
                                 <option value="">-- Selecciona un vehículo --</option>
                                 <?php foreach ($this->get_vehicles('car') as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
-                                        <?php echo esc_html($vehiculo['title']); ?>
+                                    <option value="<?= esc_attr($vehiculo['id']); ?>">
+                                        <?= esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -369,8 +379,8 @@ class DSB_Teachers_View extends DSB_Base_View
                         <td> <select name="assign_motorcycle" class="form-control">
                                 <option value="">-- Selecciona una moto --</option>
                                 <?php foreach ($this->get_vehicles('motorcycle') as $vehiculo): ?>
-                                    <option value="<?php echo esc_attr($vehiculo['id']); ?>">
-                                        <?php echo esc_html($vehiculo['title']); ?>
+                                    <option value="<?= esc_attr($vehiculo['id']); ?>">
+                                        <?= esc_html($vehiculo['title']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select></td>
@@ -404,7 +414,7 @@ class DSB_Teachers_View extends DSB_Base_View
                             $dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
                             foreach ($dias as $dia): ?>
                                 <label style="margin-right:10px;">
-                                    <input type="checkbox" name="dias[]" value="<?php echo $dia; ?>"> <?php echo $dia; ?>
+                                    <input type="checkbox" name="dias[]" value="<?= $dia; ?>"> <?= $dia; ?>
                                 </label>
                             <?php endforeach; ?>
                         </td>
@@ -451,8 +461,8 @@ class DSB_Teachers_View extends DSB_Base_View
                                 <select name="student" required>
                                     <option value="">Seleccionar alumno</option>
                                     <?php foreach ($this->students as $student): ?>
-                                        <option value="<?php echo esc_attr($student->ID); ?>">
-                                            <?php echo esc_html($student->display_name); ?>
+                                        <option value="<?= esc_attr($student->ID); ?>">
+                                            <?= esc_html($student->display_name); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -577,7 +587,7 @@ class DSB_Teachers_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de Profesores</h2>
             <div class="boton-heding">
-                <button class="button button-primary" data-action-id="create">Nuevo profesor</button>
+                <a href="#" class="button button-primary" data-action-id="create">Nuevo profesor</a>
             </div>
         </div>
 
@@ -595,9 +605,9 @@ class DSB_Teachers_View extends DSB_Base_View
             <tbody>
                 <?php foreach ($this->teachers as $teacher): ?>
                     <tr>
-                        <td><?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
-                        <td><?php echo esc_html($teacher->user_email); ?></td>
-                        <td><?php echo esc_html(get_user_meta($teacher->ID, 'phone', true)); ?></td>
+                        <td><?= esc_html($teacher->first_name . ' ' . $teacher->last_name); ?></td>
+                        <td><?= esc_html($teacher->user_email); ?></td>
+                        <td><?= esc_html(get_user_meta($teacher->ID, 'phone', true)); ?></td>
                         <td>
                             <?php
                             $vehiculos = $this->get_teacher_vehicles($teacher->ID);
@@ -610,10 +620,16 @@ class DSB_Teachers_View extends DSB_Base_View
                             ?>
                         </td>
                         <td>
-                            <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?php echo esc_html($teacher->ID); ?>>Editar</a>
-                            <a href="#" class="button" data-action-id="delete" data-user-id=<?php echo esc_html($teacher->ID); ?>>Eliminar</a>
-                            <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?php echo esc_html($teacher->ID); ?>>Calendario</a>
-                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?php echo esc_html($teacher->ID); ?>>Configurar clases</a>
+                            <a href="#" class="button edit-teacher" data-action-id="edit" data-user-id=<?= esc_html($teacher->ID); ?>>Editar</a>
+                            <a href="#" class="button" data-action-id="delete" data-user-id=<?= esc_html($teacher->ID); ?>>Eliminar</a>
+                            <a href="#" class="button" data-action-id="open-calendar" data-user-id=<?= esc_html($teacher->ID); ?>>Calendario</a>
+                            <a href="#" class="button" data-action-id="open-config" data-user-id=<?= esc_html($teacher->ID); ?>>Configurar clases</a>
+                            <form method="post" id="resetPasswordForm" action="">
+                                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                                <input type="hidden" name="user_id" value="<?= esc_attr($teacher->ID); ?>" />
+                                <input type="hidden" name="form_action" value="send_reset_password_email" />
+                                <input type="submit" name="submit" class="button" value="Resetear contraseña" />
+                            </form>
                         </td>
                     </tr>
                 <?php endforeach; ?>
