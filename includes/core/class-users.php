@@ -211,25 +211,24 @@ class DSB_User_Manager
         }
         $reset_link = network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user->user_login), 'login');
 
-        if ( function_exists( 'the_custom_logo' ) && has_custom_logo() ) {
+        if (function_exists('the_custom_logo') && has_custom_logo()) {
             // Imprime directamente el <a><img> generado por WP
-        $logo_correo = get_custom_logo();
-   
+            $logo_correo = get_custom_logo();
         } else {
-        // Fallback a url fija
-            $logo_html = '<img src="' . esc_url( get_stylesheet_directory_uri() . '/assets/images/logo-amarillo.png' ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" width="200" style="display:block;margin:0 auto;height:auto;">';
+            // Fallback a url fija
+            $logo_html = '<img src="' . esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-amarillo.png') . '" alt="' . esc_attr(get_bloginfo('name')) . '" width="200" style="display:block;margin:0 auto;height:auto;">';
         }
-        
-         // 2) Preparar datos para la plantilla
+
+        // 2) Preparar datos para la plantilla
         $placeholders = [
             '{{first_name}}' => $user->first_name,
             '{{username}}'   => $user->user_login,
             '{{reset_link}}' => $reset_link,
-			'{{url_acceso}}' => esc_url( site_url( '/acceso' ) ),
-			'{{url_sitio}}' => esc_url( site_url( '/' ) ),
-			'{{app_name}}' => esc_html( get_bloginfo( 'name' ) ),
-			'{{app_logo}}' =>  $logo_html,
-		];
+            '{{url_acceso}}' => esc_url(site_url('/acceso')),
+            '{{url_sitio}}' => esc_url(site_url('/')),
+            '{{app_name}}' => esc_html(get_bloginfo('name')),
+            '{{app_logo}}' =>  $logo_html,
+        ];
 
         // 3) Cargar plantilla desde /emails/new-user.php (puede ser .html)
         $tpl_path = DSB_PLUGIN_DIR_PATH . 'public/emails/new-user.html';
@@ -254,6 +253,65 @@ class DSB_User_Manager
         $subject = __('Acceso a tu cuenta en la Autoescuela', 'driving-school-bookings');
 
         // 6) Enviar
+        return (bool) wp_mail($user->user_email, $subject, $message, $headers);
+    }
+
+    public function send_reset_password_email($user_id)
+    {
+        $user = get_user_by('id', $user_id);
+        if (!$user) {
+            return false;
+        }
+
+        // 1) Generar reset key y enlace
+        $key = get_password_reset_key($user);
+        if (is_wp_error($key)) {
+            return false;
+        }
+        $reset_link = network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user->user_login), 'login');
+
+        // 2) Preparar logo
+        if (function_exists('the_custom_logo') && has_custom_logo()) {
+            // Obtener la URL del logo personalizado
+            $custom_logo_id = get_theme_mod('custom_logo');
+            $logo_url = wp_get_attachment_image_url($custom_logo_id, 'full');
+        } else {
+            // Fallback a url fija
+            $logo_url = get_stylesheet_directory_uri() . '/assets/images/logo-amarillo.png';
+        }
+
+        // 3) Preparar placeholders
+        $placeholders = [
+            '{{first_name}}' => esc_html($user->first_name ?: $user->user_login),
+            '{{username}}'   => esc_html($user->user_login),
+            '{{reset_link}}' => esc_url($reset_link),
+            '{{url_acceso}}' => esc_url(site_url('/acceso')),
+            '{{url_sitio}}'  => esc_url(site_url('/')),
+            '{{app_name}}'   => esc_html(get_bloginfo('name')),
+            '{{app_logo}}'   => esc_url($logo_url),
+        ];
+
+        // 4) Cargar plantilla HTML
+        $tpl_path = DSB_PLUGIN_DIR_PATH . 'public/emails/reset-password.html';
+        if (!file_exists($tpl_path)) {
+            // Fallback a mensaje plano si la plantilla no existe
+            $headers  = ['Content-Type: text/plain; charset=UTF-8'];
+            $message = sprintf(
+                "Hola %s,\n\nPara restablecer tu contraseña haz clic en el siguiente enlace:\n\n%s\n\nUsuario: %s",
+                $user->first_name ?: $user->user_login,
+                $reset_link,
+                $user->user_login
+            );
+        } else {
+            $headers  = ['Content-Type: text/html; charset=UTF-8'];
+            $message = file_get_contents($tpl_path);
+            // Reemplazar marcadores
+            $message = strtr($message, $placeholders);
+        }
+
+        // 5) Asunto y envío
+        $subject = __('Restablece tu contraseña en la Autoescuela', 'driving-school-bookings');
+
         return (bool) wp_mail($user->user_email, $subject, $message, $headers);
     }
 
@@ -314,6 +372,5 @@ class DSB_User_Manager
         return $student_data;
     }
 
-    public function get_teacher($teacher)
-    {}
+    public function get_teacher($teacher) {}
 }

@@ -9,6 +9,9 @@ jQuery(document).ready(function ($) {
 
         static init() {
             document.querySelectorAll('.button').forEach(button => {
+                if (button.type === 'submit') {
+                    return;
+                }
                 button.addEventListener('click', function (e) {
                     e.preventDefault();
                     const action = e.target.dataset.actionId;
@@ -66,6 +69,8 @@ jQuery(document).ready(function ($) {
                     break;
                 case 'delete':
                     studentAdminView.deleteFormAction(btn.dataset.userId);
+                    break;
+                case 'send-reset-password-email':
                     break;
                 default:
                     console.error('Acción no reconocida:', action);

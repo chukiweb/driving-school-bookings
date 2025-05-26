@@ -54,6 +54,9 @@ class DSB_Students_View extends DSB_Base_View
             case 'delete_student':
                 return $this->handle_delete_student_form();
                 break;
+            case 'send_reset_password_email':
+                return $this->handle_send_reset_password_email();
+                break;
         }
     }
 
@@ -72,6 +75,13 @@ class DSB_Students_View extends DSB_Base_View
         $user_id = $_POST['user_id'];
 
         $this->render_response(DSB()->user_manager->delete_student($user_id));
+    }
+
+    private function handle_send_reset_password_email()
+    {
+        $user_id = $_POST['user_id'];
+
+        $this->render_response(DSB()->user_manager->send_reset_password_email($user_id));
     }
 
     private function handle_points_form()
@@ -162,8 +172,8 @@ class DSB_Students_View extends DSB_Base_View
                             <select name="teacher" required>
                                 <option value="">Seleccionar profesor</option>
                                 <?php foreach ($this->teachers as $teacher): ?>
-                                    <option value="<?php echo esc_attr($teacher->ID); ?>">
-                                        <?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?>
+                                    <option value="<?= esc_attr($teacher->ID); ?>">
+                                        <?= esc_html($teacher->first_name . ' ' . $teacher->last_name); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -243,8 +253,8 @@ class DSB_Students_View extends DSB_Base_View
                             <select name="teacher" required>
                                 <option value="">Seleccionar profesor</option>
                                 <?php foreach ($this->teachers as $teacher): ?>
-                                    <option value="<?php echo esc_attr($teacher->ID); ?>">
-                                        <?php echo esc_html($teacher->first_name . ' ' . $teacher->last_name); ?>
+                                    <option value="<?= esc_attr($teacher->ID); ?>">
+                                        <?= esc_html($teacher->first_name . ' ' . $teacher->last_name); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -311,6 +321,8 @@ class DSB_Students_View extends DSB_Base_View
         wp_localize_script('student-js', 'studentAjax', [
             'ajaxurl' => admin_url('admin-ajax.php')
         ]);
+
+        wp_localize_script('student-js', 'custom_reset_password_nonce', wp_create_nonce('custom_reset_password_nonce'));
     }
 
     protected function render_table()
@@ -319,7 +331,7 @@ class DSB_Students_View extends DSB_Base_View
         <div class="heding">
             <h2>Listado de alumnos</h2>
             <div class="boton-heding">
-                <button class="button button-primary" data-action-id="create">Nuevo alumno</button>
+                <a href="#" class="button button-primary" data-action-id="create">Nuevo alumno</a>
             </div>
         </div>
 
@@ -343,20 +355,27 @@ class DSB_Students_View extends DSB_Base_View
                     $teacher = get_user_by('id', $teacher_id);
                 ?>
                     <tr>
-                        <td><?php echo esc_html($student->first_name . ' ' . $student->last_name); ?></td>
-                        <td><?php echo esc_html($student->user_email); ?></td>
-                        <td><?php echo esc_html(get_user_meta($student->ID, 'dni', true)); ?></td>
-                        <td><?php echo esc_html(get_user_meta($student->ID, 'phone', true)); ?></td>
-                        <td><?php echo esc_html(get_user_meta($student->ID, 'city', true)); ?></td>
-                        <td><?php echo esc_html(get_user_meta($student->ID, 'license_type', true)); ?></td>
-                        <td><?php echo $teacher ? esc_html($teacher->first_name . ' ' . $teacher->last_name) : '—'; ?></td>
+                        <td><?= esc_html($student->first_name . ' ' . $student->last_name); ?></td>
+                        <td><?= esc_html($student->user_email); ?></td>
+                        <td><?= esc_html(get_user_meta($student->ID, 'dni', true)); ?></td>
+                        <td><?= esc_html(get_user_meta($student->ID, 'phone', true)); ?></td>
+                        <td><?= esc_html(get_user_meta($student->ID, 'city', true)); ?></td>
+                        <td><?= esc_html(get_user_meta($student->ID, 'license_type', true)); ?></td>
+                        <td><?= $teacher ? esc_html($teacher->first_name . ' ' . $teacher->last_name) : '—'; ?></td>
                         <td>
-                            <a href="#" class="button" data-user-id="<?php echo esc_attr($student->ID); ?>" data-action-id="edit">Editar</a>
-                            <a href="#" class="button" data-user-id="<?php echo esc_attr($student->ID); ?>" data-action-id="delete">Eliminar</a>
+                            <a href="#" class="button" data-user-id="<?= esc_attr($student->ID); ?>" data-action-id="edit">Editar</a>
+                            <a href="#" class="button" data-user-id="<?= esc_attr($student->ID); ?>" data-action-id="delete">Eliminar</a>
+                            <form method="post" id="resetPasswordForm" action="">
+                                <?php wp_nonce_field($this->nonce_action, $this->nonce_name); ?>
+                                <input type="hidden" name="user_id" value="<?= esc_attr($student->ID); ?>" />
+                                <input type="hidden" name="form_action" value="send_reset_password_email" />
+                                <input type="submit" name="submit" class="button" value="Resetear contraseña" />
+                            </form>
                         </td>
                         <td>
-                            <?php echo esc_html(get_user_meta($student->ID, 'class_points', true)); ?>
-                            <!-- <a href="#" class="button add-points" data-student="<?php //echo esc_attr($student->ID); ?>">
+                            <?= esc_html(get_user_meta($student->ID, 'class_points', true)); ?>
+                            <!-- <a href="#" class="button add-points" data-student="<?php //echo esc_attr($student->ID); 
+                                                                                        ?>">
                                 Añadir Puntos
                             </a> -->
                         </td>
