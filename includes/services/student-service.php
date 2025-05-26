@@ -10,7 +10,7 @@ class DSB_Student_Service
         if (!$student_id) {
             return new WP_REST_Response([
                 'success' => false,
-                'message' => 'ID de estudiante inválido',
+                'message' => 'ID de alumno inválido',
             ], 400);
         }
 
@@ -18,13 +18,13 @@ class DSB_Student_Service
         if (!$user) {
             return new WP_REST_Response([
                 'success' => false,
-                'message' => 'Estudiante no encontrado',
+                'message' => 'Alumno no encontrado',
             ], 404);
         }
 
         // Obtener la imagen personalizada desde los metadatos del usuario
         $avatar_id = get_user_meta($student_id, 'user_avatar', true);
-        $avatar_url = ($avatar_id) ? wp_get_attachment_url($avatar_id) : get_avatar_url($student_id);
+        $avatar_url = DSB_User_Service::get_avatar_url($student_id); 
 
         // Obtener ID del profesor y del vehículo desde los metadatos del estudiante
         $teacher_id = get_user_meta($student_id, 'assigned_teacher', true);
@@ -61,7 +61,7 @@ class DSB_Student_Service
 
         return new WP_REST_Response([
             'success' => true,
-            'message' => 'Datos del estudiante obtenidos correctamente',
+            'message' => 'Datos del alumno obtenidos correctamente',
             'data' => array_merge([
                 'id' => $user->ID,
                 'display_name' => $user->display_name,
@@ -72,10 +72,10 @@ class DSB_Student_Service
         ], 200);
     }
 
-    private static function get_student_bookings($student_id)
+    public static function get_student_bookings($student_id)
     {
         $args = [
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'meta_query' => [
                 [
                     'key' => 'student_id',

@@ -3,9 +3,11 @@
 class DSB_Init {
     private static $instance = null;
     public $jwt;
+    public $auth;
     public $api;
     public $roles;
     public $user_manager;
+    public $notifications;
 
     public static function getInstance() {
         if (self::$instance == null) {
@@ -49,12 +51,12 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
         require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
         require_once DSB_PLUGIN_DIR . 'core/api.php';
-        require_once DSB_PLUGIN_DIR . 'core/ajax.php';
         require_once DSB_PLUGIN_DIR . 'core/settings.php';
         require_once DSB_PLUGIN_DIR . 'core/roles.php';
         require_once DSB_PLUGIN_DIR . 'core/jwt.php';
         require_once DSB_PLUGIN_DIR . 'core/template.php';
         require_once DSB_PLUGIN_DIR . 'core/class-users.php';
+        require_once DSB_PLUGIN_DIR . 'core/auth.php';
 
         require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
@@ -64,6 +66,8 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/vehicles-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/students-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/bookings-view.php';
+
+        require_once DSB_PLUGIN_DIR . 'services/notification-service.php';
     }
 
     private function initClasses() {
@@ -75,12 +79,12 @@ class DSB_Init {
         new DSB_Notification();
         new DSB_Template();
         new DSB_Settings();
+        $this->notifications = new DSB_Notification_Service();
         $this->user_manager = new DSB_User_Manager();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
         $this->jwt = new DSB_JWT();
-        DSB_Ajax_Handler::init(); // Aunque no hace falta almacenar nada realmente
-
+        $this->auth = new DSB_Auth();
     }
 
     private function initHooks() {
@@ -104,15 +108,15 @@ class DSB_Init {
     }
 
     public function dsb_register_templates($templates) {
-        $templates['public/views/estudiante.php'] = 'Vista Estudiante';
-        $templates['public/views/profesor.php'] = 'Vista Profesor';
-        $templates['public/views/acceso.php'] = 'Vista Acceso';
+        $templates['public/views/alumno.php'] = 'Vista alumno';
+        $templates['public/views/profesor.php'] = 'Vista profesor';
+        $templates['public/views/acceso.php'] = 'Vista acceso';
         return $templates;
     }
 
     public function dsb_add_rewrite_rules() {
         add_rewrite_rule('^acceso/?$', 'index.php?dsb_view=acceso', 'top');
-        add_rewrite_rule('^estudiante/?$', 'index.php?dsb_view=estudiante', 'top');
+        add_rewrite_rule('^alumno/?$', 'index.php?dsb_view=alumno', 'top');
         add_rewrite_rule('^profesor/?$', 'index.php?dsb_view=profesor', 'top');
     }
 

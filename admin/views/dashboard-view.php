@@ -26,7 +26,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
             'teachers' => get_users(['role' => 'teacher']),
             'students' => get_users(['role' => 'student']),
             'vehicles' => get_posts(['post_type' => 'vehiculo', 'posts_per_page' => -1]),
-            'bookings' => get_posts(['post_type' => 'reserva', 'posts_per_page' => -1])
+            'bookings' => get_posts(['post_type' => 'dsb_booking', 'posts_per_page' => -1])
         ];
     }
 
@@ -45,7 +45,7 @@ class DSB_Dashboard_View extends DSB_Base_View {
                 $this->render_recent_items('Profesores', $data['teachers'], ['Nombre', 'Email']);
                 $this->render_recent_items('Alumnos', $data['students'], ['Nombre', 'Email', 'DNI']);
                 $this->render_recent_items('Vehículos', $data['vehicles'], ['Modelo', 'Matrícula', 'Año']);
-                $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Estudiante', 'Profesor']);
+                $this->render_recent_items('Reservas', $data['bookings'], ['Fecha', 'Alumno', 'Profesor']);
                 ?>
             </div>
         </div>
@@ -147,13 +147,16 @@ class DSB_Dashboard_View extends DSB_Base_View {
                         <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?php echo esc_attr($cancel_time); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="daily_limit">Clases diarias por estudiante</label></th>
+                        <th scope="row"><label for="daily_limit">Clases diarias por alumno</label></th>
                         <td><input type="number" id="daily_limit" name="daily_limit" value="<?php echo esc_attr($daily_limit); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="class_cost">Coste por clase (créditos)</label></th>
                         <td><input type="number" step="0.1" id="class_cost" name="class_cost" value="<?php echo esc_attr($class_cost); ?>" class="regular-text"></td>
                     </tr>
+                    <tr>
+                        <th scope="row"><label for="class_duration">Duración de clase (minutos)</label></th>
+                        <td><input type="number" id="class_duration" name="class_duration" value="<?php echo esc_attr(DSB_Settings::get('class_duration')); ?>" class="regular-text"></td>
                 </table>
     
                 <p><button type="submit" class="button button-primary">Guardar ajustes</button></p>
@@ -208,7 +211,8 @@ class DSB_Dashboard_View extends DSB_Base_View {
             if (current_user_can('administrator')) {
                 DSB_Settings::update('cancelation_time_hours', intval($_POST['cancelation_time_hours']));
                 DSB_Settings::update('daily_limit', intval($_POST['daily_limit']));
-                DSB_Settings::update('class_cost', floatval($_POST['class_cost']));
+                DSB_Settings::update('class_cost', floatval($_POST['class_cost']));                
+                DSB_Settings::update('class_duration', intval($_POST['class_duration']));
             }
         }
     }

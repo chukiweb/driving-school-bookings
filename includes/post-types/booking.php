@@ -40,7 +40,7 @@ class DSB_Booking {
             'show_in_rest' => true
         ];
 
-        register_post_type('booking', $args);
+        register_post_type('dsb_booking', $args);
     }
 
     public function register_taxonomies() {
@@ -70,7 +70,7 @@ class DSB_Booking {
             'fields' => [
                 [
                     'key' => 'field_student',
-                    'label' => 'Estudiante',
+                    'label' => 'Alumno',
                     'name' => 'student',
                     'type' => 'user',
                     'role' => ['student'],

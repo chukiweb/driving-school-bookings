@@ -2,10 +2,13 @@
 // includes/class-dsb-api.php
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
+
 require_once DSB_PLUGIN_DIR . 'services/teacher-service.php';
 require_once DSB_PLUGIN_DIR . 'services/student-service.php';
 require_once DSB_PLUGIN_DIR . 'services/calendar-service.php';
 require_once DSB_PLUGIN_DIR . 'services/vehicle-service.php';
+require_once DSB_PLUGIN_DIR . 'services/booking-service.php';
+require_once DSB_PLUGIN_DIR . 'services/user-service.php';
 
 class DSB_API
 {
@@ -18,150 +21,171 @@ class DSB_API
 
     public function register_routes()
     {
-        // Auth endpoints
+        /**
+         * AUTH ENDPOINTS
+         */
         register_rest_route($this->namespace, '/auth/acceso', [
-            'methods' => 'POST',
-            'callback' => [$this, 'login'],
-            'permission_callback' => '__return_true'
+            'methods'               => 'POST',
+            'callback'              => [$this, 'login'],
+            'permission_callback'   => '__return_true'
         ]);
 
-        register_rest_route($this->namespace, '/auth/refresh', [
-            'methods' => 'POST',
-            'callback' => [$this, 'refresh_token'],
-            'permission_callback' => '__return_true'
+        register_rest_route($this->namespace, '/auth/logout', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'logout'],
+            'permission_callback'   => '__return_true'
         ]);
+
+        // register_rest_route($this->namespace, '/auth/refresh', [
+        //     'methods'               => 'POST',
+        //     'callback'              => [$this, 'refresh_token'],
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
         /**
          * USERS ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/users/me', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_current_user'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_current_user'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
 
-        //Load images endpoint
+        /**
+         * Load images endpoint
+         */
         register_rest_route($this->namespace, '/users/me/avatar', [
-            'methods' => 'POST',
-            'callback' => [$this, 'upload_user_avatar'],
-            'permission_callback' => [$this, 'check_permission'],
+            'methods'               => 'POST',
+            'callback'              => [$this, 'upload_user_avatar'],
+            'permission_callback'   => [$this, 'check_permission'],
         ]);
 
         /**
          * BOOKINGS ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/bookings', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_bookings'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_bookings'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/bookings/create', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'create_booking'],
+            'permission_callback'   => [$this, 'check_permission'],
+        ]);
+
+        register_rest_route($this->namespace, '/bookings/accept/(?P<id>\d+)', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'accept_booking'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         register_rest_route($this->namespace, '/bookings/cancel/(?P<id>\d+)', [
-            'methods' => 'POST',
-            'callback' => [$this, 'cancel_booking'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'POST',
+            'callback'              => [$this, 'cancel_booking'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         /**
-         * VIHICLES ENDPOINTS
+         * VEHICLES ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/vehicles', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_vehicles'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_vehicles'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         /**
          * VIEWS ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/views/student', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_student_view'],
-            'permission_callback' => '__return_true'
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_student_view'],
+            'permission_callback'   => '__return_true'
         ]);
 
         register_rest_route($this->namespace, '/views/teacher', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_teacher_view'],
-            'permission_callback' => '__return_true'
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_teacher_view'],
+            'permission_callback'   => '__return_true'
         ]);
 
         register_rest_route($this->namespace, '/views/(?P<view>[a-zA-Z0-9-]+)', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_public_view'],
-            'permission_callback' => '__return_true'
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_public_view'],
+            'permission_callback'   => '__return_true'
         ]);
-
-
 
         /**
          * TEACHERS ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_teacher'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_teacher'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
-        register_rest_route($this->namespace, '/teachers-availability', [
-            'methods' => 'GET',
-            'callback' => 'get_professor_availability',
-            'permission_callback' => '__return_true'
-        ]);
+        // register_rest_route($this->namespace, '/teachers-availability', [
+        //     'methods'               => 'GET',
+        //     'callback'              => 'get_professor_availability',
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
-        register_rest_route($this->namespace, '/save-availability', [
-            'methods' => 'POST',
-            'callback' => 'save_teacher_availability',
-            'permission_callback' => '__return_true'
-        ]);
+        // register_rest_route($this->namespace, '/save-availability', [
+        //     'methods'               => 'POST',
+        //     'callback'              => 'save_teacher_availability',
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/classes', [
-            'methods' => 'POST',
-            'callback' => [$this, 'save_teacher_classes'],
-            'permission_callback' => [$this, 'check_permission'],
+            'methods'               => 'POST',
+            'callback'              => [$this, 'save_teacher_classes'],
+            'permission_callback'   => [$this, 'check_permission'],
         ]);
-        
 
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/config', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'update_teacher_config'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
 
         /**
          * STUDENT ENDPOINT
          */
         register_rest_route($this->namespace, '/students/(?P<id>\d+)', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_student'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_student'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
-
-
 
         /**
          * CALENDAR ENDPOINTS
          */
-
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
-            'methods' => 'GET',
-            'callback' => [$this, 'get_teacher_calendar'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'GET',
+            'callback'              => [$this, 'get_teacher_calendar'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
-            'methods' => 'POST',
-            'callback' => [$this, 'update_teacher_calendar'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'POST',
+            'callback'              => [$this, 'update_teacher_calendar'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/teachers/block-time', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'teachers_block_time'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         register_rest_route($this->namespace, '/bookings/cancel/(?P<id>\d+)', [
-            'methods' => 'DELETE',
-            'callback' => [$this, 'delete_booking'],
-            'permission_callback' => [$this, 'check_permission']
+            'methods'               => 'DELETE',
+            'callback'              => [$this, 'delete_booking'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
-
     }
 
     public function login($request)
@@ -182,12 +206,33 @@ class DSB_API
         }
 
         // Generar JWT token
-        $token = $this->generate_jwt($user);
+        $token = DSB()->jwt->generate_token($user);
+        DSB()->jwt->store_token($token);
 
         return [
-            'token' => $token,
+            // 'token' => $token,
             'user' => $this->format_user($user),
         ];
+    }
+
+    public function logout($request)
+    {
+        // Destruir el token JWT de la sesión
+        if (!session_id()) {
+            session_start();
+        }
+
+        // Eliminar el token de la sesión
+        unset($_SESSION['jwt_token']);
+
+        // Destruir la sesión por completo
+        session_destroy();
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente',
+            'redirect' => '/acceso'
+        ]);
     }
 
     public function get_bookings($request)
@@ -226,129 +271,98 @@ class DSB_API
         ]);
     }
 
+    /**
+     * BOOKING ENDPOINTS
+     */
+
     public function create_booking($request)
     {
-        $booking_data = [
-            'post_type' => 'booking',
-            'post_title' => sprintf('Reserva %s', date('Y-m-d H:i:s')),
-            'post_status' => 'publish'
-        ];
+        return DSB_Booking_Service::create_booking($request);
+    }
 
-        $booking_id = wp_insert_post($booking_data);
-
-        if (is_wp_error($booking_id)) {
-            return $booking_id;
-        }
-
-        // Update ACF fields
-        update_field('student', $request->get_param('student_id'), $booking_id);
-        update_field('teacher', $request->get_param('teacher_id'), $booking_id);
-        update_field('vehicle', $request->get_param('vehicle_id'), $booking_id);
-        update_field('booking_date', $request->get_param('date'), $booking_id);
-        update_field('duration', $request->get_param('duration'), $booking_id);
-        update_field('price', $request->get_param('price'), $booking_id);
-
-        return $this->get_booking($booking_id);
+    public function accept_booking($request)
+    {
+        return DSB_Booking_Service::accept_booking($request);
     }
 
     public function cancel_booking($request)
     {
-        $booking_id = intval($request['id']);
-
-        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
-            return new WP_Error('invalid_booking', 'Reserva inválida', ['status' => 400]);
-        }
-
-        $current_user = get_current_user_id();
-        $student_id = get_post_meta($booking_id, 'dsb_student_id', true);
-
-        if ($current_user !== intval($student_id)) {
-            return new WP_Error('unauthorized', 'No tienes permiso para cancelar esta reserva', ['status' => 403]);
-        }
-
-        wp_update_post([
-            'ID' => $booking_id,
-            'post_status' => 'cancelled',
-        ]);
-
-        return rest_ensure_response(['message' => 'Reserva cancelada correctamente']);
+        return DSB_Booking_Service::cancel_booking($request);
     }
 
-    private function format_booking($post)
+    public function teachers_block_time($request)
     {
-        return [
-            'id' => $post->ID,
-            'student' => get_field('student', $post->ID),
-            'teacher' => get_field('teacher', $post->ID),
-            'vehicle' => get_field('vehicle', $post->ID),
-            'date' => get_field('booking_date', $post->ID),
-            'duration' => get_field('duration', $post->ID),
-            'price' => get_field('price', $post->ID),
-            'status' => get_field('payment_status', $post->ID)
-        ];
+        return DSB_Booking_Service::teachers_block_time($request);
     }
 
     private function format_user($user)
     {
         return [
-            'id' => $user->ID,
-            'username' => $user->user_login,
-            'email' => $user->user_email,
-            'role' => $user->roles[0] ?? null
+            // 'id' => $user->ID,
+            // 'username' => $user->user_login,
+            // 'email' => $user->user_email,
+            // 'role' => $user->roles[0] ?? null,
+            'url' => $user->roles === 'teacher' ? '/profesor' : '/alumno',
         ];
     }
 
-    private function generate_jwt($user)
+    // public function refresh_token($request)
+    // {
+    //     $token = $request->get_param('token');
+
+    //     if (!$token) {
+    //         return new WP_Error('missing_token', 'No se ha proporcionado un token', ['status' => 400]);
+    //     }
+
+    //     try {
+    //         $decoded = JWT::decode($token, new Key(JWT_AUTH_SECRET_KEY, 'HS256'));
+    //         $user_id = $decoded->data->user_id;
+
+    //         $new_token = [
+    //             'iss' => get_site_url(),
+    //             'iat' => time(),
+    //             'exp' => time() + 3600, // 1 horaA
+    //             'data' => [
+    //                 'user_id' => $user_id
+    //             ]
+    //         ];
+
+    //         return rest_ensure_response([
+    //             'token' => JWT::encode($new_token, JWT_AUTH_SECRET_KEY, 'HS256')
+    //         ]);
+    //     } catch (Exception $e) {
+    //         return new WP_Error('invalid_token', 'Token inválido o expirado', ['status' => 403]);
+    //     }
+    // }
+
+    public function upload_user_avatar($request)
     {
-        return DSB()->jwt->generate_token($user);
+        return DSB_User_Service::upload_avatar($request);
     }
 
-    public function refresh_token($request)
+    public function check_permission($request)
     {
-        $token = $request->get_param('token');
-
-        if (!$token) {
-            return new WP_Error('missing_token', 'No se ha proporcionado un token', ['status' => 400]);
-        }
-
-        try {
-            $decoded = JWT::decode($token, new Key(JWT_AUTH_SECRET_KEY, 'HS256'));
-            $user_id = $decoded->data->user_id;
-
-            $new_token = [
-                'iss' => get_site_url(),
-                'iat' => time(),
-                'exp' => time() + 3600, // 1 horaA
-                'data' => [
-                    'user_id' => $user_id
-                ]
-            ];
-
-            return rest_ensure_response([
-                'token' => JWT::encode($new_token, JWT_AUTH_SECRET_KEY, 'HS256')
-            ]);
-        } catch (Exception $e) {
-            return new WP_Error('invalid_token', 'Token inválido o expirado', ['status' => 403]);
-        }
-    }
-
-
-    public function check_permission($request) {
         if (is_user_logged_in()) {
             return true;
         }
-    
+
         // Lógica con token JWT
         $token = str_replace('Bearer ', '', $request->get_header('Authorization'));
         if (!$token) return false;
-    
+
+        if (empty($token)) {
+            // sin token, forzamos protección (redirigir a /acceso)
+            wp_redirect(home_url('/acceso'));
+            exit;
+        }
+
         return DSB()->jwt->validate_token($token);
     }
 
     public function get_student_view()
     {
         return rest_ensure_response([
-            'url' => plugins_url('public/views/estudiante.php', dirname(__FILE__))
+            'url' => plugins_url('public/views/alumno.php', dirname(__FILE__))
         ]);
     }
 
@@ -369,29 +383,35 @@ class DSB_API
         return DSB_Teacher_Service::get_teacher($teacher_id);
     }
 
-    public function update_teacher($request)
+    // public function update_teacher($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::get_professor_availability($teacher_id);
+    // }
+
+    public function update_teacher_config($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_professor_availability($teacher_id);
+        return DSB_Teacher_Service::update_teacher_config($request, $teacher_id);
     }
 
-    public function get_teacher_availability($request)
-    {
-        $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_teacher_availability($teacher_id);
-    }
+    // public function get_teacher_availability($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::get_teacher_availability($teacher_id);
+    // }
 
+    // public function save_teacher_availability($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::save_teacher_availability($request, $teacher_id);
+    // }
 
-    public function save_teacher_availability($request)
-    {
-        $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::save_teacher_availability($request, $teacher_id);
-    }
-
-    public function save_teacher_classes($request) {
-        $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::save_teacher_classes($request, $teacher_id);
-    }
+    // public function save_teacher_classes($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::save_teacher_classes($request, $teacher_id);
+    // }
 
     /**
      * STUDENT ENDPOINT
@@ -402,13 +422,6 @@ class DSB_API
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
     }
-
-    public function upload_user_avatar($request)
-    {
-        $user_id = intval($request['id']);
-        return DSB_Student_Service::get_student($user_id);
-    }
-
 
     /**
      * CALENDAR
@@ -431,15 +444,39 @@ class DSB_API
     {
         $booking = intval($request['id']);
         return DSB_Calendar_Service::delete_booking($booking);
-
     }
 
+    /**
+     * VEHICLES
+     */
+    public function get_vehicles($request)
+    {
+        $vehiculos = get_posts(array(
+            'post_type' => 'vehiculo', // Asegúrate que es el CPT correcto
+            'post_status' => 'publish',
+            'numberposts' => -1
+        ));
 
+        $resultado = array();
+
+        foreach ($vehiculos as $vehiculo) {
+            $resultado[] = array(
+                'id'   => $vehiculo->ID,
+                'name' => $vehiculo->post_title
+            );
+        }
+
+        return new WP_REST_Response($resultado, 200);
+    }
+
+    /**
+     * VIEWS
+     */
     public function get_public_view($request)
     {
         $view = sanitize_text_field($request['view']);
 
-        $allowed_views = ['acceso', 'estudiante', 'profesor'];
+        $allowed_views = ['acceso', 'alumno', 'profesor'];
         if (!in_array($view, $allowed_views)) {
             return new WP_Error('invalid_view', 'Vista no permitida', ['status' => 403]);
         }
@@ -454,29 +491,4 @@ class DSB_API
         include $file_path;
         return ob_get_clean();
     }
-
-    public function get_vehicles($request) {
-        $vehiculos = get_posts(array(
-            'post_type' => 'vehiculo', // Asegúrate que es el CPT correcto
-            'post_status' => 'publish',
-            'numberposts' => -1
-        ));
-    
-        $resultado = array();
-    
-        foreach ($vehiculos as $vehiculo) {
-            $resultado[] = array(
-                'id'   => $vehiculo->ID,
-                'name' => $vehiculo->post_title
-            );
-        }
-    
-        return new WP_REST_Response($resultado, 200);
-    }
-    
-
-
-
-
-
 }

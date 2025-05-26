@@ -11,7 +11,7 @@ class DSB_Bookings_View extends DSB_Base_View
         $this->nonce_name = 'booking_nonce';
         $this->students = get_users(['role' => 'student']);
         $this->bookings = get_posts([
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'posts_per_page' => -1,
         ]);
     }
@@ -67,7 +67,7 @@ class DSB_Bookings_View extends DSB_Base_View
     {
         $all_booking_data = [];
         $bookings = get_posts([
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'posts_per_page' => -1,
         ]);
 
@@ -138,6 +138,9 @@ class DSB_Bookings_View extends DSB_Base_View
             case 'create_booking':
                 $this->handle_create_booking_form();
                 break;
+            case 'accept_booking':
+                $this->handle_accept_booking_form();
+                break;
             case 'cancel_booking':
                 $this->handle_cancel_booking_form();
                 break;
@@ -156,11 +159,9 @@ class DSB_Bookings_View extends DSB_Base_View
 
         $post_data = [
             'post_title' => sprintf(
-                'Reserva - %s - %s',
-                sanitize_text_field($_POST['student']),
-                $date
+                'Reserva %s - %s | %s', $date, $start_time, sanitize_text_field($_POST['student']),
             ),
-            'post_type' => 'reserva',
+            'post_type' => 'dsb_booking',
             'post_status' => 'publish',
             'meta_input' => [
                 'student_id' => sanitize_text_field($_POST['student']),
@@ -169,15 +170,28 @@ class DSB_Bookings_View extends DSB_Base_View
                 'date' => $date,
                 'time' => $start_time,
                 'end_time' => $end_time,
-                'status' => 'pending'
+                'status' => 'pending',
+                'class_points' => DSB_Settings::get('class_cost'),
             ]
         ];
         $post_id = wp_insert_post($post_data);
 
         if ($post_id) {
+            // Actualizar saldo del estudiante
+            update_user_meta(sanitize_text_field($_POST['student']), 'class_points', get_user_meta(sanitize_text_field($_POST['student']), 'class_points', true) - DSB_Settings::get('class_cost'));
             $this->render_notice('Reserva creada exitosamente');
         } else {
             $this->render_notice('Error al crear la reserva', 'error');
+        }
+    }
+
+    protected function handle_accept_booking_form()
+    {
+        if (isset($_POST['booking_id'])) {
+            $booking_id = intval($_POST['booking_id']);
+            update_post_meta($booking_id, 'status', 'accepted');
+
+            $this->render_notice('Reserva aceptada exitosamente');
         }
     }
 
@@ -211,10 +225,10 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <table class="form-table">
                     <tr>
-                        <th><label for="student">Estudiante</label></th>
+                        <th><label for="student">Alumno</label></th>
                         <td>
                             <select name="student" required>
-                                <option value="">Seleccionar estudiante</option>
+                                <option value="">Seleccionar alumno</option>
                                 <?php foreach ($this->students as $student): ?>
                                     <option value="<?php echo esc_attr($student->ID); ?>">
                                         <?php echo esc_html($student->display_name); ?>
@@ -276,7 +290,7 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <div>
                     <h3>Detalles de la reserva</h3>
-                    <p><strong>Estudiante:</strong> <span class="student-name"></span></p>
+                    <p><strong>Alumno:</strong> <span class="student-name"></span></p>
                     <p><strong>Profesor:</strong> <span class="teacher-name"></span></p>
                     <p><strong>Vehículo:</strong> <span class="vehicle-name"></span></p>
                     <p><strong>Fecha:</strong> <span class="booking-date"></span></p>
@@ -305,7 +319,7 @@ class DSB_Bookings_View extends DSB_Base_View
 
                 <div>
                     <h3>Detalles de la reserva</h3>
-                    <p><strong>Estudiante:</strong> <span class="student-name"></span></p>
+                    <p><strong>Alumno:</strong> <span class="student-name"></span></p>
                     <p><strong>Profesor:</strong> <span class="teacher-name"></span></p>
                     <p><strong>Vehículo:</strong> <span class="vehicle-name"></span></p>
                     <p><strong>Fecha:</strong> <span class="booking-date"></span></p>
@@ -364,7 +378,7 @@ class DSB_Bookings_View extends DSB_Base_View
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th>Estudiante</th>
+                    <th>Alumno</th>
                     <th>Profesor</th>
                     <th>Vehículo</th>
                     <th>Fecha</th>
