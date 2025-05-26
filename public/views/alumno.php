@@ -173,7 +173,7 @@ $js_config = [
                         <div class="ms-auto text-center">
                             <div class="bg-success text-white rounded-3 px-3 py-2">
                                 <span class="saldo-actual fs-4 fw-bold"><?= $user['class_points'] ?></span>
-                                <div><small>puntos</small></div>
+                                <div><small>Saldo</small></div>
                             </div>
                         </div>
                     </div>
@@ -230,10 +230,10 @@ $js_config = [
                                     <div class="row g-3">
                                         <div class="col-md-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-primary text-white p-2 rounded-circle me-3">
+                                                <div class="bg-primary text-white p-3 rounded-circle">
                                                     <i class="bi bi-tag-fill"></i>
                                                 </div>
-                                                <div>
+                                                <div class="ms-3">
                                                     <small class="text-muted d-block">Precio por clase</small>
                                                     <span id="precio-clase" class="fw-bold"><?= $settings['class_cost'] ?> puntos</span>
                                                 </div>
@@ -241,10 +241,10 @@ $js_config = [
                                         </div>
                                         <div class="col-md-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-warning text-white p-2 rounded-circle me-3">
+                                                <div class="bg-warning text-white p-3 rounded-circle">
                                                     <i class="bi bi-clock-fill"></i>
                                                 </div>
-                                                <div>
+                                                <div class="ms-3">
                                                     <small class="text-muted d-block">Cancelación gratuita</small>
                                                     <span id="horas-cancelacion" class="fw-bold"><?= $settings['cancelation_time_hours'] ?> h. antes</span>
                                                 </div>
@@ -252,10 +252,10 @@ $js_config = [
                                         </div>
                                         <div class="col-md-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-success text-white p-2 rounded-circle me-3">
+                                                <div class="bg-success text-white p-3 rounded-circle">
                                                     <i class="bi bi-calendar-check-fill"></i>
                                                 </div>
-                                                <div>
+                                                <div class="ms-3">
                                                     <small class="text-muted d-block">Máximo diario</small>
                                                     <span id="max-bookings" class="fw-bold"><?= $settings['daily_limit'] ?> clases</span>
                                                 </div>

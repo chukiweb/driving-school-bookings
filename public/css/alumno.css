@@ -183,7 +183,7 @@ section {
 }
 
 .calendar-responsive {
-    min-height: 600px;
+    min-height: 1000px;
     height: calc(80vh - 150px);
 }
 
@@ -416,7 +416,7 @@ div[class*='slot-cell-'].recent-time {
     
     .calendar-responsive {
         height: auto;
-        min-height: 500px;
+        min-height: 800px;
     }
     
     .avatar-wrapper {

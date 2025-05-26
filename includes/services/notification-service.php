@@ -242,12 +242,6 @@ class DSB_Notification_Service
     }
 }
 
-// Función accesible globalmente para usar el servicio de notificaciones
-function DSB_Notifications()
-{
-    return DSB_Notification_Service::get_instance();
-}
-
 // Registrar gancho para enviar recordatorios diarios
 add_action('dsb_daily_class_reminders', [DSB_Notification_Service::get_instance(), 'send_daily_reminders']);
 

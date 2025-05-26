@@ -391,7 +391,7 @@ $js_config = [
                             }
                             ?>
                             <div class="d-flex flex-column align-items-center">
-                                <div class="stat-icon bg-warning-subtle rounded-circle p-2 mb-2">
+                                <div class="stat-icon bg-warning-subtle rounded-circle p-3 mb-2">
                                     <i class="bi bi-hourglass text-warning fs-4"></i>
                                 </div>
                                 <h2 class="fs-4 mb-0"><?= $alumnos_pendientes ?></h2>
@@ -412,7 +412,7 @@ $js_config = [
                             }
                             ?>
                             <div class="d-flex flex-column align-items-center">
-                                <div class="stat-icon bg-success-subtle rounded-circle p-2 mb-2">
+                                <div class="stat-icon bg-success-subtle rounded-circle p-3 mb-2">
                                     <i class="bi bi-calendar-check text-success fs-4"></i>
                                 </div>
                                 <h2 class="fs-4 mb-0"><?= $alumnos_hoy ?></h2>
@@ -434,7 +434,7 @@ $js_config = [
                             $alumnos_sin_clases_recientes = count($teacher['students']) - count($alumno_ids_con_clases);
                             ?>
                             <div class="d-flex flex-column align-items-center">
-                                <div class="stat-icon bg-danger-subtle rounded-circle p-2 mb-2">
+                                <div class="stat-icon bg-danger-subtle rounded-circle p-3 mb-2">
                                     <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
                                 </div>
                                 <h2 class="fs-4 mb-0"><?= $alumnos_sin_clases_recientes ?></h2>

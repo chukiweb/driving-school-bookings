@@ -210,10 +210,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         const status = res.status || 'pending';
 
-                        const backgroundColor = status === 'pending' ? '#ffc107' : 
-                                                        'accepted' ? '#28a745' : '#dc3545';
-                        const className = status === 'pending' ? 'pending-event' : 
-                                                        'accepted' ? 'accepted-event' : 'unavailable-event';
+                        const backgroundColor = status === 'pending' ? '#ffc107' :
+                            'accepted' ? '#28a745' : '#dc3545';
+                        const className = status === 'pending' ? 'pending-event' :
+                            'accepted' ? 'accepted-event' : 'unavailable-event';
 
                         // Añadir el nuevo evento al calendario
                         AlumnoView.calendar.addEvent({
