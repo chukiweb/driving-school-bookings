@@ -1,4 +1,4 @@
-jQuery(document).ready(function ($) {
+document.addEventListener('DOMContentLoaded', function () {
 
     class AlumnoView {
         static reservas = [];
@@ -64,6 +64,12 @@ jQuery(document).ready(function ($) {
         }
 
         static setupEventListeners() {
+
+            document.querySelector('.logout-btn')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                AlumnoView.handleLogout();
+            });
+
             // Asignar evento click a los botones generados dinámicamente
             document.addEventListener('click', function (event) {
                 if (event.target.classList.contains('ver-detalles')) {
@@ -152,11 +158,40 @@ jQuery(document).ready(function ($) {
             });
         }
 
+        static async handleLogout() {
+            try {
+                // Mostrar confirmación antes de cerrar sesión
+                if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                    return;
+                }
+
+                const response = await fetch(`${AlumnoView.apiUrl}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AlumnoView.jwtToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirigir a la página de acceso
+                    window.location.href = data.redirect || '/acceso';
+                } else {
+                    throw new Error(data.message || 'Error al cerrar sesión');
+                }
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                window.mostrarNotificacion('error', `Error: ${error.message}`);
+            }
+        }
+
         static async handleFormSubmit(form) {
             // Mapeo de formularios a sus respectivos endpoints y configuraciones
             const formEndpoints = {
                 'studentCalendarForm': {
-                    endpoint: `${AlumnoView.apiUrl}/bookings`,
+                    endpoint: `${AlumnoView.apiUrl}/bookings/create`,
                     method: 'POST',
                     dataMapper: (form) => ({
                         alumno: AlumnoView.alumnoId,
@@ -167,24 +202,20 @@ jQuery(document).ready(function ($) {
                         end_time: form.querySelector('input[name="end_time"]').value
                     }),
                     onSuccess: (res) => {
-                        // Ocultar modal
                         AlumnoView.calendarModal.hide();
 
-                        // Actualizar el saldo visible
                         AlumnoView.actualizarSaldo(res.newBalance);
 
-                        // Mostrar notificación sin bloquear con alert
-                        AlumnoView.mostrarNotificacion('success', `Reserva creada correctamente el ${res.date} a las ${res.startTime}`);
+                        window.mostrarNotificacion('Reserva creada', `El día ${res.date} a las ${res.startTime}`, 'success');
 
-                        // Estado inicial de la reserva (normalmente 'pending')
-                        // Verifica si el backend devuelve el estado, sino usa 'pending' como predeterminado
                         const status = res.status || 'pending';
 
-                        // Determinar color basado en el estado
-                        const backgroundColor = status === 'pending' ? '#ffc107' : '#28a745';
-                        const className = status === 'pending' ? 'pending-event' : 'accepted-event';
+                        const backgroundColor = status === 'pending' ? '#ffc107' :
+                            'accepted' ? '#28a745' : '#dc3545';
+                        const className = status === 'pending' ? 'pending-event' :
+                            'accepted' ? 'accepted-event' : 'unavailable-event';
 
-                        // Añadir el nuevo evento al calendario con color según su estado
+                        // Añadir el nuevo evento al calendario
                         AlumnoView.calendar.addEvent({
                             id: res.id,
                             title: `Clase con ${AlumnoView.alumnoData.teacher.name}`,
@@ -192,8 +223,8 @@ jQuery(document).ready(function ($) {
                             end: `${res.date}T${res.endTime}`,
                             backgroundColor: backgroundColor,
                             borderColor: backgroundColor,
-                            classNames: [className], // Aplicamos la clase CSS según estado
-                            status: status // Guardamos el estado en el evento para referencia futura
+                            classNames: [className],
+                            status: status
                         });
 
                         // Actualizar la lista de reservas en memoria
@@ -204,7 +235,7 @@ jQuery(document).ready(function ($) {
                             end: res.endTime,
                             teacher_name: AlumnoView.alumnoData.teacher.name,
                             vehicle: AlumnoView.alumnoData.teacher.vehicle_name,
-                            status: status // Usamos el estado real en lugar de 'active'
+                            status: status
                         });
                     }
                 },
@@ -234,12 +265,9 @@ jQuery(document).ready(function ($) {
                                 AlumnoView.actualizarSaldo(newBalance);
                             }
 
-                            // Mensaje específico para reembolso
-                            AlumnoView.mostrarNotificacion('success',
-                                `Reserva cancelada correctamente. Se han devuelto ${res.refund_amount} créditos a tu cuenta.`);
+                            window.mostrarNotificacion('Reserva cancelada', `Se han devuelto ${res.refund_amount} créditos a tu cuenta`, 'success');
                         } else {
-                            // Mensaje sin reembolso
-                            AlumnoView.mostrarNotificacion('success', 'Reserva cancelada correctamente');
+                            window.mostrarNotificacion('Reserva cancelada', 'No se ha devuelto ningún crédito a tu cuenta', 'success');
                         }
 
                         // Eliminar el evento del calendario
@@ -299,7 +327,7 @@ jQuery(document).ready(function ($) {
 
                     // Mostrar mensaje específico para horario no disponible
                     if (errorData.code === 'slot_not_available') {
-                        AlumnoView.mostrarNotificacion('error', errorData.message || 'Este horario ya no está disponible');
+                        window.mostrarNotificacion('Error', 'El horario seleccionado ya no está disponible', 'error');
 
                         // Actualizar el calendario para reflejar el cambio
                         AlumnoView.calendar.refetchEvents();
@@ -314,7 +342,7 @@ jQuery(document).ready(function ($) {
                 formConfig.onSuccess(data);
             } catch (error) {
                 console.error(`${formId} error:`, error);
-                AlumnoView.mostrarNotificacion('error', `Error: ${error.message || 'Error de conexión'}`);
+                window.mostrarNotificacion('Error', `${error.message || 'Error de conexión'}`, 'error');
             } finally {
                 // Restaurar el botón
                 if (submitBtn) {
@@ -334,209 +362,7 @@ jQuery(document).ready(function ($) {
             });
         }
 
-        // Mejoras para la función initializeCalendar
-        static initializeCalendar() {
-            const calendarElement = document.getElementById('calendar');
-            if (!calendarElement) return;
-
-            // Configuraciones comunes
-            const duracion = teacherConfig.duracion_clase || '00:45:00';
-            const classDuration = parseInt(duracion.split(':')[0]) * 60 + parseInt(duracion.split(':')[1]);
-            const diasNoDisponibles = teacherConfig.dias_no_disponibles ? teacherConfig.dias_no_disponibles.split(',').map(Number) : [];
-
-            // Opciones del Calendario
-            const studentCalendar = new FullCalendar.Calendar(calendarElement, {
-                allDaySlot: false,
-                locale: 'es',
-                nowIndicator: true,
-                selectable: true,
-                initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
-                expandRows: true,
-                height: 'auto',
-                customButtons: {
-                    myCustomButton: {
-                        text: 'Hoy',
-                        click: function () {
-                            studentCalendar.today();
-                        }
-                    }
-                },
-                buttonText: {
-                    today: 'Hoy',
-                    month: 'Mes',
-                    week: 'Semana',
-                    day: 'Día'
-                },
-                headerToolbar: {
-                    left: 'prev,next',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                slotLabelFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                },
-                eventTimeFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                },
-                slotDuration: duracion,
-                slotMinTime: teacherConfig.hora_inicio || '08:00:00',
-                slotMaxTime: teacherConfig.hora_fin || '21:00:00',
-                hiddenDays: diasNoDisponibles,
-
-                // Formateo de eventos para mejor visualización
-                eventDidMount: function (info) {
-                    // Añadir información extra a eventos
-                    if (info.event.extendedProps.status === 'pending') {
-                        info.el.querySelector('.fc-event-title').innerHTML =
-                            '<i class="bi bi-hourglass me-1"></i>' + info.event.title;
-                    } else if (info.event.extendedProps.status === 'accepted') {
-                        info.el.querySelector('.fc-event-title').innerHTML =
-                            '<i class="bi bi-check-circle me-1"></i>' + info.event.title;
-                    }
-
-                    // Tooltips con más información
-                    const tooltip = new bootstrap.Tooltip(info.el, {
-                        title: `${info.event.title}<br>
-                       ${info.event.start ? info.event.start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : ''} - 
-                       ${info.event.end ? info.event.end.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : ''}
-                       ${info.event.extendedProps.status ? '<br>Estado: ' + info.event.extendedProps.status : ''}`,
-                        placement: 'top',
-                        html: true,
-                        container: 'body'
-                    });
-                },
-
-                // Resto de la configuración existente
-                select: function (e) {
-                    // Tu código existente
-                },
-                eventClick: function (e) {
-                    // Tu código existente
-                },
-                events: [...AlumnoView.events, ...AlumnoView.teacherEvents],
-                selectMirror: true,
-                selectAllow: function (selectInfo) {
-                    // Tu código existente
-                },
-                snapDuration: duracion,
-                selectMinDistance: 0,
-
-                // Manejar cambio de vista
-                viewDidMount: function (viewInfo) {
-                    // Actualizar botones de vista activa
-                    document.querySelectorAll('.calendar-view-switcher .btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    const activeView = viewInfo.view.type;
-                    const btn = document.querySelector(`.calendar-view-switcher .btn[data-view="${activeView}"]`);
-                    if (btn) btn.classList.add('active');
-
-                    // Aplicar funcionalidad a slots no disponibles
-                    setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 100);
-                },
-
-                // Aplicar la funcionalidad en cambio de fechas
-                datesSet: function () {
-                    setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 100);
-                }
-            });
-
-            // Guardar referencia
-            AlumnoView.calendar = studentCalendar;
-
-            // Renderizar calendario
-            studentCalendar.render();
-
-            // Event listeners para botones personalizados
-            document.querySelectorAll('.calendar-view-switcher .btn').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const view = this.getAttribute('data-view');
-                    studentCalendar.changeView(view);
-                });
-            });
-
-            document.getElementById('goToToday')?.addEventListener('click', function () {
-                studentCalendar.today();
-            });
-
-            // Filtros de calendario
-            document.getElementById('showMyClassesOnly')?.addEventListener('change', function () {
-                AlumnoView.filterCalendarEvents();
-            });
-
-            document.getElementById('showAvailableOnly')?.addEventListener('change', function () {
-                AlumnoView.filterCalendarEvents();
-            });
-
-            // Responsive: Ajustar vista según tamaño de pantalla
-            window.addEventListener('resize', function () {
-                const width = window.innerWidth;
-                if (width < 768 && studentCalendar.view.type === 'timeGridWeek') {
-                    studentCalendar.changeView('timeGridDay');
-                } else if (width >= 768 && studentCalendar.view.type === 'timeGridDay' &&
-                    !studentCalendar._calendarOptions.initialView.includes('Day')) {
-                    studentCalendar.changeView('timeGridWeek');
-                }
-            });
-
-            // Aplicar funcionalidad a slots no disponibles
-            setTimeout(() => AlumnoView.deshabilitarSlotsNoDisponibles(), 200);
-        }
-
-        // Nueva función para filtrar eventos del calendario
-        static filterCalendarEvents() {
-            const showMine = document.getElementById('showMyClassesOnly')?.checked;
-            const showAvailable = document.getElementById('showAvailableOnly')?.checked;
-
-            if (!AlumnoView.calendar) return;
-
-            AlumnoView.calendar.getEvents().forEach(event => {
-                // Evento del alumno o todos si no está marcada la opción
-                const isMine = event.extendedProps.student_id === AlumnoView.alumnoId;
-                const shouldShowMine = !showMine || (showMine && isMine);
-
-                // Evento disponible o todos si no está marcada la opción
-                const isAvailable = !event.extendedProps.status || event.extendedProps.status === 'available';
-                const shouldShowAvailable = !showAvailable || (showAvailable && isAvailable);
-
-                // Aplicar visibilidad
-                if (shouldShowMine && shouldShowAvailable) {
-                    event.setProp('display', 'auto');
-                } else {
-                    event.setProp('display', 'none');
-                }
-            });
-        }
-
-        // Método para mostrar notificaciones no bloqueantes
-        static mostrarNotificacion(tipo, mensaje, duracion = 3000) {
-            // Crear elemento de notificación
-            const notificacion = document.createElement('div');
-            notificacion.className = `dsb-notificacion ${tipo}`;
-            notificacion.innerHTML = mensaje;
-
-            // Añadir al DOM
-            document.body.appendChild(notificacion);
-
-            // Mostrar con animación
-            setTimeout(() => {
-                notificacion.classList.add('visible');
-            }, 10);
-
-            // Ocultar después de la duración especificada
-            setTimeout(() => {
-                notificacion.classList.remove('visible');
-                setTimeout(() => {
-                    document.body.removeChild(notificacion);
-                }, 300); // Tiempo para la animación de salida
-            }, duracion);
-        }
-
-        static handleAvatarUpload(event) {
+        static async handleAvatarUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -545,12 +371,12 @@ jQuery(document).ready(function ($) {
             const maxSize = 2 * 1024 * 1024; // 2MB
 
             if (!allowedTypes.includes(file.type)) {
-                AlumnoView.mostrarNotificacion('error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF');
+                window.mostrarNotificacion('Error', 'Tipo de archivo no permitido. Use JPG, PNG o GIF', 'error');
                 return;
             }
 
             if (file.size > maxSize) {
-                AlumnoView.mostrarNotificacion('error', 'El archivo es demasiado grande (máx. 2MB)');
+                window.mostrarNotificacion('Error', 'El archivo es demasiado grande (máx. 2MB)', 'error');
                 return;
             }
 
@@ -562,37 +388,35 @@ jQuery(document).ready(function ($) {
             const originalSrc = avatarElement.src;
             avatarElement.classList.add('uploading');
 
-            fetch(`${AlumnoView.apiUrl}/users/me/avatar`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + AlumnoView.jwtToken
-                },
-                body: formData
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || 'Error al subir la imagen');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Actualizar la imagen con la nueva URL
-                        avatarElement.src = data.url;
-                        AlumnoView.mostrarNotificacion('success', 'Imagen de perfil actualizada');
-                    } else {
-                        throw new Error(data.message || 'Error al subir la imagen');
-                    }
-                })
-                .catch(error => {
-                    avatarElement.src = originalSrc; // Restaurar la imagen original
-                    AlumnoView.mostrarNotificacion('error', `Error: ${error.message}`);
-                })
-                .finally(() => {
-                    avatarElement.classList.remove('uploading');
+            try {
+                const response = await fetch(`${AlumnoView.apiUrl}/users/me/avatar`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + AlumnoView.jwtToken
+                    },
+                    body: formData
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al subir la imagen');
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Actualizar la imagen con la nueva URL
+                    avatarElement.src = data.url;
+                    window.mostrarNotificacion('Imagen de perfil actualizada', '', 'success');
+                } else {
+                    throw new Error(data.message || 'Error al subir la imagen');
+                }
+            } catch (error) {
+                avatarElement.src = originalSrc; // Restaurar la imagen original
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
+            } finally {
+                avatarElement.classList.remove('uploading');
+            }
         }
 
         static mostrarDetalles(id) {
@@ -602,11 +426,11 @@ jQuery(document).ready(function ($) {
                 return;
             }
 
-            $("#modal-fecha").text(new Date(reserva.date).toLocaleDateString("es-ES"));
-            $("#modal-hora").text(reserva.start);
-            $("#modal-profesor").text(reserva.teacher_name);
-            $("#modal-vehiculo").text(reserva.vehicle);
-            $("#modal-estado").text(reserva.status);
+            document.getElementById('modal-fecha').textContent = new Date(reserva.date).toLocaleDateString("es-ES");
+            document.getElementById('modal-hora').textContent = reserva.start;
+            document.getElementById('modal-profesor').textContent = reserva.teacher_name;
+            document.getElementById('modal-vehiculo').textContent = reserva.vehicle;
+            document.getElementById('modal-estado').textContent = reserva.status;
         }
 
         static initializeCalendar() {
@@ -623,7 +447,7 @@ jQuery(document).ready(function ($) {
                 const todosDias = [0, 1, 2, 3, 4, 5, 6];
 
                 if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
-                    return todosDias;
+                    return [];
                 }
 
                 const mapaDias = {
@@ -651,7 +475,7 @@ jQuery(document).ready(function ($) {
                 locale: 'es',
                 nowIndicator: true,
                 selectable: true,
-                initialView: 'timeGridWeek',
+                initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
                 expandRows: true,
                 buttonText: {
                     today: 'Hoy',
@@ -669,17 +493,17 @@ jQuery(document).ready(function ($) {
                     minute: '2-digit',
                     hour12: false
                 },
-                slotDuration: duracion,  // Usar la duración de clase que tenga el sistema
-                slotMinTime: teacherConfig.hora_inicio || '08:00:00',  // Configuración de la hora de inicio para los estudiantes
-                slotMaxTime: teacherConfig.hora_fin || '21:00:00',  // Configuración de la hora de fin para los estudiantes
-                hiddenDays: diasNoDisponibles,  // Asegúrate de definir los días no disponibles si es necesario
+                slotDuration: duracion,
+                slotMinTime: teacherConfig.hora_inicio || '08:00:00',
+                slotMaxTime: teacherConfig.hora_fin || '21:00:00',
+                hiddenDays: diasNoDisponibles,
                 select: function (e) {
                     // Verificar las restricciones temporales
                     const now = new Date();
                     const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
 
                     if (e.start < oneHourFromNow) {
-                        AlumnoView.mostrarNotificacion('warning', 'Debes reservar las clases con al menos 1 hora de antelación');
+                        window.mostrarNotificacion('Aviso', 'Debes reservar las clases con al menos 1 hora de antelación', 'warning');
                         return; // No abrir el modal
                     }
 
@@ -769,6 +593,11 @@ jQuery(document).ready(function ($) {
                     if (info.date < today.setHours(0, 0, 0, 0)) {
                         info.el.classList.add('fc-day-past');
                     }
+                },
+                windowResize: function (view) {
+                    if (window.innerWidth < 768) {
+                        AlumnoView.calendar.changeView('timeGridDay');
+                    }
                 }
             });
 
@@ -780,5 +609,4 @@ jQuery(document).ready(function ($) {
     // Initialize the view
     AlumnoView.init();
 
-    console.log('Estructura de FullCalendar:', document.querySelector('.fc'));
 });

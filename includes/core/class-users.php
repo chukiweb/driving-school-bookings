@@ -211,12 +211,25 @@ class DSB_User_Manager
         }
         $reset_link = network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user->user_login), 'login');
 
-        // 2) Preparar datos para la plantilla
+        if ( function_exists( 'the_custom_logo' ) && has_custom_logo() ) {
+            // Imprime directamente el <a><img> generado por WP
+        $logo_correo = get_custom_logo();
+   
+        } else {
+        // Fallback a url fija
+            $logo_html = '<img src="' . esc_url( get_stylesheet_directory_uri() . '/assets/images/logo-amarillo.png' ) . '" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '" width="200" style="display:block;margin:0 auto;height:auto;">';
+        }
+        
+         // 2) Preparar datos para la plantilla
         $placeholders = [
             '{{first_name}}' => $user->first_name,
             '{{username}}'   => $user->user_login,
             '{{reset_link}}' => $reset_link,
-        ];
+			'{{url_acceso}}' => esc_url( site_url( '/acceso' ) ),
+			'{{url_sitio}}' => esc_url( site_url( '/' ) ),
+			'{{app_name}}' => esc_html( get_bloginfo( 'name' ) ),
+			'{{app_logo}}' =>  $logo_html,
+		];
 
         // 3) Cargar plantilla desde /emails/new-user.php (puede ser .html)
         $tpl_path = DSB_PLUGIN_DIR_PATH . 'public/emails/new-user.html';

@@ -187,7 +187,7 @@ jQuery(document).ready(function ($) {
                 const todosDias = [0, 1, 2, 3, 4, 5, 6];
 
                 if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
-                    return todosDias;
+                    return [];
                 }
 
                 const mapaDias = {

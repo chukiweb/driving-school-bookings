@@ -14,6 +14,7 @@ class DSB_Booking_Service
         $date       = sanitize_text_field($request->get_param('fecha'));
         $start_time = sanitize_text_field($request->get_param('hora'));
         $end_param  = $request->get_param('end_time');
+        $status     = sanitize_text_field($request->get_param('status')) ? : DSB_Settings::get('default_booking_status');
 
         $today = date('Y-m-d');
         if ($date < $today) {
@@ -135,7 +136,7 @@ class DSB_Booking_Service
                 'date' => $date,
                 'time' => $start_time,
                 'end_time' => $end_time,
-                'status' => 'pending',
+                'status' => $status,
                 'cost' => $class_cost, // Guardamos el costo para referencia y posibles reembolsos
             ],
         ];
@@ -159,7 +160,7 @@ class DSB_Booking_Service
             'endTime'   => $end_time,
             'cost'      => $class_cost,
             'newBalance' => $new_balance,
-            'status'    => 'pending'
+            'status'    => $status
         ]);
     }
 
@@ -184,7 +185,7 @@ class DSB_Booking_Service
         // Extraemos el ID del usuario del token JWT decodificado
         $current_user_id = $decoded->user->id;
 
-        // Verificamos que el usuario sea el dueño de la reserva
+        // Verificamos que el usuario sea el profesor de la reserva
         $teacher_id = get_post_meta($booking_id, 'teacher_id', true);
 
         if (intval($current_user_id) !== intval($teacher_id)) {
@@ -221,10 +222,11 @@ class DSB_Booking_Service
         // Extraemos el ID del usuario del token JWT decodificado
         $current_user_id = $decoded->user->id;
 
-        // Verificamos que el usuario sea el dueño de la reserva
+        // Verificamos que el usuario sea el dueño de la reserva o el profesor
         $student_id = get_post_meta($booking_id, 'student_id', true);
+        $teacher_id = get_post_meta($booking_id, 'teacher_id', true);
 
-        if (intval($current_user_id) !== intval($student_id)) {
+        if (intval($current_user_id) !== intval($student_id) && intval($current_user_id) !== intval($teacher_id)) {
             return new WP_Error('unauthorized', 'No tienes permiso para cancelar esta reserva', ['status' => 403]);
         }
 
@@ -258,6 +260,93 @@ class DSB_Booking_Service
             'refund' => $refund,
             'refund_amount' => $refund ? floatval(get_post_meta($booking_id, 'cost', true)) : 0,
             'newBalance' => floatval(get_user_meta($student_id, 'class_points', true)) // Añadir esto
+        ]);
+    }
+
+    /**
+     * Crear un nuevo evento para bloquear el horario de un profesor y que no se pueda reservar
+     */
+    public static function teachers_block_time($request)
+    {
+        $teacher_id = intval($request->get_param('teacher_id'));
+        $date       = sanitize_text_field($request->get_param('date'));
+        $start_time = sanitize_text_field($request->get_param('start_time'));
+        $end_time   = sanitize_text_field($request->get_param('end_time'));
+        $reason     = sanitize_text_field($request->get_param('reason')) ? : 'Bloqueo manual';
+
+        // Comprobar si el profesor existe
+        if (!get_user_by('ID', $teacher_id)) {
+            return new WP_Error('invalid_teacher', 'Profesor no encontrado', ['status' => 404]);
+        }
+
+        $today = date('Y-m-d');
+        if ($date < $today) {
+            return new WP_Error(
+                'past_date',
+                'No es posible bloquear para fechas pasadas',
+                ['status' => 400]
+            );
+        }
+
+        // Verificar que no existan reservas para el profesor en la misma fecha y durante la franja horaria
+        $existing_teacher_bookings = get_posts([
+            'post_type' => 'dsb_booking',
+            'meta_query' => [
+            'relation' => 'AND',
+            ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '='],
+            ['key' => 'date', 'value' => $date, 'compare' => '='],
+            ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
+            ],
+            'posts_per_page' => -1
+        ]);
+
+        // Comprobar si alguna reserva existente se solapa con el nuevo bloqueo
+        foreach ($existing_teacher_bookings as $booking) {
+            $booking_start = get_post_meta($booking->ID, 'time', true);
+            $booking_end = get_post_meta($booking->ID, 'end_time', true);
+            
+            // Si el inicio del nuevo bloqueo está dentro de una reserva existente
+            // O si el fin del nuevo bloqueo está dentro de una reserva existente
+            // O si el nuevo bloqueo contiene completamente una reserva existente
+            if (
+            ($start_time >= $booking_start && $start_time < $booking_end) ||
+            ($end_time > $booking_start && $end_time <= $booking_end) ||
+            ($start_time <= $booking_start && $end_time >= $booking_end)
+            ) {
+            return new WP_Error(
+                'slot_not_available',
+                sprintf(
+                'El horario seleccionado (%s %s-%s) no puede ser bloqueado porque se solapa con reservas existentes.',
+                date('d/m/Y', strtotime($date)),
+                $start_time,
+                $end_time
+                ),
+                ['status' => 400]
+            );
+            }
+        }
+
+        // Crear el evento
+        $event_id = wp_insert_post([
+            'post_type'   => 'dsb_booking',
+            'post_status' => 'publish',
+            'meta_input'  => [
+                'teacher_id' => $teacher_id,
+                'date'       => $date,
+                'time'       => $start_time,
+                'end_time'   => $end_time,
+                'reason'     => $reason,
+                'status'     => 'blocked',
+            ],
+        ]);
+
+        if (is_wp_error($event_id)) {
+            return new WP_Error('insert_failed', 'Error al crear el evento', ['status' => 500]);
+        }
+
+        return rest_ensure_response([
+            'message' => 'Horario bloqueado correctamente',
+            'id' => $event_id,
         ]);
     }
 }

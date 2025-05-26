@@ -30,11 +30,17 @@ class DSB_API
             'permission_callback'   => '__return_true'
         ]);
 
-        register_rest_route($this->namespace, '/auth/refresh', [
+        register_rest_route($this->namespace, '/auth/logout', [
             'methods'               => 'POST',
-            'callback'              => [$this, 'refresh_token'],
+            'callback'              => [$this, 'logout'],
             'permission_callback'   => '__return_true'
         ]);
+
+        // register_rest_route($this->namespace, '/auth/refresh', [
+        //     'methods'               => 'POST',
+        //     'callback'              => [$this, 'refresh_token'],
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
         /**
          * USERS ENDPOINTS
@@ -64,7 +70,7 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
-        register_rest_route($this->namespace, '/bookings', [
+        register_rest_route($this->namespace, '/bookings/create', [
             'methods'               => 'POST',
             'callback'              => [$this, 'create_booking'],
             'permission_callback'   => [$this, 'check_permission'],
@@ -121,22 +127,28 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
-        register_rest_route($this->namespace, '/teachers-availability', [
-            'methods'               => 'GET',
-            'callback'              => 'get_professor_availability',
-            'permission_callback'   => '__return_true'
-        ]);
+        // register_rest_route($this->namespace, '/teachers-availability', [
+        //     'methods'               => 'GET',
+        //     'callback'              => 'get_professor_availability',
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
-        register_rest_route($this->namespace, '/save-availability', [
-            'methods'               => 'POST',
-            'callback'              => 'save_teacher_availability',
-            'permission_callback'   => '__return_true'
-        ]);
+        // register_rest_route($this->namespace, '/save-availability', [
+        //     'methods'               => 'POST',
+        //     'callback'              => 'save_teacher_availability',
+        //     'permission_callback'   => '__return_true'
+        // ]);
 
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/classes', [
             'methods'               => 'POST',
             'callback'              => [$this, 'save_teacher_classes'],
             'permission_callback'   => [$this, 'check_permission'],
+        ]);
+
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/config', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'update_teacher_config'],
+            'permission_callback'   => [$this, 'check_permission']
         ]);
 
         /**
@@ -160,6 +172,12 @@ class DSB_API
         register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/calendar', [
             'methods'               => 'POST',
             'callback'              => [$this, 'update_teacher_calendar'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/teachers/block-time', [
+            'methods'               => 'POST',
+            'callback'              => [$this, 'teachers_block_time'],
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
@@ -195,6 +213,26 @@ class DSB_API
             // 'token' => $token,
             'user' => $this->format_user($user),
         ];
+    }
+
+    public function logout($request)
+    {
+        // Destruir el token JWT de la sesión
+        if (!session_id()) {
+            session_start();
+        }
+
+        // Eliminar el token de la sesión
+        unset($_SESSION['jwt_token']);
+
+        // Destruir la sesión por completo
+        session_destroy();
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente',
+            'redirect' => '/acceso'
+        ]);
     }
 
     public function get_bookings($request)
@@ -233,6 +271,10 @@ class DSB_API
         ]);
     }
 
+    /**
+     * BOOKING ENDPOINTS
+     */
+
     public function create_booking($request)
     {
         return DSB_Booking_Service::create_booking($request);
@@ -248,19 +290,10 @@ class DSB_API
         return DSB_Booking_Service::cancel_booking($request);
     }
 
-    // private function format_booking($post)
-    // {
-    //     return [
-    //         'id' => $post->ID,
-    //         'student' => get_field('student', $post->ID),
-    //         'teacher' => get_field('teacher', $post->ID),
-    //         'vehicle' => get_field('vehicle', $post->ID),
-    //         'date' => get_field('booking_date', $post->ID),
-    //         'duration' => get_field('duration', $post->ID),
-    //         'price' => get_field('price', $post->ID),
-    //         'status' => get_field('payment_status', $post->ID)
-    //     ];
-    // }
+    public function teachers_block_time($request)
+    {
+        return DSB_Booking_Service::teachers_block_time($request);
+    }
 
     private function format_user($user)
     {
@@ -273,33 +306,38 @@ class DSB_API
         ];
     }
 
-    public function refresh_token($request)
+    // public function refresh_token($request)
+    // {
+    //     $token = $request->get_param('token');
+
+    //     if (!$token) {
+    //         return new WP_Error('missing_token', 'No se ha proporcionado un token', ['status' => 400]);
+    //     }
+
+    //     try {
+    //         $decoded = JWT::decode($token, new Key(JWT_AUTH_SECRET_KEY, 'HS256'));
+    //         $user_id = $decoded->data->user_id;
+
+    //         $new_token = [
+    //             'iss' => get_site_url(),
+    //             'iat' => time(),
+    //             'exp' => time() + 3600, // 1 horaA
+    //             'data' => [
+    //                 'user_id' => $user_id
+    //             ]
+    //         ];
+
+    //         return rest_ensure_response([
+    //             'token' => JWT::encode($new_token, JWT_AUTH_SECRET_KEY, 'HS256')
+    //         ]);
+    //     } catch (Exception $e) {
+    //         return new WP_Error('invalid_token', 'Token inválido o expirado', ['status' => 403]);
+    //     }
+    // }
+
+    public function upload_user_avatar($request)
     {
-        $token = $request->get_param('token');
-
-        if (!$token) {
-            return new WP_Error('missing_token', 'No se ha proporcionado un token', ['status' => 400]);
-        }
-
-        try {
-            $decoded = JWT::decode($token, new Key(JWT_AUTH_SECRET_KEY, 'HS256'));
-            $user_id = $decoded->data->user_id;
-
-            $new_token = [
-                'iss' => get_site_url(),
-                'iat' => time(),
-                'exp' => time() + 3600, // 1 horaA
-                'data' => [
-                    'user_id' => $user_id
-                ]
-            ];
-
-            return rest_ensure_response([
-                'token' => JWT::encode($new_token, JWT_AUTH_SECRET_KEY, 'HS256')
-            ]);
-        } catch (Exception $e) {
-            return new WP_Error('invalid_token', 'Token inválido o expirado', ['status' => 403]);
-        }
+        return DSB_User_Service::upload_avatar($request);
     }
 
     public function check_permission($request)
@@ -345,10 +383,16 @@ class DSB_API
         return DSB_Teacher_Service::get_teacher($teacher_id);
     }
 
-    public function update_teacher($request)
+    // public function update_teacher($request)
+    // {
+    //     $teacher_id = intval($request['id']);
+    //     return DSB_Teacher_Service::get_professor_availability($teacher_id);
+    // }
+
+    public function update_teacher_config($request)
     {
         $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_professor_availability($teacher_id);
+        return DSB_Teacher_Service::update_teacher_config($request, $teacher_id);
     }
 
     // public function get_teacher_availability($request)
@@ -377,11 +421,6 @@ class DSB_API
     {
         $user_id = intval($request['id']);
         return DSB_Student_Service::get_student($user_id);
-    }
-
-    public function upload_user_avatar($request)
-    {
-        return DSB_User_Service::upload_avatar($request);
     }
 
     /**

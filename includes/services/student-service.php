@@ -24,7 +24,7 @@ class DSB_Student_Service
 
         // Obtener la imagen personalizada desde los metadatos del usuario
         $avatar_id = get_user_meta($student_id, 'user_avatar', true);
-        $avatar_url = ($avatar_id) ? wp_get_attachment_url($avatar_id) : get_avatar_url($student_id);
+        $avatar_url = DSB_User_Service::get_avatar_url($student_id); 
 
         // Obtener ID del profesor y del vehículo desde los metadatos del estudiante
         $teacher_id = get_user_meta($student_id, 'assigned_teacher', true);
