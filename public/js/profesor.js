@@ -760,13 +760,18 @@ jQuery(document).ready(function ($) {
                     const bookingModal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
                     bookingModal.show();
                 },
-
                 // Ajustes responsivos
                 windowResize: function (view) {
                     if (window.innerWidth < 768) {
                         ProfesorView.calendar.changeView('timeGridDay');
                     }
-                }
+                },
+                dayCellDidMount: function (info) {
+                    var today = new Date();
+                    if (info.date < today.setHours(0, 0, 0, 0)) {
+                        info.el.classList.add('fc-day-past');
+                    }
+                },
             };
 
             // Inicializar el calendario

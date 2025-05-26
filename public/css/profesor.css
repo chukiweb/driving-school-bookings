@@ -738,3 +738,15 @@ label.btn.btn-outline-warning {
 .blocked-event:hover {
     opacity: 1;
 }
+
+/* Estados de días y slots */
+.fc-day-past {
+    background-color: var(--past-time-bg);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Hover en celdas del día */
+.fc-day:not(.fc-day-past):hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
