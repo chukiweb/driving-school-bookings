@@ -17,8 +17,8 @@ class DSB_Teacher_Service
         }
         // Obtener vehículos
         $coche_id = get_user_meta($teacher_id, 'assigned_vehicle', true);
-        $moto_id = get_user_meta($teacher_id, 'assigned_motorcycle', true)? : null;
-        
+        $moto_id = get_user_meta($teacher_id, 'assigned_motorcycle', true) ?: null;
+
         $first_name = get_user_meta($teacher_id, 'first_name', true);
         $last_name = get_user_meta($teacher_id, 'last_name', true);
 
@@ -51,8 +51,8 @@ class DSB_Teacher_Service
                 'students' => $students,
                 'vehicle' => [
                     'a' => [
-                        'id' => $moto_id ? : null,
-                        'name' => get_the_title($moto_id) ? : null,
+                        'id' => $moto_id ?: null,
+                        'name' => get_the_title($moto_id) ?: null,
                     ],
                     'b' => [
                         'id' => $coche_id,
@@ -151,5 +151,126 @@ class DSB_Teacher_Service
         update_user_meta($user_id, 'dsb_clases_config', $config);
 
         return rest_ensure_response(['success' => true, 'message' => 'Configuración del profesor actualizada']);
+    }
+
+    public static function get_teacher_stats($teacher_id, $period = 'current')
+    {
+        if (!$teacher_id) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'ID de profesor inválido',
+            ], 400);
+        }
+
+        $user = get_userdata($teacher_id);
+        if (!$user) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'Profesor no encontrado',
+            ], 404);
+        }
+
+        // Determinar las fechas según el período
+        $today = new DateTime('now');
+        $start_date = new DateTime('now');
+        $end_date = new DateTime('now');
+
+        switch ($period) {
+            case 'previous':
+                $start_date->modify('first day of last month');
+                $end_date->modify('last day of last month');
+                break;
+            case 'year':
+                $start_date->modify('first day of January ' . $today->format('Y'));
+                $end_date->modify('last day of December ' . $today->format('Y'));
+                break;
+            case 'current':
+            default:
+                $start_date->modify('first day of this month');
+                $end_date->modify('last day of this month');
+                break;
+        }
+
+        $args = [
+            'post_type' => 'dsb_booking',
+            'posts_per_page' => -1,
+            'meta_query' => [
+                [
+                    'key' => 'teacher_id',
+                    'value' => $teacher_id,
+                    'compare' => '=',
+                ],
+                [
+                    'key' => 'date',
+                    'value' => [
+                        $start_date->format('Y-m-d'),
+                        $end_date->format('Y-m-d'),
+                    ],
+                    'type' => 'DATE',
+                    'compare' => 'BETWEEN',
+                ],
+            ],
+        ];
+
+        $bookings_query = new WP_Query($args);
+        $bookings = [];
+        $total_count = 0;
+        $completed_count = 0;
+        $canceled_count = 0;
+
+        // Preparar array para contar clases por día
+        $days = [];
+        $current = clone $start_date;
+        while ($current <= $end_date) {
+            $days[$current->format('Y-m-d')] = [
+                'date' => $current->format('d/m'),
+                'count' => 0,
+            ];
+            $current->modify('+1 day');
+        }
+
+        if ($bookings_query->have_posts()) {
+            while ($bookings_query->have_posts()) {
+                $bookings_query->the_post();
+                $booking_id = get_the_ID();
+
+                $status = get_post_meta($booking_id, 'status', true);
+                $date = get_post_meta($booking_id, 'date', true);
+
+                // Contar por estado
+                $total_count++;
+                if ($status === 'completed') {
+                    $completed_count++;
+
+                    // Añadir al conteo por día
+                    if (isset($days[$date])) {
+                        $days[$date]['count']++;
+                    }
+                } elseif ($status === 'cancelled') {
+                    $canceled_count++;
+                }
+            }
+        }
+
+        wp_reset_postdata();
+
+        // Convertir el array asociativo de días a un array indexado para el JSON
+        $days_array = [];
+        foreach ($days as $day) {
+            $days_array[] = $day;
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data' => [
+                'total' => $total_count,
+                'completed' => $completed_count,
+                'canceled' => $canceled_count,
+                'period' => $period,
+                'start_date' => $start_date->format('Y-m-d'),
+                'end_date' => $end_date->format('Y-m-d'),
+                'days' => $days_array,
+            ]
+        ], 200);
     }
 }

@@ -13,6 +13,8 @@ class DSB_Settings
                 'class_cost' => 1,
                 'class_duration' => 45,
                 'default_booking_status' => 'accepted',
+                'default_min_antelacion' => 1, // Horas
+                'default_max_antelacion' => 15, // Días
             ]
         );
     }

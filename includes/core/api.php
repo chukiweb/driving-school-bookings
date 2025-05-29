@@ -151,6 +151,16 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/stats', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => function ($request) {
+                $teacher_id = $request->get_param('id');
+                $period = $request->get_param('period') ?: 'current';
+                return DSB_Teacher_Service::get_teacher_stats($teacher_id, $period);
+            },
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
         /**
          * STUDENT ENDPOINT
          */
@@ -158,6 +168,15 @@ class DSB_API
             'methods'               => 'GET',
             'callback'              => [$this, 'get_student'],
             'permission_callback'   => [$this, 'check_permission']
+        ]);
+
+        register_rest_route($this->namespace, '/students/(?P<id>\d+)/stats', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => function ($request) {
+                $student_id = $request->get_param('id');
+                return DSB_Student_Service::get_student_stats($student_id);
+            },
+            'permission_callback' => [$this, 'check_permission']
         ]);
 
         /**

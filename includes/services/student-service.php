@@ -24,7 +24,7 @@ class DSB_Student_Service
 
         // Obtener la imagen personalizada desde los metadatos del usuario
         $avatar_id = get_user_meta($student_id, 'user_avatar', true);
-        $avatar_url = DSB_User_Service::get_avatar_url($student_id); 
+        $avatar_url = DSB_User_Service::get_avatar_url($student_id);
 
         // Obtener ID del profesor y del vehículo desde los metadatos del estudiante
         $teacher_id = get_user_meta($student_id, 'assigned_teacher', true);
@@ -51,7 +51,7 @@ class DSB_Student_Service
             ],
             'assigned_vehicle' => [
                 'name' =>  $vehicle_name,
-                'id' => $vehicle_id 
+                'id' => $vehicle_id
             ],
             'class_points' => get_user_meta($student_id, 'class_points', true),
         ];
@@ -162,5 +162,90 @@ class DSB_Student_Service
         ]);
     }
 
-}
+    public static function get_student_stats($student_id)
+    {
+        if (!$student_id) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'ID de alumno inválido',
+            ], 400);
+        }
 
+        $user = get_userdata($student_id);
+        if (!$user) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'Alumno no encontrado',
+            ], 404);
+        }
+
+        $args = [
+            'post_type' => 'dsb_booking',
+            'posts_per_page' => -1,
+            'meta_query' => [
+                [
+                    'key' => 'student_id',
+                    'value' => $student_id,
+                    'compare' => '=',
+                ],
+            ],
+        ];
+
+        $bookings_query = new WP_Query($args);
+        $total_count = 0;
+        $accepted_count = 0;
+        $completed_count = 0;
+        $pending_count = 0;
+        $cancelled_count = 0;
+        $used_credits = 0;
+
+        if ($bookings_query->have_posts()) {
+            while ($bookings_query->have_posts()) {
+                $bookings_query->the_post();
+                $booking_id = get_the_ID();
+
+                $status = get_post_meta($booking_id, 'status', true);
+
+                // Contar por estado
+                $total_count++;
+
+                switch ($status) {
+                    case 'accepted':
+                        $accepted_count++;
+                        // Sumar créditos usados
+                        $used_credits += floatval(DSB_Settings::get('class_cost'));
+                        break;
+                    case 'completed':
+                        $completed_count++;
+                        // Sumar créditos usados
+                        $used_credits += floatval(DSB_Settings::get('class_cost'));
+                        break;
+                    case 'pending':
+                        $pending_count++;
+                        break;
+                    case 'cancelled':
+                        $cancelled_count++;
+                        break;
+                }
+            }
+        }
+
+        wp_reset_postdata();
+
+        // Obtener total de créditos disponibles
+        $total_credits = floatval(get_user_meta($student_id, 'class_points', true) ?: 0);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data' => [
+                'total' => $total_count,
+                'accepted' => $accepted_count,
+                'completed' => $completed_count,
+                'pending' => $pending_count,
+                'cancelled' => $cancelled_count,
+                'used_credits' => $used_credits,
+                'total_credits' => $total_credits + $used_credits, // Créditos totales (disponibles + usados)
+            ]
+        ], 200);
+    }
+}
