@@ -22,8 +22,8 @@ class DSB_Notification_Service
 
     public function __construct()
     {
-        $this->beams_instance_id = '02609d94-0e91-4039-baf6-7d9d04b1fb6e';
-        $this->beams_secret_key = 'B2CD91D89BA3527561FA2651A5FD759BB4BDC27CF8211554E532EF20F34CBD81';
+        $this->beams_instance_id = DSB_Settings::get('pusher_beams_instance_id');
+        $this->beams_secret_key = DSB_Settings::get('pusher_beams_secret_key');
     }
 
     /**
