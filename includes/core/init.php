@@ -62,6 +62,8 @@ class DSB_Init
         require_once DSB_PLUGIN_DIR . 'core/template.php';
         require_once DSB_PLUGIN_DIR . 'core/class-users.php';
         require_once DSB_PLUGIN_DIR . 'core/auth.php';
+        require_once DSB_PLUGIN_DIR . 'core/service-worker.php';
+        require_once DSB_PLUGIN_DIR . 'core/hooks.php';
 
         require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
@@ -72,9 +74,9 @@ class DSB_Init
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/students-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/bookings-view.php';
 
-        require_once DSB_PLUGIN_DIR . 'core/notifications/push-notification-service.php';
-        require_once DSB_PLUGIN_DIR . 'core/notifications/email-notification-service.php';
-        require_once DSB_PLUGIN_DIR . 'core/notifications/notification-manager.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/push-notification-service.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/email-notification-service.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/notification-manager-service.php';
     }
 
     private function initClasses()

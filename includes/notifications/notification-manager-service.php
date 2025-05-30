@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Orquestador de notificaciones (push + email)
  *
@@ -6,11 +7,12 @@
  * @since   1.1.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
 	exit;
 }
 
-class DSB_Notification_Manager {
+class DSB_Notification_Manager
+{
 
 	private static $instance = null;
 
@@ -58,14 +60,16 @@ class DSB_Notification_Manager {
 	/**
 	 * Singleton
 	 */
-	public static function get_instance() {
-		if ( self::$instance === null ) {
+	public static function get_instance()
+	{
+		if (self::$instance === null) {
 			self::$instance = new self();
 		}
 		return self::$instance;
 	}
 
-	private function __construct() {
+	private function __construct()
+	{
 		$this->push  = DSB_Push_Notification_Service::get_instance();
 		$this->email = DSB_Email_Notification_Service::get_instance();
 	}
@@ -77,12 +81,14 @@ class DSB_Notification_Manager {
 	/**
 	 * Envía por **un canal concreto**.
 	 */
-	public function send_email( $user_id, $template_slug, $placeholders = array(), $subject_override = '' ) {
-		return $this->email->send( $user_id, $template_slug, $placeholders, $subject_override );
+	public function send_email($user_id, $template_slug, $placeholders = array(), $subject_override = '')
+	{
+		return $this->email->send($user_id, $template_slug, $placeholders, $subject_override);
 	}
 
-	public function send_push( $user_id, $title, $body, $data = array() ) {
-		return $this->push->send_to_user( $user_id, $title, $body, $data );
+	public function send_push($user_id, $title, $body, $data = array())
+	{
+		return $this->push->send_to_user($user_id, $title, $body, $data);
 	}
 
 	/**
@@ -95,27 +101,28 @@ class DSB_Notification_Manager {
 	 *
 	 * @return void
 	 */
-	public function notify( $type, $user_ids, $placeholders = array(), $channels = array( 'email', 'push' ) ) {
+	public function notify($type, $user_ids, $placeholders = array(), $channels = array('email', 'push'))
+	{
 
-		if ( ! isset( $this->templates[ $type ] ) ) {
-			error_log( "[DSB] Tipo de notificación desconocido: {$type}" );
+		if (! isset($this->templates[$type])) {
+			error_log("[DSB] Tipo de notificación desconocido: {$type}");
 			return;
 		}
 
 		$user_ids  = (array) $user_ids;
 		$channels  = (array) $channels;
-		$template  = $this->templates[ $type ];
+		$template  = $this->templates[$type];
 
-		foreach ( $user_ids as $user_id ) {
+		foreach ($user_ids as $user_id) {
 
-			if ( in_array( 'email', $channels, true ) && ! empty( $template['email'] ) ) {
-				$this->send_email( $user_id, $template['email'], $placeholders );
+			if (in_array('email', $channels, true) && ! empty($template['email'])) {
+				$this->send_email($user_id, $template['email'], $placeholders);
 			}
 
-			if ( in_array( 'push', $channels, true ) && ! empty( $template['push'] ) ) {
-				$title = $this->replace_placeholders( $template['push']['title'], $placeholders );
-				$body  = $this->replace_placeholders( $template['push']['body'], $placeholders );
-				$this->send_push( $user_id, $title, $body, $placeholders );
+			if (in_array('push', $channels, true) && ! empty($template['push'])) {
+				$title = $this->replace_placeholders($template['push']['title'], $placeholders);
+				$body  = $this->replace_placeholders($template['push']['body'], $placeholders);
+				$this->send_push($user_id, $title, $body, $placeholders);
 			}
 		}
 	}
@@ -128,9 +135,10 @@ class DSB_Notification_Manager {
 	 * @param string $message
 	 * @param array  $channels
 	 */
-	public function broadcast_role( $role, $title, $message, $channels = array( 'email', 'push' ) ) {
+	public function broadcast_role($role, $title, $message, $channels = array('email', 'push'))
+	{
 
-		$users = get_users( array( 'role' => $role, 'fields' => 'ID' ) );
+		$users = get_users(array('role' => $role, 'fields' => 'ID'));
 		$this->notify(
 			'admin_broadcast',
 			$users,
@@ -146,10 +154,35 @@ class DSB_Notification_Manager {
 	/*  Helpers                                                              */
 	/* --------------------------------------------------------------------- */
 
-	private function replace_placeholders( $text, $placeholders ) {
-		foreach ( $placeholders as $key => $val ) {
-			$text = str_replace( '{' . $key . '}', $val, $text );
+	private function replace_placeholders($text, $placeholders)
+	{
+		foreach ($placeholders as $key => $val) {
+			$text = str_replace('{' . $key . '}', $val, $text);
 		}
 		return $text;
+	}
+
+	public function handle_booking_created($booking_id)
+	{
+		$teacher_id = (int) get_post_meta($booking_id, 'teacher_id', true);
+		$student_id = (int) get_post_meta($booking_id, 'student_id', true);
+		$date       = get_post_meta($booking_id, 'date', true);
+		$time       = get_post_meta($booking_id, 'time', true);
+
+		if (!$teacher_id || !$student_id) {
+			return;
+		}
+
+		$student = get_user_by('id', $student_id);
+		$teacher = get_user_by('id', $teacher_id);
+
+		$placeholders = [
+			'student_name' => $student ? $student->display_name : __('Alumno', 'dsb'),
+			'teacher_name' => $teacher ? $teacher->display_name : __('Profesor', 'dsb'),
+			'date'         => date_i18n('d/m/Y', strtotime($date)),
+			'time'         => $time,
+		];
+
+		$this->notify('teacher_new_booking', $teacher_id, $placeholders);
 	}
 }
