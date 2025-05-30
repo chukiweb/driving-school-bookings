@@ -40,6 +40,10 @@
 		</div>
 		<div class="content">
 			<?php echo $content_html; // phpcs:ignore WordPress.Security.EscapeOutput ?>
+			<!-- Botón para acceder a /acceso -->
+			<p>
+				<a href="<?php echo esc_url(home_url('/acceso')); ?>" class="btn">Acceder a mi cuenta</a>
+			</p>
 		</div>
 		<div class="footer">
 			<p>Autoescuela Universitaria · Calle Ejemplo 123, Ciudad · <a href="<?php echo esc_url(home_url()); ?>">www.autoescuelauniversitaria.es</a></p>
