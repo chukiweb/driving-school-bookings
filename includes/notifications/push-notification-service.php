@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Servicio exclusivo de **notificaciones push** (Pusher Beams)
  *
@@ -6,11 +7,12 @@
  * @since   1.1.0
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
 	exit;
 }
 
-class DSB_Push_Notification_Service {
+class DSB_Push_Notification_Service
+{
 
 	/** @var self */
 	private static $instance = null;
@@ -24,8 +26,9 @@ class DSB_Push_Notification_Service {
 	/**
 	 * Singleton
 	 */
-	public static function get_instance() {
-		if ( self::$instance === null ) {
+	public static function get_instance()
+	{
+		if (self::$instance === null) {
 			self::$instance = new self();
 		}
 		return self::$instance;
@@ -34,9 +37,10 @@ class DSB_Push_Notification_Service {
 	/**
 	 * Constructor privado
 	 */
-	private function __construct() {
-		$this->beams_instance_id = DSB_Settings::get( 'pusher_beams_instance_id' );
-		$this->beams_secret_key  = DSB_Settings::get( 'pusher_beams_secret_key' );
+	private function __construct()
+	{
+		$this->beams_instance_id = DSB_Settings::get('pusher_beams_instance_id');
+		$this->beams_secret_key  = DSB_Settings::get('pusher_beams_secret_key');
 	}
 
 	/* -------------------------------------------------------------------------
@@ -53,9 +57,18 @@ class DSB_Push_Notification_Service {
 	 *
 	 * @return bool
 	 */
-	public function send_to_user( $user_id, $title, $body, $data = array() ) {
-		$interest = "user-{$user_id}";
-		return $this->send_push_notification( $interest, $title, $body, $data );
+	public function send_to_user($user_id, $title, $body, $data = array())
+	{
+		$user = get_userdata($user_id);
+		if (! $user || empty($user->roles)) {
+			error_log('[DSB] Usuario o rol no encontrado para notificación push');
+			return false;
+		}
+
+		$role = $user->roles[0];
+
+		$interest = "{$role}-{$user_id}";
+		return $this->send_push_notification($interest, $title, $body, $data);
 	}
 
 	/**
@@ -67,9 +80,10 @@ class DSB_Push_Notification_Service {
 	 * @param string $body
 	 * @param array  $data
 	 */
-	public function send_to_role( $role, $title, $body, $data = array() ) {
+	public function send_to_role($role, $title, $body, $data = array())
+	{
 		$interest = "{$role}-all";
-		return $this->send_push_notification( $interest, $title, $body, $data );
+		return $this->send_push_notification($interest, $title, $body, $data);
 	}
 
 	/* -------------------------------------------------------------------------
@@ -79,17 +93,18 @@ class DSB_Push_Notification_Service {
 	/**
 	 * Llamada directa a la API de Pusher Beams
 	 */
-	private function send_push_notification( $interest, $title, $body, $data = array() ) {
+	private function send_push_notification($interest, $title, $body, $data = array())
+	{
 
-		if ( empty( $this->beams_secret_key ) || empty( $this->beams_instance_id ) ) {
-			error_log( '[DSB] Pusher Beams no configurado.' );
+		if (empty($this->beams_secret_key) || empty($this->beams_instance_id)) {
+			error_log('[DSB] Pusher Beams no configurado.');
 			return false;
 		}
 
 		$url = "https://{$this->beams_instance_id}.pushnotifications.pusher.com/publish_api/v1/instances/{$this->beams_instance_id}/publishes";
 
 		$payload = array(
-			'interests' => array( $interest ),
+			'interests' => array($interest),
 			'web'       => array(
 				'notification' => array(
 					'title'      => $title,
@@ -102,21 +117,21 @@ class DSB_Push_Notification_Service {
 		);
 
 		$ch = curl_init();
-		curl_setopt( $ch, CURLOPT_URL, $url );
-		curl_setopt( $ch, CURLOPT_HTTPHEADER, array(
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 			'Content-Type: application/json',
 			'Authorization: Bearer ' . $this->beams_secret_key,
-		) );
-		curl_setopt( $ch, CURLOPT_POST, 1 );
-		curl_setopt( $ch, CURLOPT_POSTFIELDS, wp_json_encode( $payload ) );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+		));
+		curl_setopt($ch, CURLOPT_POST, 1);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, wp_json_encode($payload));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-		$response  = curl_exec( $ch );
-		$http_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close( $ch );
+		$response  = curl_exec($ch);
+		$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
 
-		if ( $http_code < 200 || $http_code >= 300 ) {
-			error_log( '[DSB] Pusher Beams error: ' . $response );
+		if ($http_code < 200 || $http_code >= 300) {
+			error_log('[DSB] Pusher Beams error: ' . $response);
 			return false;
 		}
 
