@@ -159,7 +159,10 @@ class DSB_Bookings_View extends DSB_Base_View
 
         $post_data = [
             'post_title' => sprintf(
-                'Reserva %s - %s | %s', $date, $start_time, sanitize_text_field($_POST['student']),
+                'Reserva %s - %s | %s',
+                $date,
+                $start_time,
+                sanitize_text_field($_POST['student']),
             ),
             'post_type' => 'dsb_booking',
             'post_status' => 'publish',
@@ -179,6 +182,7 @@ class DSB_Bookings_View extends DSB_Base_View
         if ($post_id) {
             // Actualizar saldo del estudiante
             update_user_meta(sanitize_text_field($_POST['student']), 'class_points', get_user_meta(sanitize_text_field($_POST['student']), 'class_points', true) - DSB_Settings::get('class_cost'));
+            do_action('dsb_booking_created', $post_id);
             $this->render_notice('Reserva creada exitosamente');
         } else {
             $this->render_notice('Error al crear la reserva', 'error');

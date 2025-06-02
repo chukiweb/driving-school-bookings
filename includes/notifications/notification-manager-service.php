@@ -32,6 +32,13 @@ class DSB_Notification_Manager
 				'body'  => 'Tienes una clase el {date} a las {time}.',
 			),
 		),
+		'student_new_booking' => array(
+			'email' => 'nueva-reserva-alumno',
+			'push'  => array(
+				'title' => 'Has reservado una clase',
+				'body'  => 'Has reservado una clase para el {date} a las {time}.',
+			),
+		),
 		'student_cancel_class' => array(
 			'email' => 'cancelacion-clase-alumno',
 			'push'  => array(
@@ -193,6 +200,7 @@ class DSB_Notification_Manager
 		];
 
 		$this->notify('teacher_new_booking', $teacher_id, $placeholders);
+		$this->notify('student_new_booking', $student_id, $placeholders);
 	}
 
 	/**
@@ -233,8 +241,8 @@ class DSB_Notification_Manager
 
 		// 1. Notificar al profesor de que la clase ha sido cancelada
 		$this->notify(
-			'teacher_cancel_class',   // clave que definimos en $templates
-			$teacher_id,              // destinatario
+			'teacher_cancel_class',
+			$teacher_id,
 			$placeholders
 		);
 
