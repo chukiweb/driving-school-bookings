@@ -71,6 +71,7 @@ class DSB_Notification_Manager
 				'body'  => '{message}',
 			),
 		),
+
 	);
 
 	/**
