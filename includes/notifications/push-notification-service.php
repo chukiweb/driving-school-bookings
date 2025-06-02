@@ -67,7 +67,7 @@ class DSB_Push_Notification_Service
 
 		$role = $user->roles[0];
 
-		$interest = "{$role}-{$user_id}";
+		$interest = "debug-{$role}-{$user_id}";
 		return $this->send_push_notification($interest, $title, $body, $data);
 	}
 
@@ -109,7 +109,7 @@ class DSB_Push_Notification_Service
 				'notification' => array(
 					'title'      => $title,
 					'body'       => $body,
-					'deep_link'  => home_url(),
+					'deep_link'  => home_url().'/acceso',
 					'icon'       => DSB_PLUGIN_URL . 'public/images/logo.png',
 				),
 				'data'        => $data,

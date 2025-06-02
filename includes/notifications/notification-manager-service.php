@@ -26,7 +26,7 @@ class DSB_Notification_Manager
 	private $templates = array(
 		/* ---------- Alumno ---------- */
 		'student_reminder' => array(
-			'email' => 'recordatorio-clase',
+			'email' => 'recordatorio-clase-alumno',
 			'push'  => array(
 				'title' => 'Recordatorio de clase',
 				'body'  => 'Tienes una clase el {date} a las {time}.',
