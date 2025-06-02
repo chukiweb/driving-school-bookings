@@ -257,6 +257,7 @@ class DSB_Booking_Service
 
         // Actualizar el estado de la reserva
         update_post_meta($booking_id, 'status', 'cancelled');
+        do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', $booking_status);
 
         return rest_ensure_response([
             'message' => 'Reserva cancelada correctamente',

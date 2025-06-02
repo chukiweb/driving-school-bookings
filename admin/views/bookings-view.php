@@ -200,6 +200,7 @@ class DSB_Bookings_View extends DSB_Base_View
         if (isset($_POST['booking_id'])) {
             $booking_id = intval($_POST['booking_id']);
             update_post_meta($booking_id, 'status', 'cancelled');
+            do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', get_post_meta($booking_id, 'status', true));
 
             $this->render_notice('Reserva cancelada exitosamente');
         }

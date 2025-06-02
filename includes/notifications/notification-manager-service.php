@@ -32,13 +32,14 @@ class DSB_Notification_Manager
 				'body'  => 'Tienes una clase el {date} a las {time}.',
 			),
 		),
-		'student_cancel' => array(
-			'email' => 'cancelacion-clase',
+		'student_cancel_class' => array(
+			'email' => 'cancelacion-clase-alumno',
 			'push'  => array(
 				'title' => 'Clase cancelada',
-				'body'  => 'Tu clase del {date} a las {time} ha sido cancelada.',
+				'body'  => 'La clase del {date} a las {time} ha sido cancelada.',
 			),
 		),
+
 		/* ---------- Profesor ---------- */
 		'teacher_new_booking' => array(
 			'email' => 'nueva-reserva-profesor',
@@ -47,6 +48,14 @@ class DSB_Notification_Manager
 				'body'  => '{student_name} ha reservado para el {date} a las {time}.',
 			),
 		),
+		'teacher_cancel_class' => array(
+			'email' => 'cancelacion-clase-profesor',
+			'push'  => array(
+				'title' => 'Clase cancelada',
+				'body'  => '{student_name} ha cancelado la clase del {date} a las {time}.',
+			),
+		),
+
 		/* ---------- Generales ---------- */
 		'admin_broadcast' => array(
 			'email' => 'broadcast',
@@ -104,7 +113,7 @@ class DSB_Notification_Manager
 	public function notify($type, $user_ids, $placeholders = array(), $channels = array('email', 'push'))
 	{
 
-		if (! isset($this->templates[$type])) {
+		if (!isset($this->templates[$type])) {
 			error_log("[DSB] Tipo de notificación desconocido: {$type}");
 			return;
 		}
@@ -184,5 +193,56 @@ class DSB_Notification_Manager
 		];
 
 		$this->notify('teacher_new_booking', $teacher_id, $placeholders);
+	}
+
+	/**
+	 * Maneja los cambios de estado en la reserva.
+	 *
+	 * @param int    $booking_id
+	 * @param string $new_status
+	 * @param string $old_status
+	 */
+	public function handle_booking_status_cancelled($booking_id, $new_status, $old_status)
+	{
+		// Solo actuamos si el nuevo estado es “cancelled”
+		if ($new_status !== 'cancelled') {
+			return;
+		}
+
+		// Obtenemos datos básicos de la reserva
+		$student_id = (int) get_post_meta($booking_id, 'student_id', true);
+		$teacher_id = (int) get_post_meta($booking_id, 'teacher_id', true);
+		$date       = get_post_meta($booking_id, 'date', true); // Y-m-d
+		$time       = get_post_meta($booking_id, 'time', true); // HH:MM
+
+		if (! $student_id || ! $teacher_id) {
+			// Si faltan datos, detenemos
+			return;
+		}
+
+		// Recuperar nombres de usuario
+		$student = get_user_by('id', $student_id);
+		$teacher = get_user_by('id', $teacher_id);
+
+		$placeholders = array(
+			'student_name' => $student ? $student->display_name : __('Alumno', 'dsb'),
+			'teacher_name' => $teacher ? $teacher->display_name : __('Profesor', 'dsb'),
+			'date'         => date_i18n('d/m/Y', strtotime($date)),
+			'time'         => $time,
+		);
+
+		// 1. Notificar al profesor de que la clase ha sido cancelada
+		$this->notify(
+			'teacher_cancel_class',   // clave que definimos en $templates
+			$teacher_id,              // destinatario
+			$placeholders
+		);
+
+		// 2. Notificar al alumno de que su clase ha sido cancelada
+		$this->notify(
+			'student_cancel_class',
+			$student_id,
+			$placeholders
+		);
 	}
 }

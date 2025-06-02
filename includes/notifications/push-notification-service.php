@@ -135,6 +135,8 @@ class DSB_Push_Notification_Service
 			return false;
 		}
 
+		// Si llegamos aquí, la notificación se envió correctamente
+		error_log(sprintf('[DSB] Push notification sent successfully to %s: %s', $interest, $title));
 		return true;
 	}
 }
