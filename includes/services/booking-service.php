@@ -151,7 +151,10 @@ class DSB_Booking_Service
         $new_balance = $student_tokens - $class_cost;
         update_user_meta($student_id, 'class_points', $new_balance);
 
-        // 7. Devolver respuesta con ID y datos de la reserva
+        // 7. Disparar acción de reserva creada
+        do_action( 'dsb_booking_created', $post_id );
+
+        // 8. Devolver respuesta con ID y datos de la reserva
         return rest_ensure_response([
             'success'   => true,
             'id'        => $post_id,
@@ -254,6 +257,7 @@ class DSB_Booking_Service
 
         // Actualizar el estado de la reserva
         update_post_meta($booking_id, 'status', 'cancelled');
+        do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', $booking_status);
 
         return rest_ensure_response([
             'message' => 'Reserva cancelada correctamente',

@@ -1,6 +1,7 @@
 <?php
 // includes/init.php
-class DSB_Init {
+class DSB_Init
+{
     private static $instance = null;
     public $jwt;
     public $auth;
@@ -9,36 +10,39 @@ class DSB_Init {
     public $user_manager;
     public $notifications;
 
-    public static function getInstance() {
+    public static function getInstance()
+    {
         if (self::$instance == null) {
-            self::$instance = new self(); 
+            self::$instance = new self();
         }
         return self::$instance;
     }
 
-    private function __construct() {
+    private function __construct()
+    {
         $this->defineConstants();
         $this->loadDependencies();
         $this->initHooks();
         $this->initClasses();
-        add_action('rest_api_init', function() {
-            add_filter('rest_pre_serve_request', function($value) {
+        add_action('rest_api_init', function () {
+            add_filter('rest_pre_serve_request', function ($value) {
                 $this->dsb_add_cors_headers();
                 return $value;
             });
         });
 
-        
+
         // Hook para cargar scripts y estilos en el frontend
         add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
-        
+
         // Agregar reglas de reescritura
         add_action('init', [$this, 'dsb_add_rewrite_rules']);
         add_filter('query_vars', [$this, 'dsb_add_query_vars']);
         add_action('template_redirect', [$this, 'dsb_template_redirect']);
     }
 
-    private function defineConstants() {
+    private function defineConstants()
+    {
         define('DSB_VERSION', '1.0.0');
         define('DSB_PLUGIN_DIR', plugin_dir_path(dirname(__FILE__)));
         define('DSB_PLUGIN_DIR_PATH', plugin_dir_path(dirname(__DIR__, 1)));
@@ -46,7 +50,8 @@ class DSB_Init {
         define('DSB_PLUGIN_FULLCALENDAR_URL', DSB_PLUGIN_URL . '../public/lib/fullcalendar.min.js');
     }
 
-    private function loadDependencies() {
+    private function loadDependencies()
+    {
         require_once DSB_PLUGIN_DIR . '/post-types/vehicle.php';
         require_once DSB_PLUGIN_DIR . '/post-types/booking.php';
         require_once DSB_PLUGIN_DIR . '/post-types/notification.php';
@@ -57,6 +62,8 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR . 'core/template.php';
         require_once DSB_PLUGIN_DIR . 'core/class-users.php';
         require_once DSB_PLUGIN_DIR . 'core/auth.php';
+        require_once DSB_PLUGIN_DIR . 'core/service-worker.php';
+        require_once DSB_PLUGIN_DIR . 'core/hooks.php';
 
         require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
@@ -67,10 +74,13 @@ class DSB_Init {
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/students-view.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/bookings-view.php';
 
-        require_once DSB_PLUGIN_DIR . 'services/notification-service.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/push-notification-service.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/email-notification-service.php';
+        require_once DSB_PLUGIN_DIR . 'notifications/notification-manager-service.php';
     }
 
-    private function initClasses() {
+    private function initClasses()
+    {
         if (is_admin()) {
             new DSB_Admin();
         }
@@ -79,7 +89,6 @@ class DSB_Init {
         new DSB_Notification();
         new DSB_Template();
         new DSB_Settings();
-        $this->notifications = new DSB_Notification_Service();
         $this->user_manager = new DSB_User_Manager();
         $this->roles = new DSB_Roles();
         $this->api = new DSB_API();
@@ -87,45 +96,53 @@ class DSB_Init {
         $this->auth = new DSB_Auth();
     }
 
-    private function initHooks() {
+    private function initHooks()
+    {
         register_activation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'activate']);
         register_deactivation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'deactivate']);
         add_filter('theme_page_templates', [$this, 'dsb_register_templates']);
     }
 
-    public function activate() {
+    public function activate()
+    {
         flush_rewrite_rules();
     }
 
-    public function deactivate() {
+    public function deactivate()
+    {
         flush_rewrite_rules();
     }
 
-    public function dsb_add_cors_headers() {
+    public function dsb_add_cors_headers()
+    {
         header("Access-Control-Allow-Origin: *");
         header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
         header("Access-Control-Allow-Headers: Authorization, Content-Type");
     }
 
-    public function dsb_register_templates($templates) {
+    public function dsb_register_templates($templates)
+    {
         $templates['public/views/alumno.php'] = 'Vista alumno';
         $templates['public/views/profesor.php'] = 'Vista profesor';
         $templates['public/views/acceso.php'] = 'Vista acceso';
         return $templates;
     }
 
-    public function dsb_add_rewrite_rules() {
+    public function dsb_add_rewrite_rules()
+    {
         add_rewrite_rule('^acceso/?$', 'index.php?dsb_view=acceso', 'top');
         add_rewrite_rule('^alumno/?$', 'index.php?dsb_view=alumno', 'top');
         add_rewrite_rule('^profesor/?$', 'index.php?dsb_view=profesor', 'top');
     }
 
-    public function dsb_add_query_vars($vars) {
+    public function dsb_add_query_vars($vars)
+    {
         $vars[] = 'dsb_view';
         return $vars;
     }
 
-    public function dsb_template_redirect() {
+    public function dsb_template_redirect()
+    {
         $view = get_query_var('dsb_view');
         if ($view) {
             $file_path = DSB_PLUGIN_DIR_PATH . "public/views/{$view}.php";
@@ -138,10 +155,9 @@ class DSB_Init {
         }
     }
 
-    public function enqueue_scripts() {
+    public function enqueue_scripts()
+    {
         // Registrar y cargar jQuery desde WordPress
         wp_enqueue_script('jquery');
-    
     }
-    
 }

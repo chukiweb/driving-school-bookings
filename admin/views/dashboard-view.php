@@ -38,6 +38,18 @@ class DSB_Dashboard_View extends DSB_Base_View
             DSB_Settings::update('default_booking_status', sanitize_text_field($_POST['default_booking_status']));
             DSB_Settings::update('default_min_antelacion', intval($_POST['default_min_antelacion']));
             DSB_Settings::update('default_max_antelacion', intval($_POST['default_max_antelacion']));
+
+            // Nuevos campos de Pusher Beams
+            if (isset($_POST['pusher_beams_instance_id'])) {
+                $instance_id = sanitize_text_field($_POST['pusher_beams_instance_id']);
+                DSB_Settings::update('pusher_beams_instance_id', $instance_id);
+            }
+
+            if (isset($_POST['pusher_beams_secret_key'])) {
+                $secret_key = sanitize_text_field($_POST['pusher_beams_secret_key']);
+                DSB_Settings::update('pusher_beams_secret_key', $secret_key);
+            }
+
             $this->render_response([
                 'message' => 'Ajustes guardados correctamente.',
                 'sent' => true
@@ -53,9 +65,6 @@ class DSB_Dashboard_View extends DSB_Base_View
 
     protected function render_general_settings_form()
     {
-        $cancel_time = DSB_Settings::get('cancelation_time_hours');
-        $daily_limit = DSB_Settings::get('daily_limit');
-        $class_cost = DSB_Settings::get('class_cost');
 ?>
         <div class="dsb-section dsb-card">
             <h2><i class="dashicons dashicons-admin-generic"></i> Ajustes Generales del Sistema</h2>
@@ -67,15 +76,15 @@ class DSB_Dashboard_View extends DSB_Base_View
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="cancelation_time_hours">Tiempo de cancelación (horas)</label></th>
-                        <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?= esc_attr($cancel_time); ?>" class="regular-text"></td>
+                        <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?= esc_attr(DSB_Settings::get('cancelation_time_hours')); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="daily_limit">Clases diarias por alumno</label></th>
-                        <td><input type="number" id="daily_limit" name="daily_limit" value="<?= esc_attr($daily_limit); ?>" class="regular-text"></td>
+                        <td><input type="number" id="daily_limit" name="daily_limit" value="<?= esc_attr(DSB_Settings::get('daily_limit')); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="class_cost">Coste por clase (créditos)</label></th>
-                        <td><input type="number" step="0.1" id="class_cost" name="class_cost" value="<?= esc_attr($class_cost); ?>" class="regular-text"></td>
+                        <td><input type="number" step="0.1" id="class_cost" name="class_cost" value="<?= esc_attr(DSB_Settings::get('class_cost')); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="class_duration">Duración de clase (minutos)</label></th>
@@ -102,6 +111,34 @@ class DSB_Dashboard_View extends DSB_Base_View
                             <input type="number" id="default_max_antelacion" name="default_max_antelacion" value="<?= esc_attr(DSB_Settings::get('default_max_antelacion')); ?>" class="regular-text">
                         </td>
                     </tr>
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <hr>
+                            <h3>Configuración de Notificaciones Push</h3>
+                            <p class="description">Configura tus credenciales de Pusher Beams para habilitar las notificaciones push. <a href="https://pusher.com/beams" target="_blank">Más información</a>.</p>
+
+                            <tr>
+                                <th scope="row">
+                                    <label for="pusher_beams_instance_id">ID de instancia de Pusher Beams</label>
+                                </th>
+                                <td>
+                                    <input type="text" name="pusher_beams_instance_id" id="pusher_beams_instance_id"
+                                        value="<?= esc_attr(DSB_Settings::get('pusher_beams_instance_id')); ?>" class="regular-text">
+                                    <p class="description">El ID de instancia de tu cuenta de Pusher Beams</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="pusher_beams_secret_key">Clave secreta de Pusher Beams</label>
+                                </th>
+                                <td>
+                                    <input type="password" name="pusher_beams_secret_key" id="pusher_beams_secret_key"
+                                        value="<?= esc_attr(DSB_Settings::get('pusher_beams_secret_key')) ?>" class="regular-text">
+                                    <p class="description">La clave secreta de tu cuenta de Pusher Beams</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </table>
 
                 <p class="submit">
@@ -112,7 +149,7 @@ class DSB_Dashboard_View extends DSB_Base_View
     <?php
     }
 
-    
+
     protected function enqueue_scripts()
     {
         wp_enqueue_style(
@@ -121,7 +158,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             [],
             '1.0.0'
         );
-        
+
         wp_enqueue_script(
             'chartjs',
             'https://cdn.jsdelivr.net/npm/chart.js',
@@ -129,7 +166,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             '4.3.3',
             true
         );
-        
+
         wp_enqueue_script(
             'dashboard-admin-js',
             DSB_PLUGIN_URL . '../public/js/admin/dashboard-admin-view.js',
@@ -137,16 +174,16 @@ class DSB_Dashboard_View extends DSB_Base_View
             '1.0.0',
             true
         );
-        
+
         wp_localize_script(
             'dashboard-admin-js',
             'wpApiSettings',
             ['nonce' => wp_create_nonce('wp_rest')]
         );
     }
-    
+
     protected function render_table() {}
-    
+
     protected function render_search_section()
     {
     ?>
@@ -173,7 +210,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                             $display_name = $first_name && $last_name ? "$first_name $last_name" : $teacher->display_name;
                             $phone = get_user_meta($teacher->ID, 'phone', true);
                             $avatar_url = get_avatar_url($teacher->ID);
-    
+
                             // Contar estudiantes asignados
                             $student_query = new WP_User_Query([
                                 'role' => 'student',
@@ -184,7 +221,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 ]]
                             ]);
                             $student_count = $student_query->get_total();
-    
+
                             // Atributos para filtrado
                             $data_attrs = 'data-name="' . esc_attr(strtolower($display_name)) . '" ';
                             $data_attrs .= 'data-email="' . esc_attr(strtolower($teacher->user_email)) . '" ';
@@ -237,7 +274,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                     <?php endif; ?>
                 </div>
             </div>
-    
+
             <div class="dsb-card dsb-search-students">
                 <h2><i class="dashicons dashicons-groups"></i> Buscador de Alumnos</h2>
                 <div class="dsb-search-form">
@@ -262,7 +299,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                             $phone = get_user_meta($student->ID, 'phone', true);
                             $license_type = get_user_meta($student->ID, 'license_type', true) ?: 'No especificado';
                             $avatar_url = get_avatar_url($student->ID);
-    
+
                             // Contar reservas del alumno
                             $args = [
                                 'post_type' => 'dsb_booking',
@@ -275,7 +312,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                             ];
                             $bookings_query = new WP_Query($args);
                             $bookings_count = $bookings_query->post_count;
-    
+
                             // Obtener profesor asignado
                             $teacher_id = get_user_meta($student->ID, 'assigned_teacher', true);
                             $teacher_name = '';
@@ -285,7 +322,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                             } else {
                                 $teacher_name = 'Sin asignar';
                             }
-    
+
                             // Atributos para filtrado
                             $data_attrs = 'data-name="' . esc_attr(strtolower($display_name)) . '" ';
                             $data_attrs .= 'data-email="' . esc_attr(strtolower($student->user_email)) . '" ';
@@ -349,7 +386,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                 </div>
             </div>
         </div>
-    
+
         <!-- Modal para detalles de profesor -->
         <div class="dsb-modal" id="teacherDetailModal" style="display: none;">
             <div class="dsb-modal-content">
@@ -372,7 +409,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 <p id="teacherModalRole">Profesor</p>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Información de contacto</h5>
                             <div class="dsb-info-item">
@@ -384,7 +421,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 <span id="teacherModalPhone"></span>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Estadísticas de clases</h5>
                             <div class="dsb-stats-container">
@@ -420,14 +457,14 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 </div>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Vehículos asignados</h5>
                             <div id="teacherModalVehicles">
                                 <!-- Los vehículos se insertarán aquí -->
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Alumnos asignados</h5>
                             <div class="dsb-students-list" id="teacherModalStudents">
@@ -450,7 +487,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                 </div>
             </div>
         </div>
-    
+
         <!-- Modal para detalles de alumno -->
         <div class="dsb-modal" id="studentDetailModal" style="display: none;">
             <div class="dsb-modal-content">
@@ -473,7 +510,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 <p id="studentModalRole">Alumno</p>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Información de contacto</h5>
                             <div class="dsb-info-item">
@@ -489,7 +526,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 <span id="studentModalDNI"></span>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Información académica</h5>
                             <div class="dsb-info-item">
@@ -505,7 +542,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 <span>Créditos disponibles: <strong id="studentModalCredits"></strong></span>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Estadísticas de clases</h5>
                             <div class="dsb-stats-container">
@@ -542,7 +579,7 @@ class DSB_Dashboard_View extends DSB_Base_View
                                 </div>
                             </div>
                         </div>
-    
+
                         <div class="dsb-profile-info">
                             <h5>Historial de clases</h5>
                             <div class="dsb-bookings-list" id="studentModalBookings">
@@ -565,6 +602,6 @@ class DSB_Dashboard_View extends DSB_Base_View
                 </div>
             </div>
         </div>
-    <?php
+<?php
     }
 }

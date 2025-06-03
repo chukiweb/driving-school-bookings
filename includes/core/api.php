@@ -51,6 +51,15 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
+        /**
+         * BUSCADOR DE USUARIOS ENDPOINT
+         */
+        register_rest_route('driving-school/v1', '/users-search', [
+            'methods'             => 'GET',
+            'callback'            => [$this, 'search_users'],
+            'permission_callback' => [$this, 'check_permission']
+        ]);
+
 
         /**
          * Load images endpoint
@@ -205,6 +214,17 @@ class DSB_API
             'callback'              => [$this, 'delete_booking'],
             'permission_callback'   => [$this, 'check_permission']
         ]);
+
+
+        /**
+         * NOTIFICATIONS ENDPOINTS
+         */
+        // Delete 
+        register_rest_route($this->namespace, '/notifications/(?P<id>\d+)', [
+            'methods'               => 'DELETE',
+            'callback'              => [$this, 'delete_notification'],
+            'permission_callback'   => [$this, 'check_permission']
+        ]);
     }
 
     public function login($request)
@@ -252,6 +272,80 @@ class DSB_API
             'message' => 'Sesión cerrada correctamente',
             'redirect' => '/acceso'
         ]);
+    }
+
+    public function search_users($request)
+    {
+        $term = $request->get_param('term');
+        $role = $request->get_param('role');
+
+        // Validamos que vengan al menos 2 caracteres
+        if (! is_string($term) || mb_strlen(trim($term)) < 2) {
+            return new WP_REST_Response([], 200);
+        }
+
+        $term = sanitize_text_field($term);
+        $role = sanitize_text_field($role);
+
+        $args = [
+            'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
+            'search'         => '*' . esc_attr($term) . '*',
+            'number'         => 10,
+            // 'fields'      => ['ID','display_name'], //  ❌ Quitar esta línea para que regrese WP_User
+        ];
+
+        if (in_array($role, ['student', 'teacher'], true)) {
+            $args['role'] = $role;
+        }
+
+        // 1) Hacemos la consulta
+        $query = new WP_User_Query($args);
+        $users = $query->get_results(); // ¡Ahora son objetos WP_User completos!
+
+        $results = [];
+
+        // 2) Recorremos cada WP_User y obtenemos su rol real
+        foreach ($users as $u) {
+            // $u es un WP_User => podemos leer $u->roles sin problemas
+            $all_roles = (array) $u->roles;
+
+            if (in_array('student', $all_roles, true)) {
+                $role_label = 'Alumno';
+                $prefix     = 'student';
+            } elseif (in_array('teacher', $all_roles, true)) {
+                $role_label = 'Profesor';
+                $prefix     = 'teacher';
+            } else {
+                continue;
+            }
+
+            $label = sprintf('%s (%s)', $u->display_name, $role_label);
+            $value = sprintf('%s-%d', $prefix, $u->ID);
+
+            $results[] = [
+                'label' => $label,
+                'value' => $value,
+            ];
+        }
+
+        return rest_ensure_response($results);
+    }
+
+    public function delete_notification($request)
+    {
+        $notification_id = intval($request['id']);
+
+        if (!$notification_id) {
+            return new WP_Error('invalid_id', 'ID de notificación inválido', ['status' => 400]);
+        }
+
+        $result = wp_delete_post($notification_id, true);
+
+        if (!$result) {
+            return new WP_Error('delete_failed', 'No se pudo eliminar la notificación', ['status' => 500]);
+        }
+
+        return rest_ensure_response(['success' => true, 'message' => 'Notificación eliminada correctamente']);
     }
 
     public function get_bookings($request)
