@@ -12,6 +12,7 @@ jQuery(document).ready(function ($) {
         static selectedBookingId = null;
         static blockModeActive = false;
         static createBookingModeActive = false;
+        static descansosCounter = 0;
 
         static init() {
             // Inicializar datos
@@ -36,6 +37,8 @@ jQuery(document).ready(function ($) {
 
             // Configurar filtros de estudiantes
             ProfesorView.setupStudentFilters();
+
+            ProfesorView.initDescansosListeners();
         }
 
         static checkSession() {
@@ -170,6 +173,71 @@ jQuery(document).ready(function ($) {
                     inputLicense.value = studentLicense;
                 }
             });
+        }
+
+        // Nuevo método para inicializar listeners de descansos:
+        static initDescansosListeners() {
+            // Inicializar contador con descansos existentes
+            const existingItems = document.querySelectorAll('.descanso-item');
+            if (existingItems.length > 0) {
+                const maxId = Math.max(...Array.from(existingItems).map(item =>
+                    parseInt(item.dataset.descansoId) || 0
+                ));
+                ProfesorView.descansosCounter = maxId;
+            }
+
+            // Listener para añadir descanso
+            document.getElementById('add-descanso-btn')?.addEventListener('click', function () {
+                ProfesorView.addDescansoField();
+            });
+
+            // Delegación de eventos para los botones de eliminar
+            document.getElementById('descansos-container')?.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-descanso-btn') ||
+                    e.target.closest('.remove-descanso-btn')) {
+                    const button = e.target.classList.contains('remove-descanso-btn') ?
+                        e.target : e.target.closest('.remove-descanso-btn');
+                    ProfesorView.removeDescansoField(button);
+                }
+            });
+        }
+
+        static addDescansoField() {
+            const container = document.getElementById('descansos-container');
+            const descansoId = ++ProfesorView.descansosCounter;
+
+            const descansoDiv = document.createElement('div');
+            descansoDiv.className = 'descanso-item mb-2 p-3 border rounded bg-light';
+            descansoDiv.dataset.descansoId = descansoId;
+
+            descansoDiv.innerHTML = `
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label class="form-label small">Hora inicio</label>
+                        <input type="time" class="form-control form-control-sm" 
+                            name="descansos[${descansoId}][inicio]" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Hora fin</label>
+                        <input type="time" class="form-control form-control-sm" 
+                            name="descansos[${descansoId}][fin]" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-descanso-btn">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(descansoDiv);
+        }
+
+        static removeDescansoField(button) {
+            const descansoItem = button.closest('.descanso-item');
+            if (descansoItem) {
+                descansoItem.remove();
+            }
         }
 
         static activateBlockMode() {
@@ -1063,26 +1131,61 @@ jQuery(document).ready(function ($) {
         }
 
         static async handleTeacherConfigSubmit(form) {
-            // Recolectar datos del formulario
             const formData = new FormData(form);
             const dias = formData.getAll('dias[]');
             const hora_inicio = formData.get('hora_inicio');
             const hora_fin = formData.get('hora_fin');
             const duracion = formData.get('duracion');
 
-            // Validar campos
+            // Procesar descansos
+            const descansos = [];
+            const descansosData = {};
+
+            // Agrupar los datos de descansos
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith('descansos[')) {
+                    const matches = key.match(/descansos\[(\d+)\]\[(\w+)\]/);
+                    if (matches) {
+                        const id = matches[1];
+                        const field = matches[2];
+
+                        if (!descansosData[id]) {
+                            descansosData[id] = {};
+                        }
+                        descansosData[id][field] = value;
+                    }
+                }
+            }
+
+            // Convertir a array y filtrar descansos válidos
+            Object.values(descansosData).forEach(descanso => {
+                if (descanso.inicio && descanso.fin) {
+                    descansos.push({
+                        inicio: descanso.inicio,
+                        fin: descanso.fin
+                    });
+                }
+            });
+
+            // Validar campos obligatorios
             if (!dias.length || !hora_inicio || !hora_fin || !duracion) {
-                window.mostrarNotificacion('Error', 'Todos los campos son obligatorios');
+                window.mostrarNotificacion('Error', 'Todos los campos son obligatorios', 'error');
                 return;
             }
 
-            // Preparar payload
             const payload = {
                 dias,
                 hora_inicio,
                 hora_fin,
-                duracion
+                duracion,
+                descansos
             };
+
+            // Mostrar indicador de carga
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Guardando...';
+            submitBtn.disabled = true;
 
             try {
                 const response = await fetch(`${ProfesorView.apiUrl}/teachers/${ProfesorView.profesorData.id}/config`, {
@@ -1110,26 +1213,31 @@ jQuery(document).ready(function ($) {
                     accordion.hide();
                 }
 
-                // Mostrar notificación
-                window.mostrarNotificacion('', 'Configuración de horario guardada correctamente', 'success');
+                // Mostrar notificación de éxito
+                window.mostrarNotificacion('', 'Configuración guardada correctamente', 'success');
 
-                // Recargar el calendario para aplicar los nuevos cambios
-                ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
-                ProfesorView.calendar.setOption('slotMaxTime', hora_fin);
-                ProfesorView.calendar.setOption('slotDuration', `00:${duracion}:00`);
+                // Actualizar calendario con nueva configuración
+                if (ProfesorView.calendar) {
+                    ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
+                    ProfesorView.calendar.setOption('slotMaxTime', hora_fin);
+                    ProfesorView.calendar.setOption('slotDuration', `00:${duracion}:00`);
 
-                // Actualizar días no disponibles
-                const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
-                    const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dia];
-                    return !dias.includes(diaNombre);
-                });
-                ProfesorView.calendar.setOption('hiddenDays', diasNoDisponibles);
-
-                ProfesorView.calendar.render();
+                    // Actualizar días no disponibles
+                    const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
+                        const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dia];
+                        return !dias.includes(diaNombre);
+                    });
+                    ProfesorView.calendar.setOption('hiddenDays', diasNoDisponibles);
+                    ProfesorView.calendar.render();
+                }
 
             } catch (error) {
                 console.error('Error al guardar la configuración:', error);
                 window.mostrarNotificacion('Error', `${error.message}`, 'error');
+            } finally {
+                // Restaurar botón
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 

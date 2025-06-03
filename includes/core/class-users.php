@@ -372,5 +372,47 @@ class DSB_User_Manager
         return $student_data;
     }
 
+    public function update_teacher_config()
+    {
+        $uid = intval($_POST['user_id']);
+
+        $dias = array_map('sanitize_text_field', $_POST['dias'] ?? []);
+        $hora_inicio = sanitize_text_field($_POST['hora_inicio'] ?? '');
+        $hora_fin = sanitize_text_field($_POST['hora_fin'] ?? '');
+        $duracion = intval($_POST['duracion'] ?? 0);
+
+        // Procesar descansos
+        $descansos = [];
+        if (isset($_POST['descansos']) && is_array($_POST['descansos'])) {
+            foreach ($_POST['descansos'] as $descanso) {
+                if (
+                    isset($descanso['inicio']) && isset($descanso['fin']) &&
+                    !empty($descanso['inicio']) && !empty($descanso['fin'])
+                ) {
+                    $descansos[] = [
+                        'inicio' => sanitize_text_field($descanso['inicio']),
+                        'fin' => sanitize_text_field($descanso['fin'])
+                    ];
+                }
+            }
+        }
+
+        if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
+            return new WP_Error('empty_data', 'Faltan datos obligatorios para guardar las clases.');
+        }
+
+        $config = [
+            'dias' => $dias,
+            'hora_inicio' => $hora_inicio,
+            'hora_fin' => $hora_fin,
+            'duracion' => $duracion,
+            'descansos' => $descansos,
+        ];
+
+        update_user_meta($uid, 'dsb_clases_config', $config);
+
+        return ['user_id' => $uid, 'message' => 'Usuario actualizado correctamente.'];
+    }
+
     public function get_teacher($teacher) {}
 }

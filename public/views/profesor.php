@@ -17,21 +17,24 @@ function dsb_get_teacher_data()
     $teacher = $result->get_data()['data'];
 
     // Obtener configuración de clases
-    $teacher['config'] = get_user_meta($user_id, 'dsb_clases_config', true) ?: [
+    $config = get_user_meta($user_id, 'dsb_clases_config', true);
+
+    // Configuración por defecto con descansos vacíos
+    $default_config = [
         'dias' => [],
         'hora_inicio' => '08:00',
         'hora_fin' => '20:00',
-        'duracion' => 45
+        'duracion' => 45,
+        'descansos' => []
     ];
 
-    // Obtener nombre del vehículo
-    // $vehicle_id = $teacher['vehicle_id'];
-    // if ($vehicle_id) {
-    //     $vehicle = get_post($vehicle_id);
-    //     $teacher['vehicle'] = $vehicle ? $vehicle->post_title : 'Sin vehículo asignado';
-    // } else {
-    //     $teacher['vehicle'] = 'Sin vehículo asignado';
-    // }
+    // Merge con configuración existente
+    $teacher['config'] = is_array($config) ? array_merge($default_config, $config) : $default_config;
+
+    // Asegurar que descansos es un array
+    if (!isset($teacher['config']['descansos']) || !is_array($teacher['config']['descansos'])) {
+        $teacher['config']['descansos'] = [];
+    }
 
     return $teacher;
 }
@@ -341,6 +344,50 @@ $js_config = [
                                                         <option value="<?= $duracion ?>" <?= $selected ?>><?= $duracion ?> minutos</option>
                                                     <?php endforeach; ?>
                                                 </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Nueva sección de descansos -->
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <label class="form-label">Descansos</label>
+                                                <div id="descansos-container" class="mb-3">
+                                                    <?php
+                                                    $descansos_config = $teacher['config']['descansos'] ?? [];
+                                                    if (!empty($descansos_config) && is_array($descansos_config)):
+                                                        foreach ($descansos_config as $index => $descanso):
+                                                            if (isset($descanso['inicio']) && isset($descanso['fin'])):
+                                                    ?>
+                                                                <div class="descanso-item mb-2 p-3 border rounded bg-light" data-descanso-id="<?= $index + 1 ?>">
+                                                                    <div class="row align-items-center">
+                                                                        <div class="col-md-4">
+                                                                            <label class="form-label small">Hora inicio</label>
+                                                                            <input type="time" class="form-control form-control-sm"
+                                                                                name="descansos[<?= $index + 1 ?>][inicio]"
+                                                                                value="<?= esc_attr($descanso['inicio']) ?>" required>
+                                                                        </div>
+                                                                        <div class="col-md-4">
+                                                                            <label class="form-label small">Hora fin</label>
+                                                                            <input type="time" class="form-control form-control-sm"
+                                                                                name="descansos[<?= $index + 1 ?>][fin]"
+                                                                                value="<?= esc_attr($descanso['fin']) ?>" required>
+                                                                        </div>
+                                                                        <div class="col-md-4 d-flex align-items-end">
+                                                                            <button type="button" class="btn btn-sm btn-outline-danger remove-descanso-btn">
+                                                                                <i class="bi bi-trash"></i> Eliminar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                    <?php
+                                                            endif;
+                                                        endforeach;
+                                                    endif;
+                                                    ?>
+                                                </div>
+                                                <button type="button" id="add-descanso-btn" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-plus-circle"></i> Añadir Descanso
+                                                </button>
                                             </div>
                                         </div>
 

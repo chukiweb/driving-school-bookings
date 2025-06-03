@@ -10,6 +10,7 @@ jQuery(document).ready(function ($) {
         static calendarModal = document.querySelector('#teacherCalendarModal');
         static calendarInfoModal = document.querySelector('#teacherCalendarInfoModal');
         static lastAction = null;
+        static descansosCounter = 0;
 
         static init() {
             document.querySelectorAll('.button').forEach(button => {
@@ -32,6 +33,53 @@ jQuery(document).ready(function ($) {
             });
 
             teacherAdminView.initBookingFormListener();
+            teacherAdminView.initDescansosListener();
+        }
+
+        static initDescansosListener() {
+            // Listener para añadir descanso
+            document.getElementById('add-descanso-btn').addEventListener('click', function() {
+                teacherAdminView.addDescansoField();
+            });
+
+            // Delegación de eventos para los botones de eliminar descanso
+            document.getElementById('descansos-container').addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-descanso-btn')) {
+                    teacherAdminView.removeDescansoField(e.target);
+                }
+            });
+        }
+
+        static addDescansoField() {
+            const container = document.getElementById('descansos-container');
+            const descansoId = ++teacherAdminView.descansosCounter;
+            
+            const descansoDiv = document.createElement('div');
+            descansoDiv.className = 'descanso-item';
+            descansoDiv.style.cssText = 'margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9;';
+            descansoDiv.dataset.descansoId = descansoId;
+            
+            descansoDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="min-width: 80px;">Descanso ${descansoId}:</label>
+                    <label style="font-size: 12px;">Desde:</label>
+                    <input type="time" name="descansos[${descansoId}][inicio]" required style="margin-right: 10px;">
+                    <label style="font-size: 12px;">Hasta:</label>
+                    <input type="time" name="descansos[${descansoId}][fin]" required style="margin-right: 10px;">
+                    <button type="button" class="button-secondary remove-descanso-btn" style="background: #dc3545; color: white; border-color: #dc3545;">
+                        Eliminar
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(descansoDiv);
+        }
+
+        static removeDescansoField(button) {
+            const descansoItem = button.closest('.descanso-item');
+            if (descansoItem) {
+                descansoItem.remove();
+            }
         }
 
         static changeName(btn) {
@@ -114,7 +162,12 @@ jQuery(document).ready(function ($) {
 
         static configFormAction(teacherId) {
             const configForm = document.querySelector('#configFormContainer form');
+            const descansosContainer = document.getElementById('descansos-container');
+            
+            // Reset form y contador
             teacherAdminView.configFormContainer.querySelector('form').reset();
+            descansosContainer.innerHTML = '';
+            teacherAdminView.descansosCounter = 0;
 
             allTeacherData.forEach(function (prof) {
                 if (prof.id == teacherId) {
@@ -132,6 +185,16 @@ jQuery(document).ready(function ($) {
                     configForm.querySelector('input[name="hora_inicio"]').value = prof.config.hora_inicio;
                     configForm.querySelector('input[name="hora_fin"]').value = prof.config.hora_fin;
                     configForm.querySelector('input[name="duracion"').value = prof.config.duracion;
+
+                    // Cargar descansos existentes
+                    if (prof.config.descansos && Array.isArray(prof.config.descansos)) {
+                        prof.config.descansos.forEach(function(descanso) {
+                            teacherAdminView.addDescansoField();
+                            const lastDescanso = descansosContainer.lastElementChild;
+                            lastDescanso.querySelector('input[name*="[inicio]"]').value = descanso.inicio;
+                            lastDescanso.querySelector('input[name*="[fin]"]').value = descanso.fin;
+                        });
+                    }
                 }
             });
         }
@@ -287,5 +350,3 @@ jQuery(document).ready(function ($) {
 
     teacherAdminView.init();
 });
-
-

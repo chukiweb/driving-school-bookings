@@ -126,19 +126,66 @@ class DSB_Teacher_Service
     {
         $user_id = (int) $teacher_id;
 
-        if (!user_can($user_id, 'teacher')) {
+        if (!$user_id) {
+            return new WP_Error('invalid_user', 'ID de profesor inválido', ['status' => 400]);
+        }
+
+        $user = get_userdata($user_id);
+        if (!$user || !in_array('teacher', $user->roles)) {
             return new WP_Error('invalid_user', 'El usuario no es un profesor válido', ['status' => 403]);
         }
 
-        $params = json_decode($request->get_body(), true);
+        $body = $request->get_body();
+        $params = json_decode($body, true);
 
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new WP_Error('invalid_json', 'Datos JSON inválidos', ['status' => 400]);
+        }
+
+        // Validar y sanitizar datos básicos
         $dias = array_map('sanitize_text_field', $params['dias'] ?? []);
         $hora_inicio = sanitize_text_field($params['hora_inicio'] ?? '');
         $hora_fin = sanitize_text_field($params['hora_fin'] ?? '');
         $duracion = intval($params['duracion'] ?? 0);
 
+        // Procesar descansos
+        $descansos = [];
+        if (isset($params['descansos']) && is_array($params['descansos'])) {
+            foreach ($params['descansos'] as $descanso) {
+                if (
+                    isset($descanso['inicio']) && isset($descanso['fin']) &&
+                    !empty($descanso['inicio']) && !empty($descanso['fin'])
+                ) {
+
+                    // Validar formato de hora
+                    $inicio = sanitize_text_field($descanso['inicio']);
+                    $fin = sanitize_text_field($descanso['fin']);
+
+                    if (
+                        preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $inicio) &&
+                        preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $fin)
+                    ) {
+
+                        // Verificar que la hora de fin sea posterior a la de inicio
+                        if (strtotime($fin) > strtotime($inicio)) {
+                            $descansos[] = [
+                                'inicio' => $inicio,
+                                'fin' => $fin
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Validar datos obligatorios
         if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
-            return new WP_Error('invalid_data', 'Faltan datos obligatorios', ['status' => 400]);
+            return new WP_Error('invalid_data', 'Faltan datos obligatorios para guardar la configuración', ['status' => 400]);
+        }
+
+        // Validar que la hora de fin sea posterior a la de inicio
+        if (strtotime($hora_fin) <= strtotime($hora_inicio)) {
+            return new WP_Error('invalid_time', 'La hora de fin debe ser posterior a la hora de inicio', ['status' => 400]);
         }
 
         $config = [
@@ -146,11 +193,25 @@ class DSB_Teacher_Service
             'hora_inicio' => $hora_inicio,
             'hora_fin' => $hora_fin,
             'duracion' => $duracion,
+            'descansos' => $descansos,
+            'updated_at' => current_time('mysql')
         ];
 
-        update_user_meta($user_id, 'dsb_clases_config', $config);
+        // Guardar configuración
+        $result = update_user_meta($user_id, 'dsb_clases_config', $config);
 
-        return rest_ensure_response(['success' => true, 'message' => 'Configuración del profesor actualizada']);
+        if ($result === false) {
+            return new WP_Error('save_error', 'Error al guardar la configuración', ['status' => 500]);
+        }
+
+        // Log para depuración
+        error_log('Configuración guardada para profesor ID ' . $user_id . ': ' . print_r($config, true));
+
+        return new WP_REST_Response([
+            'success' => true,
+            'message' => 'Configuración del profesor actualizada correctamente',
+            'data' => $config
+        ], 200);
     }
 
     public static function get_teacher_stats($teacher_id, $period = 'current')
