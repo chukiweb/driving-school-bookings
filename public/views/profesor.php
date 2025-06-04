@@ -952,7 +952,7 @@ $js_config = [
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="saveBlockBtn">Bloquear horario</button>
+                    <button type="button" id="saveBlockBtn" class="btn btn-danger">Bloquear horario</button>
                 </div>
             </div>
         </div>
@@ -1003,7 +1003,7 @@ $js_config = [
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="saveBookingBtn">Crear reserva</button>
+                    <button type="button" id="saveBookingBtn" class="btn btn-primary">Crear reserva</button>
                 </div>
             </div>
         </div>

@@ -272,7 +272,10 @@ section {
     height: calc(100% - 40px);
 }
 
-.fc, .fc .fc-view, .fc .fc-view-harness, .fc-view-harness-active {
+.fc,
+.fc .fc-view,
+.fc .fc-view-harness,
+.fc-view-harness-active {
     height: 100% !important;
 }
 
@@ -284,17 +287,18 @@ section {
 
 @media (max-height: 600px) {
     .card-body.p-0 {
-        height: 50vh; /* Para dispositivos con poca altura */
+        height: 50vh;
+        /* Para dispositivos con poca altura */
     }
 }
 
 .card-body.p-0 {
-    height: 70vh; /* Altura base del viewport */
+    height: 70vh;
+    /* Altura base del viewport */
 }
 
 /* Mejoras de visibilidad en las celdas del calendario */
 .fc .fc-timegrid-slot-minor {
-    border-top-style: dashed;
     border-top-color: #eaeaea;
 }
 
@@ -726,13 +730,11 @@ label.btn.btn-outline-warning {
     border-color: #b02a37 !important;
     color: #fff !important;
     opacity: 0.85;
-    background-image: repeating-linear-gradient(
-        -45deg,
-        transparent,
-        transparent 10px,
-        rgba(255, 255, 255, 0.2) 10px,
-        rgba(255, 255, 255, 0.2) 20px
-    ) !important;
+    background-image: repeating-linear-gradient(-45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.2) 10px,
+            rgba(255, 255, 255, 0.2) 20px) !important;
 }
 
 .blocked-event:hover {
@@ -749,4 +751,39 @@ label.btn.btn-outline-warning {
 /* Hover en celdas del día */
 .fc-day:not(.fc-day-past):hover {
     background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Modos del calendario */
+#calendar.block-mode {
+    cursor: crosshair;
+}
+
+#calendar.block-mode .fc-timegrid-slot:hover {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+#calendar.create-mode {
+    cursor: copy;
+}
+
+#calendar.create-mode .fc-timegrid-slot:hover {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+/* Business hours más sutil */
+.fc-non-business {
+    background: repeating-linear-gradient(
+        45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px
+    ) !important;
+    opacity: 0.6;
+    border-top: 1px solid red;
+    border-bottom: 1px solid red;
+}
+
+.fc-business-hours {
+    background-color: #ffffff !important;
 }

@@ -549,3 +549,25 @@ div[class*='slot-cell-'].recent-time {
         border-radius: 4px;
     }
 }
+
+/* Business hours más sutil */
+.fc-non-business {
+    background: repeating-linear-gradient(
+        45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px
+    ) !important;
+    opacity: 0.6;
+    border-top: 1px solid red;
+    border-bottom: 1px solid red;
+}
+
+.fc-business-hours {
+    background-color: #ffffff !important;
+}
+
+.fc-event {
+    cursor: pointer;
+}

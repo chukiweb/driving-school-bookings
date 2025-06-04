@@ -13,8 +13,8 @@ class DSB_Booking_Service
         $vehicle_id = intval($request->get_param('vehiculo'));
         $date       = sanitize_text_field($request->get_param('fecha'));
         $start_time = sanitize_text_field($request->get_param('hora'));
-        $end_param  = $request->get_param('end_time');
-        $status     = sanitize_text_field($request->get_param('status')) ? : DSB_Settings::get('default_booking_status');
+        $end_time   = $request->get_param('end_time');
+        $status     = sanitize_text_field($request->get_param('status')) ?: DSB_Settings::get('default_booking_status');
 
         $today = date('Y-m-d');
         if ($date < $today) {
@@ -23,6 +23,12 @@ class DSB_Booking_Service
                 'No es posible reservar clases para fechas pasadas',
                 ['status' => 400]
             );
+        }
+
+        $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
+
+        if (is_wp_error($is_valid)) {
+            return $is_valid;
         }
 
         // 2. Verificar tiempo mínimo de antelación (1 hora)
@@ -107,8 +113,8 @@ class DSB_Booking_Service
         }
 
         // 3. Calcular hora de fin si no viene en el request
-        if (! empty($end_param)) {
-            $end_time = sanitize_text_field($end_param);
+        if (! empty($end_time)) {
+            $end_time = sanitize_text_field($end_time);
         } else {
             // Obtener la duración de clase desde la configuración del profesor
             $teacher_config = get_user_meta($teacher_id, 'dsb_clases_config', true);
@@ -152,7 +158,7 @@ class DSB_Booking_Service
         update_user_meta($student_id, 'class_points', $new_balance);
 
         // 7. Disparar acción de reserva creada
-        do_action( 'dsb_booking_created', $post_id );
+        do_action('dsb_booking_created', $post_id);
 
         // 8. Devolver respuesta con ID y datos de la reserva
         return rest_ensure_response([
@@ -276,7 +282,7 @@ class DSB_Booking_Service
         $date       = sanitize_text_field($request->get_param('date'));
         $start_time = sanitize_text_field($request->get_param('start_time'));
         $end_time   = sanitize_text_field($request->get_param('end_time'));
-        $reason     = sanitize_text_field($request->get_param('reason')) ? : 'Bloqueo manual';
+        $reason     = sanitize_text_field($request->get_param('reason')) ?: 'Bloqueo manual';
 
         // Comprobar si el profesor existe
         if (!get_user_by('ID', $teacher_id)) {
@@ -292,14 +298,20 @@ class DSB_Booking_Service
             );
         }
 
+        $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
+
+        if (is_wp_error($is_valid)) {
+            return $is_valid;
+        }
+
         // Verificar que no existan reservas para el profesor en la misma fecha y durante la franja horaria
         $existing_teacher_bookings = get_posts([
             'post_type' => 'dsb_booking',
             'meta_query' => [
-            'relation' => 'AND',
-            ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '='],
-            ['key' => 'date', 'value' => $date, 'compare' => '='],
-            ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
+                'relation' => 'AND',
+                ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '='],
+                ['key' => 'date', 'value' => $date, 'compare' => '='],
+                ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
             ],
             'posts_per_page' => -1
         ]);
@@ -308,25 +320,25 @@ class DSB_Booking_Service
         foreach ($existing_teacher_bookings as $booking) {
             $booking_start = get_post_meta($booking->ID, 'time', true);
             $booking_end = get_post_meta($booking->ID, 'end_time', true);
-            
+
             // Si el inicio del nuevo bloqueo está dentro de una reserva existente
             // O si el fin del nuevo bloqueo está dentro de una reserva existente
             // O si el nuevo bloqueo contiene completamente una reserva existente
             if (
-            ($start_time >= $booking_start && $start_time < $booking_end) ||
-            ($end_time > $booking_start && $end_time <= $booking_end) ||
-            ($start_time <= $booking_start && $end_time >= $booking_end)
+                ($start_time >= $booking_start && $start_time < $booking_end) ||
+                ($end_time > $booking_start && $end_time <= $booking_end) ||
+                ($start_time <= $booking_start && $end_time >= $booking_end)
             ) {
-            return new WP_Error(
-                'slot_not_available',
-                sprintf(
-                'El horario seleccionado (%s %s-%s) no puede ser bloqueado porque se solapa con reservas existentes.',
-                date('d/m/Y', strtotime($date)),
-                $start_time,
-                $end_time
-                ),
-                ['status' => 400]
-            );
+                return new WP_Error(
+                    'slot_not_available',
+                    sprintf(
+                        'El horario seleccionado (%s %s-%s) no puede ser bloqueado porque se solapa con reservas existentes.',
+                        date('d/m/Y', strtotime($date)),
+                        $start_time,
+                        $end_time
+                    ),
+                    ['status' => 400]
+                );
             }
         }
 
@@ -352,5 +364,47 @@ class DSB_Booking_Service
             'message' => 'Horario bloqueado correctamente',
             'id' => $event_id,
         ]);
+    }
+
+    public static function validate_booking_time($teacher_id, $date, $start_time, $end_time)
+    {
+        $config = get_user_meta($teacher_id, 'dsb_clases_config', true);
+
+        if (!$config || !is_array($config)) {
+            return new WP_Error('config_error', 'Configuración de horarios no encontrada');
+        }
+
+        // Si no se proporciona end_time, calcularlo
+        if (empty($end_time)) {
+            $class_duration = !empty($config['duracion']) ? intval($config['duracion']) : 45;
+            $dt_inicio = new DateTime("{$date} {$start_time}");
+            $dt_fin = clone $dt_inicio;
+            $dt_fin->modify('+' . $class_duration . ' minutes');
+            $end_time = $dt_fin->format('H:i');
+        }
+
+        $descansos = $config['descansos'] ?? [];
+
+        // Verificar si la reserva coincide con algún descanso
+        foreach ($descansos as $descanso) {
+            if (!isset($descanso['inicio']) || !isset($descanso['fin'])) {
+                continue; // Saltar descansos malformados
+            }
+
+            if (($start_time >= $descanso['inicio'] && $start_time < $descanso['fin']) ||
+                ($end_time > $descanso['inicio'] && $end_time <= $descanso['fin']) ||
+                ($start_time <= $descanso['inicio'] && $end_time >= $descanso['fin'])
+            ) {
+                return new WP_Error('break_time', sprintf(
+                    'La reserva (%s-%s) coincide con un horario de descanso (%s-%s)',
+                    $start_time,
+                    $end_time,
+                    $descanso['inicio'],
+                    $descanso['fin']
+                ));
+            }
+        }
+
+        return true;
     }
 }

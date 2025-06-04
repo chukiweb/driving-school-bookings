@@ -13,6 +13,8 @@ jQuery(document).ready(function ($) {
         static blockModeActive = false;
         static createBookingModeActive = false;
         static descansosCounter = 0;
+        static currentMode = null;
+        static originalButtonStates = new Map();
 
         static init() {
             // Inicializar datos
@@ -38,7 +40,28 @@ jQuery(document).ready(function ($) {
             // Configurar filtros de estudiantes
             ProfesorView.setupStudentFilters();
 
+            // Inicializar listeners para descansos
             ProfesorView.initDescansosListeners();
+
+            // **LISTENERS PARA CANCELAR MODALES**
+            // Cuando se cierra el modal de bloqueo sin guardar, mantener el modo
+            document.getElementById('blockTimeModal')?.addEventListener('hidden.bs.modal', function () {
+                // Solo desactivar si no se guardó (se puede añadir una flag si es necesario)
+                // Por ahora, mantener el modo activo para que el usuario pueda seguir seleccionando
+            });
+
+            document.getElementById('createBookingModal')?.addEventListener('hidden.bs.modal', function () {
+                // Solo desactivar si no se guardó
+            });
+
+            // **AÑADIR BOTÓN DE CANCELAR EN MODALES PARA DESACTIVAR MODO**
+            document.querySelector('#blockTimeModal .btn-secondary')?.addEventListener('click', function () {
+                ProfesorView.setMode(null);
+            });
+
+            document.querySelector('#createBookingModal .btn-secondary')?.addEventListener('click', function () {
+                ProfesorView.setMode(null);
+            });
         }
 
         static checkSession() {
@@ -143,19 +166,14 @@ jQuery(document).ready(function ($) {
                 });
             });
 
-            // Evento para activar el modo de bloqueo de horario
-            document.getElementById('blockTimeBtn')?.addEventListener('click', function () {
+            document.getElementById('blockTimeBtn')?.addEventListener('click', function (e) {
+                e.preventDefault();
                 ProfesorView.activateBlockMode();
             });
 
-            // Guardar bloqueo de horario
-            document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
-                ProfesorView.saveTimeBlock();
-            });
-
-            // Crear reserva para alumno
-            document.getElementById('createBookingBtn')?.addEventListener('click', function () {
-                ProfesorView.showCreateBookingForm();
+            document.getElementById('createBookingBtn')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                ProfesorView.activateCreateMode();
             });
 
             // Guardar reserva para alumno
@@ -178,28 +196,37 @@ jQuery(document).ready(function ($) {
         // Nuevo método para inicializar listeners de descansos:
         static initDescansosListeners() {
             // Inicializar contador con descansos existentes
-            const existingItems = document.querySelectorAll('.descanso-item');
+            const existingItems = document.querySelectorAll('.descanso-item[data-descanso-id]');
             if (existingItems.length > 0) {
                 const maxId = Math.max(...Array.from(existingItems).map(item =>
                     parseInt(item.dataset.descansoId) || 0
                 ));
                 ProfesorView.descansosCounter = maxId;
+                console.log('Contador inicial de descansos:', ProfesorView.descansosCounter);
+            } else {
+                ProfesorView.descansosCounter = 0;
             }
 
             // Listener para añadir descanso
-            document.getElementById('add-descanso-btn')?.addEventListener('click', function () {
-                ProfesorView.addDescansoField();
-            });
+            const addBtn = document.getElementById('add-descanso-btn');
+            if (addBtn) {
+                addBtn.addEventListener('click', function () {
+                    ProfesorView.addDescansoField();
+                });
+            }
 
             // Delegación de eventos para los botones de eliminar
-            document.getElementById('descansos-container')?.addEventListener('click', function (e) {
-                if (e.target.classList.contains('remove-descanso-btn') ||
-                    e.target.closest('.remove-descanso-btn')) {
-                    const button = e.target.classList.contains('remove-descanso-btn') ?
-                        e.target : e.target.closest('.remove-descanso-btn');
-                    ProfesorView.removeDescansoField(button);
-                }
-            });
+            const container = document.getElementById('descansos-container');
+            if (container) {
+                container.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-descanso-btn') ||
+                        e.target.closest('.remove-descanso-btn')) {
+                        const button = e.target.classList.contains('remove-descanso-btn') ?
+                            e.target : e.target.closest('.remove-descanso-btn');
+                        ProfesorView.removeDescansoField(button);
+                    }
+                });
+            }
         }
 
         static addDescansoField() {
@@ -240,37 +267,179 @@ jQuery(document).ready(function ($) {
             }
         }
 
-        static activateBlockMode() {
-            ProfesorView.blockModeActive = true;
+        static setMode(mode) {
+            // Limpiar modo anterior si existe
+            if (ProfesorView.currentMode) {
+                ProfesorView.clearMode();
+            }
+
+            ProfesorView.currentMode = mode;
+            ProfesorView.blockModeActive = (mode === 'block');
+            ProfesorView.createBookingModeActive = (mode === 'create');
+
+            // Aplicar estado visual del calendario
+            const calendar = document.getElementById('calendar');
+            calendar.classList.remove('block-mode', 'create-mode');
+
+            if (mode) {
+                calendar.classList.add(`${mode}-mode`);
+            }
+
+            // Configurar botones según el modo
+            ProfesorView.updateButtonStates(mode);
+
+            // Mostrar notificación correspondiente
+            ProfesorView.showModeNotification(mode);
+        }
+
+        static clearMode() {
+            // Limpiar estados
+            ProfesorView.currentMode = null;
+            ProfesorView.blockModeActive = false;
             ProfesorView.createBookingModeActive = false;
 
-            // Cambiar cursor para indicar modo de bloqueo
-            document.getElementById('calendar').classList.add('block-mode');
+            // Limpiar clases del calendario
+            const calendar = document.getElementById('calendar');
+            calendar.classList.remove('block-mode', 'create-mode');
 
-            // Mostrar notificación
-            window.mostrarNotificacion('', 'Modo de bloqueo activado. Seleccione una franja horaria para bloquear.', 'info');
+            // Restaurar botones a su estado original
+            ProfesorView.restoreButtonStates();
 
-            // Cambiar estado visual del botón
-            document.getElementById('blockTimeBtn').classList.remove('btn-outline-danger');
-            document.getElementById('blockTimeBtn').classList.add('btn-danger');
+            // Deseleccionar cualquier selección activa
+            if (ProfesorView.calendar) {
+                ProfesorView.calendar.unselect();
+            }
+        }
+
+        static updateButtonStates(mode) {
+            const blockBtn = document.getElementById('blockTimeBtn');
+            const createBtn = document.getElementById('createBookingBtn');
+
+            if (!blockBtn || !createBtn) return;
+
+            // Guardar estados originales si no se han guardado
+            if (!ProfesorView.originalButtonStates.has('block')) {
+                ProfesorView.originalButtonStates.set('block', {
+                    classes: blockBtn.className,
+                    innerHTML: blockBtn.innerHTML
+                });
+            }
+            if (!ProfesorView.originalButtonStates.has('create')) {
+                ProfesorView.originalButtonStates.set('create', {
+                    classes: createBtn.className,
+                    innerHTML: createBtn.innerHTML
+                });
+            }
+
+            switch (mode) {
+                case 'block':
+                    // Activar modo bloqueo
+                    blockBtn.className = 'btn btn-danger';
+                    blockBtn.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar bloqueo';
+
+                    // Desactivar botón crear
+                    createBtn.className = 'btn btn-outline-primary';
+                    createBtn.innerHTML = '<i class="bi bi-calendar-plus"></i> Crear reserva';
+                    createBtn.disabled = true;
+                    break;
+
+                case 'create':
+                    // Activar modo crear
+                    createBtn.className = 'btn btn-primary';
+                    createBtn.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar reserva';
+
+                    // Desactivar botón bloquear
+                    blockBtn.className = 'btn btn-outline-danger';
+                    blockBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Bloquear horario';
+                    blockBtn.disabled = true;
+                    break;
+
+                default:
+                    // Modo neutral - restaurar estados originales
+                    ProfesorView.restoreButtonStates();
+                    break;
+            }
+        }
+
+        static restoreButtonStates() {
+            const blockBtn = document.getElementById('blockTimeBtn');
+            const createBtn = document.getElementById('createBookingBtn');
+
+            if (blockBtn && ProfesorView.originalButtonStates.has('block')) {
+                const originalBlock = ProfesorView.originalButtonStates.get('block');
+                blockBtn.className = originalBlock.classes;
+                blockBtn.innerHTML = originalBlock.innerHTML;
+                blockBtn.disabled = false;
+            }
+
+            if (createBtn && ProfesorView.originalButtonStates.has('create')) {
+                const originalCreate = ProfesorView.originalButtonStates.get('create');
+                createBtn.className = originalCreate.classes;
+                createBtn.innerHTML = originalCreate.innerHTML;
+                createBtn.disabled = false;
+            }
+        }
+
+        static showModeNotification(mode) {
+            switch (mode) {
+                case 'block':
+                    window.mostrarNotificacion(
+                        'Modo Bloqueo Activado',
+                        'Seleccione la franja horaria que desea bloquear arrastrando con el mouse',
+                        'info'
+                    );
+                    break;
+                case 'create':
+                    window.mostrarNotificacion(
+                        'Modo Reserva Activado',
+                        'Seleccione la franja horaria para la nueva clase arrastrando con el mouse',
+                        'info'
+                    );
+                    break;
+                case null:
+                    window.mostrarNotificacion(
+                        '',
+                        'Modo desactivado',
+                        'success'
+                    );
+                    break;
+            }
+        }
+
+        static activateBlockMode() {
+            if (ProfesorView.currentMode === 'block') {
+                // Si ya está en modo bloqueo, desactivar
+                ProfesorView.setMode(null);
+            } else {
+                // Activar modo bloqueo
+                ProfesorView.setMode('block');
+            }
+        }
+
+        static activateCreateMode() {
+            if (ProfesorView.currentMode === 'create') {
+                // Si ya está en modo crear, desactivar
+                ProfesorView.setMode(null);
+            } else {
+                // Activar modo crear
+                ProfesorView.setMode('create');
+            }
         }
 
         static handleTimeBlockSelection(info) {
-            // Desactivar modo bloqueo
-            ProfesorView.blockModeActive = false;
-            document.getElementById('calendar').classList.remove('block-mode');
-            document.getElementById('blockTimeBtn').classList.remove('btn-danger');
-            document.getElementById('blockTimeBtn').classList.add('btn-outline-danger');
-
             // Llenar modal con información de la selección
             document.getElementById('block_start_date').value = info.startStr.substring(0, 10);
             document.getElementById('block_start_time').value = info.startStr.substring(11, 16);
             document.getElementById('block_end_date').value = info.endStr.substring(0, 10);
             document.getElementById('block_end_time').value = info.endStr.substring(11, 16);
 
+            // Limpiar selección visual pero mantener el modo
+            ProfesorView.calendar.unselect();
+
             // Mostrar modal de bloqueo
             ProfesorView.blockTimeModal.show();
         }
+
 
         static async saveTimeBlock() {
             const startDate = document.getElementById('block_start_date').value;
@@ -321,34 +490,103 @@ jQuery(document).ready(function ($) {
                 ProfesorView.blockTimeModal.hide();
                 window.mostrarNotificacion('', 'Horario bloqueado correctamente', 'success');
 
+                // **DESACTIVAR MODO DESPUÉS DE COMPLETAR LA ACCIÓN**
+                ProfesorView.setMode(null);
+
             } catch (error) {
                 console.error('Error al bloquear horario:', error);
                 window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
-        static showCreateBookingForm() {
-            ProfesorView.createBookingModeActive = true;
-            ProfesorView.blockModeActive = false;
+        static async createBookingForStudent() {
+            const date = document.getElementById('new_booking_date').value;
+            const startTime = document.getElementById('new_booking_start_time').value;
+            const endTime = document.getElementById('new_booking_end_time').value;
+            const studentId = document.getElementById('student_select').value;
+            const vehicle = document.getElementById('license_type').value === 'B' ?
+                ProfesorView.profesorData.vehicle.b.name :
+                ProfesorView.profesorData.vehicle.a.name;
 
-            // Cambiar cursor para indicar modo de creación
-            document.getElementById('calendar').classList.add('create-mode');
+            if (!studentId) {
+                window.mostrarNotificacion('Error', 'Debe seleccionar un alumno', 'error');
+                return;
+            }
 
-            // Mostrar notificación
-            window.mostrarNotificacion('', 'Seleccione la franja horaria para la nueva clase', 'info');
+            try {
+                const response = await fetch(`${ProfesorView.apiUrl}/bookings/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    },
+                    body: JSON.stringify({
+                        alumno: studentId,
+                        profesor: ProfesorView.profesorData.id,
+                        vehiculo: vehicle,
+                        fecha: date,
+                        hora: startTime,
+                        end_time: endTime,
+                        status: 'accepted',
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al crear la reserva');
+                }
+
+                const data = await response.json();
+
+                // Añadir la reserva al calendario
+                const studentName = document.getElementById('student_select').options[document.getElementById('student_select').selectedIndex].text;
+
+                ProfesorView.calendar.addEvent({
+                    id: data.id,
+                    title: `Clase con ${studentName}`,
+                    start: `${date}T${startTime}`,
+                    end: `${date}T${endTime}`,
+                    extendedProps: {
+                        status: 'accepted',
+                        studentName: studentName,
+                        studentId: studentId,
+                        vehicle: vehicle,
+                        date: date,
+                        time: startTime,
+                        endTime: endTime
+                    },
+                    className: 'accepted-event',
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745'
+                });
+
+                // Ocultar modal y mostrar notificación
+                ProfesorView.createBookingModal.hide();
+                window.mostrarNotificacion('', 'Reserva creada correctamente', 'success');
+
+                // **DESACTIVAR MODO DESPUÉS DE COMPLETAR LA ACCIÓN**
+                ProfesorView.setMode(null);
+
+                // Actualizar la lista de reservas
+                await ProfesorView.loadBookings();
+
+            } catch (error) {
+                console.error('Error al crear la reserva:', error);
+                window.mostrarNotificacion('Error', `${error.message}`, 'error');
+            }
         }
 
         static async handleBookingSelection(info) {
-            // Desactivar modo creación
-            ProfesorView.createBookingModeActive = false;
-            document.getElementById('calendar').classList.remove('create-mode');
+            // Mantener el modo activo hasta que se complete la acción
 
             // Verificar si la franja está bloqueada
             const events = ProfesorView.calendar.getEvents();
             for (const event of events) {
-                if (event.extendedProps.status === 'blocked' && ((info.start >= event.start && info.start < event.end) || (info.end > event.start && info.end <= event.end))) {
-
+                if (event.extendedProps.status === 'blocked' &&
+                    ((info.start >= event.start && info.start < event.end) ||
+                        (info.end > event.start && info.end <= event.end))) {
                     window.mostrarNotificacion('No permitido', 'La franja horaria seleccionada está bloqueada', 'error');
+                    ProfesorView.calendar.unselect();
                     return;
                 }
             }
@@ -357,6 +595,9 @@ jQuery(document).ready(function ($) {
             document.getElementById('new_booking_date').value = info.startStr.substring(0, 10);
             document.getElementById('new_booking_start_time').value = info.startStr.substring(11, 16);
             document.getElementById('new_booking_end_time').value = info.endStr.substring(11, 16);
+
+            // Limpiar selección visual pero mantener el modo
+            ProfesorView.calendar.unselect();
 
             // Mostrar modal de creación de reserva
             ProfesorView.createBookingModal.show();
@@ -577,6 +818,82 @@ jQuery(document).ready(function ($) {
             }
         }
 
+        static calculateOptimalSlots(config) {
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const duracionClase = config.duracion || 45;
+            const descansos = config.descansos || [];
+
+            // Convertir horas a minutos para cálculos
+            const timeToMinutes = (time) => {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+
+            const minutesToTime = (minutes) => {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            };
+
+            const inicioMinutos = timeToMinutes(horaInicio);
+            const finMinutos = timeToMinutes(horaFin);
+
+            // Crear array de períodos laborales (excluyendo descansos)
+            const periodosLaborales = [];
+
+            // Ordenar descansos por hora de inicio
+            const descansosOrdenados = descansos
+                .map(d => ({
+                    inicio: timeToMinutes(d.inicio),
+                    fin: timeToMinutes(d.fin)
+                }))
+                .sort((a, b) => a.inicio - b.inicio);
+
+            let horaActual = inicioMinutos;
+
+            // Crear períodos entre descansos
+            descansosOrdenados.forEach(descanso => {
+                if (horaActual < descanso.inicio) {
+                    periodosLaborales.push({
+                        inicio: horaActual,
+                        fin: descanso.inicio
+                    });
+                }
+                horaActual = descanso.fin;
+            });
+
+            // Añadir período final si queda tiempo
+            if (horaActual < finMinutos) {
+                periodosLaborales.push({
+                    inicio: horaActual,
+                    fin: finMinutos
+                });
+            }
+
+            // Generar slots optimizados para cada período
+            const slotsOptimizados = [];
+
+            periodosLaborales.forEach(periodo => {
+                const duracionPeriodo = periodo.fin - periodo.inicio;
+                const numClases = Math.floor(duracionPeriodo / duracionClase);
+
+                for (let i = 0; i < numClases; i++) {
+                    const slotInicio = periodo.inicio + (i * duracionClase);
+                    const slotFin = slotInicio + duracionClase;
+
+                    slotsOptimizados.push({
+                        start: minutesToTime(slotInicio),
+                        end: minutesToTime(slotFin),
+                        periodo: `periodo-${periodosLaborales.indexOf(periodo)}`
+                    });
+                }
+            });
+
+            console.log('Slots optimizados calculados:', slotsOptimizados);
+            return slotsOptimizados;
+        }
+
         static initializeCalendar() {
             const calendarElement = document.getElementById('calendar');
             if (!calendarElement) {
@@ -584,19 +901,19 @@ jQuery(document).ready(function ($) {
                 return;
             }
 
-            // Verificar si profesorData está definido y tiene la estructura esperada
-            if (!ProfesorView.profesorData) {
-                console.error("Datos del profesor no encontrados");
-                ProfesorView.profesorData = { config: {}, id: 0 };
-            }
-
             // Obtener configuración del profesor con valores por defecto
             const config = (ProfesorView.profesorData && ProfesorView.profesorData.config) ?
                 ProfesorView.profesorData.config :
-                { dias: [], hora_inicio: '08:00:00', hora_fin: '20:00:00', duracion: 45 };
+                { dias: [], hora_inicio: '08:00:00', hora_fin: '20:00:00', duracion: 45, descansos: [] };
 
-            // Duración de las clases
-            const duracion = config.duracion ? `00:${config.duracion}:00` : '00:45:00';
+            console.log('Configuración del profesor:', config);
+
+            // Generar businessHours considerando descansos
+            const businessHours = ProfesorView.generateBusinessHours(config);
+            console.log('BusinessHours generadas:', businessHours);
+
+            // Slots cada 15 minutos para granularidad
+            const duracionSlot = `00:15:00`;
 
             // Configurar días no disponibles
             const diasDisponibles = config.dias || [];
@@ -607,8 +924,6 @@ jQuery(document).ready(function ($) {
 
             // Obtener eventos activos
             const bookings = ProfesorView.bookings || [];
-
-            // Configurar eventos con información visual mejorada
             const events = bookings.map(booking => {
                 const eventClass = booking.status === 'pending' ? 'pending-event' :
                     booking.status === 'accepted' ? 'accepted-event' :
@@ -634,7 +949,7 @@ jQuery(document).ready(function ($) {
                 };
             });
 
-            // Opciones avanzadas del calendario
+            // Opciones del calendario simplificadas
             const calendarOptions = {
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
                 headerToolbar: {
@@ -642,18 +957,26 @@ jQuery(document).ready(function ($) {
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
-                slotDuration: duracion,
+
+                // Slots granulares cada 15 minutos
+                slotDuration: duracionSlot,
+
                 allDaySlot: false,
                 scrollTime: '08:00:00',
                 slotMinTime: config.hora_inicio || '08:00:00',
                 slotMaxTime: config.hora_fin || '20:00:00',
                 hiddenDays: diasNoDisponibles,
+
+                // Business Hours para mostrar horarios laborales
+                businessHours: businessHours,
+
                 expandRows: true,
                 locale: 'es',
                 events: events,
                 nowIndicator: true,
                 navLinks: true,
                 dayMaxEvents: true,
+
                 eventTimeFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -664,14 +987,17 @@ jQuery(document).ready(function ($) {
                     minute: '2-digit',
                     hour12: false
                 },
+
                 views: {
                     timeGridWeek: {
                         dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'numeric' }
                     }
                 },
+
+                // **SELECCIÓN LIBRE - SIN RESTRICCIONES**
                 selectable: true,
                 selectAllow: function (selectInfo) {
-                    // Obtiene el día de inicio y fin de la selección
+                    // Solo validar que sea el mismo día
                     var startDay = selectInfo.start.getDate();
                     var endDay = selectInfo.end.getDate();
                     var startMonth = selectInfo.start.getMonth();
@@ -679,11 +1005,41 @@ jQuery(document).ready(function ($) {
                     var startYear = selectInfo.start.getFullYear();
                     var endYear = selectInfo.end.getFullYear();
 
-                    // Permite la selección solo si el día, mes y año son iguales
                     return (startDay === endDay) && (startMonth === endMonth) && (startYear === endYear);
                 },
+
                 select: function (info) {
-                    // Verificar si estamos en modo bloqueo
+                    // Solo procesar selecciones si hay un modo activo
+                    if (!ProfesorView.blockModeActive && !ProfesorView.createBookingModeActive) {
+                        // Deseleccionar automáticamente si no hay modo activo
+                        ProfesorView.calendar.unselect();
+                        window.mostrarNotificacion('Información', 'Primero debe activar el modo de bloqueo o creación de reservas', 'info');
+                        return;
+                    }
+
+                    // Verificar que no haya conflictos con eventos existentes
+                    const hasConflict = ProfesorView.calendar.getEvents().some(event => {
+                        // No considerar conflicto si el evento está cancelado
+                        if (event.extendedProps.status === 'cancelled') {
+                            return false;
+                        }
+                        return (info.start < event.end && info.end > event.start);
+                    });
+
+                    if (hasConflict) {
+                        window.mostrarNotificacion('No permitido', 'Ya hay una clase o descanso programado en este horario', 'warning');
+                        ProfesorView.calendar.unselect();
+                        return;
+                    }
+
+                    // Verificar que esté en horario laboral
+                    if (!ProfesorView.isWithinBusinessHours(info, config)) {
+                        window.mostrarNotificacion('No permitido', 'Solo puedes seleccionar horarios laborales', 'warning');
+                        ProfesorView.calendar.unselect();
+                        return;
+                    }
+
+                    // Procesar según el modo activo
                     if (ProfesorView.blockModeActive) {
                         ProfesorView.handleTimeBlockSelection(info);
                     } else if (ProfesorView.createBookingModeActive) {
@@ -691,11 +1047,27 @@ jQuery(document).ready(function ($) {
                     }
                 },
 
-                // Mejora de visualización de eventos
+                slotLabelInterval: '01:00:00',
+
+                dayCellDidMount: function (info) {
+                    if (info.isPast) {
+                        info.el.classList.add('fc-day-past');
+                    }
+                },
+
+                selectMirror: true,
+                unselectAuto: true,
+
+                // Resto de opciones sin cambios...
                 eventDidMount: function (info) {
                     const event = info.event;
                     const element = info.el;
                     const status = event.extendedProps.status;
+
+                    // Don't show tooltip for events without valid status
+                    if (!status || !['pending', 'accepted', 'cancelled', 'blocked'].includes(status)) {
+                        return;
+                    }
 
                     if (status === 'cancelled') {
                         element.style.display = 'none';
@@ -708,12 +1080,10 @@ jQuery(document).ready(function ($) {
                         element.style.backgroundColor = '#dc3545';
                         element.style.borderColor = '#b02a37';
 
-                        // Añadir ícono de bloqueo
                         const timeText = element.querySelector('.fc-event-time');
                         if (timeText) {
                             timeText.innerHTML = '<i class="bi bi-lock-fill"></i> ' + timeText.innerHTML;
                         }
-
                         return;
                     }
 
@@ -729,14 +1099,14 @@ jQuery(document).ready(function ($) {
                         element.classList.add('blocked-event');
                     }
 
-                    // Agregar tooltip personalizado con información detallada
+                    // Tooltip simplificado
                     const tooltip = document.createElement('div');
                     tooltip.classList.add('event-tooltip');
                     tooltip.innerHTML = `
                         <div class="event-tooltip-header">
                             ${event.title}
                             <span class="event-tooltip-status ${status}">
-                              ${{
+                            ${{
                             'pending': 'Pendiente',
                             'accepted': 'Aceptada',
                             'cancelled': 'Cancelada',
@@ -767,7 +1137,6 @@ jQuery(document).ready(function ($) {
                         tooltip.style.left = rect.left + window.scrollX + 'px';
                         tooltip.style.top = rect.top + window.scrollY - tooltip.offsetHeight - 10 + 'px';
 
-                        // Ajustar posición si se sale de la pantalla
                         const tooltipRect = tooltip.getBoundingClientRect();
                         if (tooltipRect.left < 0) {
                             tooltip.style.left = '10px';
@@ -787,14 +1156,12 @@ jQuery(document).ready(function ($) {
                     });
                 },
 
-                // Manejo de clics en eventos
                 eventClick: function (info) {
-                    // Código para mostrar el modal con detalles del evento
                     const event = info.event;
                     const bookingId = event.id;
                     const status = event.extendedProps.status;
 
-                    // Completar el modal con la información del evento
+                    // Llenar modal con información del evento
                     document.getElementById('booking_id').value = bookingId;
                     document.getElementById('student_name').value = event.extendedProps.studentName;
                     document.getElementById('booking_status').value = status === 'pending' ? 'Pendiente' :
@@ -828,12 +1195,13 @@ jQuery(document).ready(function ($) {
                     const bookingModal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
                     bookingModal.show();
                 },
-                // Ajustes responsivos
+
                 windowResize: function (view) {
                     if (window.innerWidth < 768) {
                         ProfesorView.calendar.changeView('timeGridDay');
                     }
                 },
+
                 dayCellDidMount: function (info) {
                     var today = new Date();
                     if (info.date < today.setHours(0, 0, 0, 0)) {
@@ -850,6 +1218,103 @@ jQuery(document).ready(function ($) {
             document.getElementById('showPendingOnly')?.addEventListener('change', ProfesorView.applyFilters);
             document.getElementById('showAcceptedOnly')?.addEventListener('change', ProfesorView.applyFilters);
             document.getElementById('refreshCalendar')?.addEventListener('click', () => ProfesorView.calendar.refetchEvents());
+        }
+
+        // static highlightAvailableSlots(slots) {
+        //     // Esperar a que el calendario se renderice completamente
+        //     setTimeout(() => {
+        //         const slotElements = document.querySelectorAll('.fc-timegrid-slot[data-time]');
+
+        //         slotElements.forEach(slotEl => {
+        //             const slotTime = slotEl.getAttribute('data-time');
+        //             if (!slotTime) return;
+
+        //             // Verificar si este slot está dentro de los períodos optimizados
+        //             const isAvailableSlot = slots.some(slot => {
+        //                 return slotTime >= slot.start && slotTime < slot.end;
+        //             });
+
+        //             if (isAvailableSlot) {
+        //                 slotEl.classList.add('optimal-slot');
+        //             }
+        //         });
+        //     }, 500);
+        // }
+
+        static generateBusinessHours(config) {
+            const dias = config.dias || [];
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const descansos = config.descansos || [];
+
+            // Convertir nombres de días a números (FullCalendar usa 0=domingo, 1=lunes, etc.)
+            const daysOfWeek = dias.map(dia => {
+                const diasMap = {
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
+                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+                };
+                return diasMap[dia];
+            }).filter(day => day !== undefined);
+
+            if (daysOfWeek.length === 0) {
+                return false; // No hay días laborales
+            }
+
+            // Si no hay descansos, retornar horario simple
+            if (descansos.length === 0) {
+                return [{
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaInicio,
+                    endTime: horaFin
+                }];
+            }
+
+            // Ordenar descansos por hora de inicio
+            const descansosOrdenados = descansos.sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+            const businessHours = [];
+            let horaActual = horaInicio;
+
+            // Crear segmentos entre descansos
+            descansosOrdenados.forEach(descanso => {
+                if (horaActual < descanso.inicio) {
+                    businessHours.push({
+                        daysOfWeek: daysOfWeek,
+                        startTime: horaActual,
+                        endTime: descanso.inicio
+                    });
+                }
+                horaActual = descanso.fin;
+            });
+
+            // Añadir segmento final si queda tiempo después del último descanso
+            if (horaActual < horaFin) {
+                businessHours.push({
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaActual,
+                    endTime: horaFin
+                });
+            }
+
+            return businessHours;
+        }
+
+        // Método para validar si una selección está en horario laboral
+        static isWithinBusinessHours(selectInfo, config) {
+            const descansos = config.descansos || [];
+            const startTime = selectInfo.start.toTimeString().substring(0, 5);
+            const endTime = selectInfo.end.toTimeString().substring(0, 5);
+
+            // Verificar si la selección coincide con algún descanso
+            for (const descanso of descansos) {
+                if ((startTime >= descanso.inicio && startTime < descanso.fin) ||
+                    (endTime > descanso.inicio && endTime <= descanso.fin) ||
+                    (startTime <= descanso.inicio && endTime >= descanso.fin)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         static applyFilters() {
@@ -1218,9 +1683,12 @@ jQuery(document).ready(function ($) {
 
                 // Actualizar calendario con nueva configuración
                 if (ProfesorView.calendar) {
+                    // Recalcular slots optimizados
+                    const slotsOptimizados = ProfesorView.calculateOptimalSlots(payload);
+
                     ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
                     ProfesorView.calendar.setOption('slotMaxTime', hora_fin);
-                    ProfesorView.calendar.setOption('slotDuration', `00:${duracion}:00`);
+                    ProfesorView.calendar.setOption('snapDuration', `00:${duracion}:00`);
 
                     // Actualizar días no disponibles
                     const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
@@ -1228,7 +1696,13 @@ jQuery(document).ready(function ($) {
                         return !dias.includes(diaNombre);
                     });
                     ProfesorView.calendar.setOption('hiddenDays', diasNoDisponibles);
+
+                    // REGENERAR BUSINESS HOURS CON NUEVOS DESCANSOS
+                    const newBusinessHours = ProfesorView.generateBusinessHours(payload);
+                    ProfesorView.calendar.setOption('businessHours', newBusinessHours);
+
                     ProfesorView.calendar.render();
+
                 }
 
             } catch (error) {
