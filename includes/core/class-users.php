@@ -227,7 +227,7 @@ class DSB_User_Manager
             '{{url_acceso}}' => esc_url(site_url('/acceso')),
             '{{url_sitio}}' => esc_url(site_url('/')),
             '{{app_name}}' => esc_html(get_bloginfo('name')),
-            '{{app_logo}}' =>  $logo_html,
+            '{{app_logo}}' =>  $logo_correo ?: $logo_html,
         ];
 
         // 3) Cargar plantilla desde /emails/new-user.php (puede ser .html)

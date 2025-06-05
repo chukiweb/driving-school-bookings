@@ -183,8 +183,7 @@ section {
 }
 
 .calendar-responsive {
-    min-height: 1000px;
-    height: calc(80vh - 150px);
+    min-height: 120vh;
 }
 
 /* Contenedores y estructura del calendario */
@@ -415,8 +414,7 @@ div[class*='slot-cell-'].recent-time {
     }
     
     .calendar-responsive {
-        height: auto;
-        min-height: 800px;
+        min-height: 150vh;
     }
     
     .avatar-wrapper {

@@ -10,8 +10,10 @@ document.addEventListener('DOMContentLoaded', function () {
         static apiUrl = DSB_CONFIG.apiBaseUrl;
         static jwtToken = DSB_CONFIG.jwtToken;
         static events = [];
+        static teacherEvents = [];
         static calendar = null;
         static selectedDate = null;
+        static teacherSlots = []; // Nueva propiedad para cachear slots
 
         static init() {
             // Initialize data
@@ -63,8 +65,83 @@ document.addEventListener('DOMContentLoaded', function () {
             AlumnoView.setupEventListeners();
         }
 
-        static setupEventListeners() {
+        // NUEVA FUNCIÓN: Generar slots del profesor
+        static generateTeacherSlots(config) {
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const duracionClase = parseInt(config.duracion) || 45;
+            const descansos = config.descansos || [];
 
+            const timeToMinutes = (time) => {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+
+            const minutesToTime = (minutes) => {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            };
+
+            const inicioMinutos = timeToMinutes(horaInicio);
+            const finMinutos = timeToMinutes(horaFin);
+
+            // Crear períodos laborales excluyendo descansos
+            const periodosLaborales = [];
+            const descansosOrdenados = descansos
+                .map(d => ({ inicio: timeToMinutes(d.inicio), fin: timeToMinutes(d.fin) }))
+                .sort((a, b) => a.inicio - b.inicio);
+
+            let horaActual = inicioMinutos;
+            descansosOrdenados.forEach(descanso => {
+                if (horaActual < descanso.inicio) {
+                    periodosLaborales.push({ inicio: horaActual, fin: descanso.inicio });
+                }
+                horaActual = Math.max(horaActual, descanso.fin);
+            });
+
+            if (horaActual < finMinutos) {
+                periodosLaborales.push({ inicio: horaActual, fin: finMinutos });
+            }
+
+            // Generar slots
+            const slots = [];
+            periodosLaborales.forEach(periodo => {
+                const duracionPeriodo = periodo.fin - periodo.inicio;
+                const numClases = Math.floor(duracionPeriodo / duracionClase);
+
+                for (let i = 0; i < numClases; i++) {
+                    const inicioSlot = periodo.inicio + (i * duracionClase);
+                    const finSlot = inicioSlot + duracionClase;
+
+                    slots.push({
+                        start: minutesToTime(inicioSlot),
+                        end: minutesToTime(finSlot),
+                        startMinutes: inicioSlot,
+                        endMinutes: finSlot
+                    });
+                }
+            });
+
+            console.log('Slots generados:', slots);
+            return slots;
+        }
+
+        // NUEVA FUNCIÓN: Encontrar slot correspondiente al clic
+        static findSlotForClick(clickTime, slots) {
+            const timeToMinutes = (time) => {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+
+            const clickMinutes = timeToMinutes(clickTime);
+
+            return slots.find(slot =>
+                clickMinutes >= slot.startMinutes && clickMinutes < slot.endMinutes
+            );
+        }
+
+        static setupEventListeners() {
             document.querySelector('.logout-btn')?.addEventListener('click', function (e) {
                 e.preventDefault();
                 AlumnoView.handleLogout();
@@ -124,14 +201,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Verificar si se alcanzó el límite
-                if (AlumnoView.selectedDate.classCount >= dailyLimit) {
+                // Contar las clases ya reservadas para la fecha seleccionada
+                const selectedDateStr = AlumnoView.selectedDate.date;
+                const classCount = AlumnoView.reservas.filter(reserva =>
+                    reserva.date === selectedDateStr && reserva.status !== 'cancelled'
+                ).length;
+
+                if (classCount >= dailyLimit) {
                     // Mostrar mensaje de límite alcanzado
                     const warningEl = document.createElement('div');
                     warningEl.className = 'alert alert-warning';
                     warningEl.innerHTML = `
                         <i class="bi bi-exclamation-triangle"></i>
-                        Ya has reservado ${AlumnoView.selectedDate.classCount} clases para el 
-                        ${new Date(AlumnoView.selectedDate.date).toLocaleDateString('es-ES')}.
+                        Ya has reservado ${classCount} clases para el 
+                        ${new Date(selectedDateStr).toLocaleDateString('es-ES')}.
                         No puedes reservar más para esta fecha.
                     `;
 
@@ -433,123 +516,107 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('modal-estado').textContent = reserva.status;
         }
 
+        static obtenerDiasNoDisponibles(diasDisponibles) {
+            const todosDias = [0, 1, 2, 3, 4, 5, 6];
+
+            if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
+                return [];
+            }
+
+            const mapaDias = {
+                'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
+                'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+            };
+
+            const diasNumericos = diasDisponibles.map(dia => {
+                if (typeof dia === 'number') return dia;
+                return mapaDias[dia];
+            }).filter(dia => dia !== undefined);
+
+            return todosDias.filter(dia => !diasNumericos.includes(dia));
+        }
+
+        // AÑADIR esta función para generar businessHours
+        static generateBusinessHours(config) {
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const diasDisponibles = config.dias || [];
+            const descansos = config.descansos || [];
+
+            // Mapear días a números
+            const diasMap = {
+                'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
+                'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+            };
+
+            const daysOfWeek = diasDisponibles.map(dia => diasMap[dia]).filter(day => day !== undefined);
+
+            if (daysOfWeek.length === 0) return false;
+
+            // Si no hay descansos, devolver horario completo
+            if (!descansos || descansos.length === 0) {
+                return [{
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaInicio,
+                    endTime: horaFin
+                }];
+            }
+
+            // Generar períodos excluyendo descansos
+            const businessHours = [];
+            const descansosSorted = [...descansos].sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+            let horaActual = horaInicio;
+
+            descansosSorted.forEach(descanso => {
+                // Añadir período antes del descanso
+                if (horaActual < descanso.inicio) {
+                    businessHours.push({
+                        daysOfWeek: daysOfWeek,
+                        startTime: horaActual,
+                        endTime: descanso.inicio
+                    });
+                }
+                horaActual = descanso.fin;
+            });
+
+            // Añadir período después del último descanso
+            if (horaActual < horaFin) {
+                businessHours.push({
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaActual,
+                    endTime: horaFin
+                });
+            }
+
+            console.log('Business hours generadas:', businessHours);
+            return businessHours;
+        }
+
+        // MODIFICAR initializeCalendar()
         static initializeCalendar() {
             const calendarElement = document.getElementById('calendar');
             const teacherConfig = AlumnoView.alumnoData.teacher.config;
 
-            // Usar configuración del profesor o valor global como fallback
+            // Configuración básica
             const globalDuration = DSB_CONFIG.classDuration || 45;
             const classDuration = teacherConfig.duracion ? parseInt(teacherConfig.duracion) : globalDuration;
-            const duracion = '00:' + classDuration + ':00';
+            const slotDuration = '00:15:00';
 
-            function obtenerDiasNoDisponibles(diasDisponibles) {
-                const todosDias = [0, 1, 2, 3, 4, 5, 6];
+            // GENERAR Y CACHEAR SLOTS DEL PROFESOR
+            AlumnoView.teacherSlots = AlumnoView.generateTeacherSlots(teacherConfig);
 
-                if (!diasDisponibles || !Array.isArray(diasDisponibles) || diasDisponibles.length === 0) {
-                    return [];
-                }
+            // GENERAR BUSINESS HOURS (excluyendo descansos automáticamente)
+            const businessHours = AlumnoView.generateBusinessHours(teacherConfig);
 
-                const mapaDias = {
-                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
-                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
-                };
-
-                const diasNumericos = diasDisponibles.map(dia => {
-                    if (typeof dia === 'number') return dia;
-                    return mapaDias[dia];
-                }).filter(dia => dia !== undefined);
-
-                return todosDias.filter(dia => !diasNumericos.includes(dia));
-            }
-
-            // **NUEVO: Generar businessHours considerando descansos del profesor**
-            function generateBusinessHours(config) {
-                const dias = config.dias || [];
-                const horaInicio = config.hora_inicio || '08:00';
-                const horaFin = config.hora_fin || '20:00';
-                const descansos = config.descansos || [];
-
-                // Convertir nombres de días a números
-                const daysOfWeek = dias.map(dia => {
-                    const diasMap = {
-                        'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
-                        'Jueves': 4, 'Viernes': 5, 'Sábado': 6
-                    };
-                    return diasMap[dia];
-                }).filter(day => day !== undefined);
-
-                if (daysOfWeek.length === 0) {
-                    return false;
-                }
-
-                // Si no hay descansos, retornar horario simple
-                if (descansos.length === 0) {
-                    return [{
-                        daysOfWeek: daysOfWeek,
-                        startTime: horaInicio,
-                        endTime: horaFin
-                    }];
-                }
-
-                // Ordenar descansos por hora de inicio
-                const descansosOrdenados = descansos.sort((a, b) => a.inicio.localeCompare(b.inicio));
-
-                const businessHours = [];
-                let horaActual = horaInicio;
-
-                // Crear segmentos entre descansos
-                descansosOrdenados.forEach(descanso => {
-                    if (horaActual < descanso.inicio) {
-                        businessHours.push({
-                            daysOfWeek: daysOfWeek,
-                            startTime: horaActual,
-                            endTime: descanso.inicio
-                        });
-                    }
-                    horaActual = descanso.fin;
-                });
-
-                // Añadir segmento final si queda tiempo después del último descanso
-                if (horaActual < horaFin) {
-                    businessHours.push({
-                        daysOfWeek: daysOfWeek,
-                        startTime: horaActual,
-                        endTime: horaFin
-                    });
-                }
-
-                console.log('BusinessHours del profesor (vista alumno):', businessHours);
-                return businessHours;
-            }
-
-            // **NUEVO: Validar si una selección está en horario laboral (excluyendo descansos)**
-            function isWithinBusinessHours(selectInfo, config) {
-                const descansos = config.descansos || [];
-                const startTime = selectInfo.start.toTimeString().substring(0, 5);
-                const endTime = selectInfo.end.toTimeString().substring(0, 5);
-
-                // Verificar si la selección coincide con algún descanso
-                for (const descanso of descansos) {
-                    if ((startTime >= descanso.inicio && startTime < descanso.fin) ||
-                        (endTime > descanso.inicio && endTime <= descanso.fin) ||
-                        (startTime <= descanso.inicio && endTime >= descanso.fin)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            const diasNoDisponibles = obtenerDiasNoDisponibles(teacherConfig.dias);
-
-            // **GENERAR BUSINESS HOURS CON DESCANSOS**
-            const businessHours = generateBusinessHours(teacherConfig);
+            const diasNoDisponibles = AlumnoView.obtenerDiasNoDisponibles(teacherConfig.dias);
 
             const studentCalendar = new FullCalendar.Calendar(calendarElement, {
+                height: 'auto',
                 allDaySlot: false,
                 locale: 'es',
                 nowIndicator: true,
-                selectable: true,
+                selectable: false,
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
                 expandRows: true,
 
@@ -569,71 +636,66 @@ document.addEventListener('DOMContentLoaded', function () {
                     minute: '2-digit',
                     hour12: false
                 },
-                slotDuration: duracion,
+
+                slotDuration: slotDuration,
                 slotMinTime: teacherConfig.hora_inicio || '08:00:00',
                 slotMaxTime: teacherConfig.hora_fin || '21:00:00',
                 hiddenDays: diasNoDisponibles,
 
-                // **CONFIGURAR BUSINESS HOURS CON DESCANSOS**
+                // CONFIGURAR BUSINESS HOURS PARA EXCLUIR DESCANSOS
                 businessHours: businessHours,
-                selectConstraint: "businessHours", // Solo permitir seleccionar en horas laborales
 
-                select: function (selectInfo) {
-                    // Verificar las restricciones temporales
+                // NUEVA FUNCIONALIDAD: CLIC SIMPLE EN SLOTS
+                dateClick: function (info) {
+                    if (info.view.type === 'dayGridMonth') {
+                        return;
+                    }
+
+                    const clickTime = info.date.toTimeString().substring(0, 5);
+                    console.log('Clic en:', clickTime);
+
+                    const matchedSlot = AlumnoView.findSlotForClick(clickTime, AlumnoView.teacherSlots);
+
+                    if (!matchedSlot) {
+                        window.mostrarNotificacion('No disponible', 'No hay clases disponibles en este horario', 'warning');
+                        return;
+                    }
+
+                    console.log('Slot encontrado:', matchedSlot);
+
+                    const dateStr = info.date.toISOString().substring(0, 10);
+                    const startDateTime = new Date(`${dateStr}T${matchedSlot.start}:00`);
+                    const endDateTime = new Date(`${dateStr}T${matchedSlot.end}:00`);
+
                     const now = new Date();
                     const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
 
-                    if (selectInfo.start < oneHourFromNow) {
-                        AlumnoView.calendar.unselect();
+                    if (startDateTime < oneHourFromNow) {
                         window.mostrarNotificacion('No permitido', 'Debe reservar con al menos 1 hora de antelación', 'warning');
                         return;
                     }
 
-                    // **VALIDAR QUE NO ESTÉ EN PERÍODO DE DESCANSO**
-                    if (!isWithinBusinessHours(selectInfo, teacherConfig)) {
-                        AlumnoView.calendar.unselect();
-                        window.mostrarNotificacion('No disponible', 'No se puede reservar durante los períodos de descanso del profesor', 'warning');
-                        return;
-                    }
-
-                    // Verificar que no haya overlap con otros eventos
-                    const selectedStart = selectInfo.start.toISOString();
-                    const selectedEnd = selectInfo.end.toISOString();
-
                     const isSlotTaken = AlumnoView.teacherEvents.some(event => {
-                        const eventStart = new Date(event.start).toISOString();
-                        const eventEnd = new Date(event.end).toISOString();
-                        return (selectedStart < eventEnd && selectedEnd > eventStart);
+                        const eventStart = new Date(event.start).getTime();
+                        const eventEnd = new Date(event.end).getTime();
+                        return (startDateTime.getTime() < eventEnd && endDateTime.getTime() > eventStart);
                     });
 
                     if (isSlotTaken) {
-                        AlumnoView.calendar.unselect();
                         window.mostrarNotificacion('No disponible', 'Este horario ya está ocupado', 'warning');
                         return;
                     }
 
-                    // Verificar que la duración de la selección sea correcta
-                    const selectedDuration = (selectInfo.end - selectInfo.start) / 60000;
-                    const slotDuration = classDuration;
-
-                    if (Math.abs(selectedDuration - slotDuration) > 1) {
-                        AlumnoView.calendar.unselect();
-                        window.mostrarNotificacion('Duración incorrecta', `Las clases deben durar exactamente ${classDuration} minutos`, 'warning');
-                        return;
-                    }
-
-                    // Guardar la información de la selección
                     AlumnoView.selectedDate = {
-                        date: selectInfo.startStr.substring(0, 10),
-                        time: selectInfo.startStr.substring(11, 16),
-                        end_time: selectInfo.endStr.substring(11, 16)
+                        date: dateStr,
+                        time: matchedSlot.start,
+                        end_time: matchedSlot.end
                     };
 
-                    // Mostrar modal de reserva
+                    console.log('Fecha seleccionada:', AlumnoView.selectedDate);
                     AlumnoView.calendarModal.show();
                 },
 
-                // Resto de la configuración igual...
                 eventClick: function (info) {
                     if (info.event.extendedProps.status === 'cancelled') return;
 
@@ -661,39 +723,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     AlumnoView.calendarInfoModal.show();
                 },
 
+                // SOLO EVENTOS NORMALES (sin eventos de descanso)
                 events: [...AlumnoView.events, ...AlumnoView.teacherEvents],
-                selectMirror: false,
-
-                selectAllow: function (selectInfo) {
-                    // Verificaciones de tiempo
-                    const now = new Date();
-                    const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
-
-                    if (selectInfo.start < oneHourFromNow) {
-                        return false;
-                    }
-
-                    // Verificar solapamiento con eventos existentes
-                    const selectedStart = selectInfo.start.toISOString();
-                    const selectedEnd = selectInfo.end.toISOString();
-
-                    const isSlotTaken = AlumnoView.teacherEvents.some(event => {
-                        const eventStart = new Date(event.start).toISOString();
-                        const eventEnd = new Date(event.end).toISOString();
-                        return (selectedStart < eventEnd && selectedEnd > eventStart);
-                    });
-
-                    if (isSlotTaken) return false;
-
-                    // Verificar duración
-                    const selectedDuration = (selectInfo.end - selectInfo.start) / 60000;
-                    const slotDuration = classDuration;
-
-                    return Math.abs(selectedDuration - slotDuration) < 1;
-                },
-
-                snapDuration: duracion,
-                selectMinDistance: 0,
 
                 eventTimeFormat: {
                     hour: '2-digit',

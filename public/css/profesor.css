@@ -280,8 +280,7 @@ section {
 }
 
 .calendar-responsive {
-    min-height: 1000px;
-    height: calc(80vh - 120px);
+    min-height: 120vh;
     overflow: auto;
 }
 
@@ -609,8 +608,7 @@ section {
     }
 
     .calendar-responsive {
-        height: 100% !important;
-        min-height: 800px;
+        min-height: 150vh;
         overflow: auto;
     }
 

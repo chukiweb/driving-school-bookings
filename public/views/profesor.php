@@ -692,21 +692,6 @@ $js_config = [
         <section id="calendario" class="mb-5">
             <div class="calendar-header d-flex flex-wrap justify-content-between align-items-center mb-3">
                 <h3 class="mb-0 me-3"><i class="bi bi-calendar-check me-2"></i>Calendario de Clases</h3>
-                <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
-                    <div class="calendar-filter-wrapper me-2">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <input type="checkbox" class="btn-check" id="showPendingOnly" autocomplete="off">
-                            <label class="btn btn-outline-warning" for="showPendingOnly">
-                                <i class="bi bi-hourglass me-1"></i>Pendientes
-                            </label>
-
-                            <input type="checkbox" class="btn-check" id="showAcceptedOnly" autocomplete="off">
-                            <label class="btn btn-outline-success" for="showAcceptedOnly">
-                                <i class="bi bi-check-circle me-1"></i>Aceptadas
-                            </label>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div class="card border-0 shadow-sm overflow-hidden">
