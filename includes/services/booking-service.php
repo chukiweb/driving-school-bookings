@@ -252,7 +252,7 @@ class DSB_Booking_Service
 
         // Reembolsar tokens si cancela con tiempo
         $refund = false;
-        if ($hours_diff >= $cancel_hours_limit && $booking_status !== 'accepted') {
+        if ($hours_diff >= $cancel_hours_limit) {
             $cost = get_post_meta($booking_id, 'cost', true);
             if ($cost) {
                 $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
