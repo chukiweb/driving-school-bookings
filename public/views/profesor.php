@@ -830,6 +830,22 @@ $js_config = [
                         <img id="modal-student-avatar" src="" alt="Avatar del alumno" class="rounded-circle mb-3" width="100">
                         <h5 id="modal-student-name" class="mb-0"></h5>
                         <p id="modal-student-email" class="text-muted"></p>
+                        <div class="d-flex justify-content-center ms-auto text-center">
+                            <div class="bg-success text-white rounded-3 px-3 py-2 w-25">
+                                <span class="saldo-actual fs-6 fw-bold" id="modal-student-saldo"></span>
+                                <div><small>Saldo</small></div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de contacto -->
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <a id="modal-student-call-btn" href="#" class="btn btn-success btn-sm">
+                                <i class="bi bi-telephone-fill me-1"></i>Llamar
+                            </a>
+                            <a id="modal-student-whatsapp-btn" href="#" target="_blank" class="btn btn-success btn-sm">
+                                <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                            </a>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -855,7 +871,7 @@ $js_config = [
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 mb-3">
+                        <div class="col-md-6 mb-3">
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3 text-primary">
                                     <i class="bi bi-calendar-check fs-4"></i>

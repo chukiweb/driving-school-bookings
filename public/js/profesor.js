@@ -1686,6 +1686,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('modal-student-email').textContent = studentData.email;
                 document.getElementById('modal-student-license').textContent = studentData.license_type || 'No especificado';
                 document.getElementById('modal-student-phone').textContent = studentData.phone || 'No especificado';
+                document.getElementById('modal-student-call-btn').href = `tel:${studentData.phone || ''}`;
+                document.getElementById('modal-student-whatsapp-btn').href = `https://wa.me/${studentData.phone || ''}`;
+                document.getElementById('modal-student-saldo').textContent = studentData.balance ? `${studentData.balance}` : 'No disponible';
 
                 // Filtrar las clases de este alumno
                 const studentClasses = ProfesorView.bookings.filter(booking =>
