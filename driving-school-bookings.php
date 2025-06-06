@@ -27,6 +27,7 @@ register_deactivation_hook(__FILE__, 'dsb_deactivate_plugin');
 
 function dsb_activate_plugin()
 {
+    require_once plugin_dir_path(__FILE__) . 'includes/core/service-worker.php';
     dsb_create_root_service_worker();
 }
 
