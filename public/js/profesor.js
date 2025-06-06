@@ -810,6 +810,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Vista inicial: Day en móvil, Week en escritorio
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
 
+                height: 'auto', // Ajuste automático de altura
+                
                 // Cabecera superior
                 headerToolbar: {
                     left: 'prev,next today',
@@ -817,8 +819,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
 
-                // Duración de cada slot (igual que “duracionClase”)
-                slotDuration: duracionClase,
+                slotDuration: '00:15:00',
                 allDaySlot: false,
                 scrollTime: '08:00:00',
 

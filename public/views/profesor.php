@@ -722,13 +722,6 @@ $js_config = [
                         <i class="bi bi-info-circle me-1"></i> Haz clic en una reserva para ver detalles
                     </div>
                     <div class="calendar-controls order-1 order-md-2 d-flex gap-2">
-                        <button id="refreshCalendar" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
-                        </button>
-                        <button id="goToToday" class="btn btn-sm btn-primary">
-                            <i class="bi bi-calendar-check me-1"></i>Hoy
-                        </button>
-
                         <div class="btn-group" role="group">
                             <button id="blockTimeBtn" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Bloquear horario">
                                 <i class="bi bi-lock-fill"></i> Bloquear horario

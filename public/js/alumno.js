@@ -601,7 +601,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // Configuración básica
             const globalDuration = DSB_CONFIG.classDuration || 45;
             const classDuration = teacherConfig.duracion ? parseInt(teacherConfig.duracion) : globalDuration;
-            const slotDuration = '00:15:00';
 
             // GENERAR Y CACHEAR SLOTS DEL PROFESOR
             AlumnoView.teacherSlots = AlumnoView.generateTeacherSlots(teacherConfig);
@@ -613,6 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const studentCalendar = new FullCalendar.Calendar(calendarElement, {
                 height: 'auto',
+                
                 allDaySlot: false,
                 locale: 'es',
                 nowIndicator: true,
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     hour12: false
                 },
 
-                slotDuration: slotDuration,
+                slotDuration: '00:15:00',
                 slotMinTime: teacherConfig.hora_inicio || '08:00:00',
                 slotMaxTime: teacherConfig.hora_fin || '21:00:00',
                 hiddenDays: diasNoDisponibles,
