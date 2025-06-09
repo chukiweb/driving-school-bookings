@@ -455,6 +455,10 @@ div[class*='slot-cell-'].recent-time {
     .fc-daygrid-day-events {
         min-height: 20px;
     }
+
+    .fc-dayGridMonth-button, .fc-timeGridWeek-button, .fc-timeGridDay-button {
+        display: none !important;
+    }
 }
 
 /* === TARJETAS DE RESERVAS === */

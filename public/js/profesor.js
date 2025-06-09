@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            document.getElementById('saveTimeBlockBtn')?.addEventListener('click', function () {
+            document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
                 ProfesorView.saveTimeBlock();
             });
         }
@@ -811,7 +811,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
 
                 height: 'auto', // Ajuste automático de altura
-                
+
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana',
+                    day: 'Día'
+                },
+
                 // Cabecera superior
                 headerToolbar: {
                     left: 'prev,next today',
