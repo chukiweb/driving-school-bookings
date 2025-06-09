@@ -46,7 +46,7 @@
 			</p>
 		</div>
 		<div class="footer">
-			<p>Autoescuela Universitaria · Calle Ejemplo 123, Ciudad · <a href="<?php echo esc_url(home_url()); ?>">www.autoescuelauniversitaria.es</a></p>
+			<p>Autoescuela Universitaria · C/ Eduardo García Triviño 13 Bajo, Jaén · <a href="<?php echo esc_url(home_url()); ?>">www.autoescuelauniversitaria.es</a></p>
 			<p>Si no solicitaste este correo, ignóralo.</p>
 		</div>
 	</div>
