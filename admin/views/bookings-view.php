@@ -191,12 +191,42 @@ class DSB_Bookings_View extends DSB_Base_View
 
     protected function handle_accept_booking_form()
     {
-        if (isset($_POST['booking_id'])) {
-            $booking_id = intval($_POST['booking_id']);
-            update_post_meta($booking_id, 'status', 'accepted');
-
-            $this->render_notice('Reserva aceptada exitosamente');
+        if (!isset($_POST['booking_id'])) {
+            return;
         }
+
+        $booking_id = intval($_POST['booking_id']);
+
+        // Validar reserva
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            $this->render_notice('Reserva inválida', 'error');
+            return;
+        }
+
+        // Verificar que la reserva esté en estado pendiente
+        $current_status = get_post_meta($booking_id, 'status', true);
+        if ($current_status !== 'pending') {
+            $this->render_notice('Solo se pueden aceptar reservas en estado pendiente', 'error');
+            return;
+        }
+
+        // Verificar si ya pasó la clase
+        $booking_date = get_post_meta($booking_id, 'date', true);
+        $booking_time = get_post_meta($booking_id, 'time', true);
+        $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
+
+        if ($class_datetime < new DateTime()) {
+            $this->render_notice('No se puede aceptar una reserva que ya ha pasado', 'error');
+            return;
+        }
+
+        // Actualizar el estado de la reserva
+        update_post_meta($booking_id, 'status', 'accepted');
+
+        // Disparar acción de aceptación
+        do_action('dsb_booking_status_changed', $booking_id, 'accepted', $current_status);
+
+        $this->render_notice('Reserva aceptada exitosamente');
     }
 
     protected function handle_cancel_booking_form()
