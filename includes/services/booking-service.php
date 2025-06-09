@@ -247,12 +247,31 @@ class DSB_Booking_Service
         $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
         $now = new DateTime();
 
+        // Si la reserva ya ha pasado, no se puede cancelar
+        if ($class_datetime < $now) {
+            return new WP_Error(
+                'booking_past',
+                'No se puede cancelar una reserva que ya ha pasado',
+                ['status' => 400]
+            );
+        }
+
         $hours_diff = ($class_datetime->getTimestamp() - $now->getTimestamp()) / 3600;
         $cancel_hours_limit = DSB_Settings::get('cancelation_time_hours');
 
         // Reembolsar tokens si cancela con tiempo
         $refund = false;
         if ($hours_diff >= $cancel_hours_limit) {
+            $cost = get_post_meta($booking_id, 'cost', true);
+            if ($cost) {
+                $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
+                update_user_meta($student_id, 'class_points', $current_tokens + $cost);
+                $refund = true;
+            }
+        }
+
+        // Si la cancela un profesor, reembolsar siempre
+        if (intval($current_user_id) === intval($teacher_id)) {
             $cost = get_post_meta($booking_id, 'cost', true);
             if ($cost) {
                 $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
