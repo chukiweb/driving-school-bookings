@@ -201,15 +201,51 @@ class DSB_Bookings_View extends DSB_Base_View
 
     protected function handle_cancel_booking_form()
     {
-        if (isset($_POST['booking_id'])) {
-            $booking_id = intval($_POST['booking_id']);
-            update_post_meta($booking_id, 'status', 'cancelled');
-            do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', get_post_meta($booking_id, 'status', true));
-
-            $this->render_notice('Reserva cancelada exitosamente');
+        if (!isset($_POST['booking_id'])) {
+            return;
         }
-    }
 
+        $booking_id = intval($_POST['booking_id']);
+
+        // Validar reserva
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            $this->render_notice('Reserva inválida', 'error');
+            return;
+        }
+
+        // Verificar si ya pasó la clase
+        $booking_date = get_post_meta($booking_id, 'date', true);
+        $booking_time = get_post_meta($booking_id, 'time', true);
+        $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
+
+        if ($class_datetime < new DateTime()) {
+            $this->render_notice('No se puede cancelar una reserva que ya ha pasado', 'error');
+            return;
+        }
+
+        // Adminsitrador siempre reembolsa
+        $refund = current_user_can('manage_options');
+
+        if ($refund) {
+            $cost = get_post_meta($booking_id, 'cost', true);
+            $student_id = get_post_meta($booking_id, 'student_id', true);
+            $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
+            update_user_meta($student_id, 'class_points', $current_tokens + $cost);
+        }
+
+        // Cancelar reserva
+        $old_status = get_post_meta($booking_id, 'status', true);
+        update_post_meta($booking_id, 'status', 'cancelled');
+        do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', $old_status);
+
+        // Mensaje de éxito
+        $message = 'Reserva cancelada exitosamente';
+        if ($refund) {
+            $message .= sprintf('. Se reembolsaron %s créditos', floatval($cost));
+        }
+
+        $this->render_notice($message);
+    }
     protected function render_forms()
     {
         $this->render_create_booking_form();
