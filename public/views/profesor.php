@@ -869,7 +869,7 @@ $js_config = [
                                     <i class="bi bi-calendar-check fs-4"></i>
                                 </div>
                                 <div>
-                                    <small class="text-muted d-block">Clases completadas</small>
+                                    <small class="text-muted d-block">Clases aceptadas</small>
                                     <p id="modal-student-classes" class="mb-0 fw-medium"></p>
                                 </div>
                             </div>

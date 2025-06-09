@@ -442,8 +442,8 @@ class DSB_Dashboard_View extends DSB_Base_View
                                                 <div class="dsb-stat-label">Clases totales</div>
                                             </div>
                                             <div class="dsb-stat-item">
-                                                <div class="dsb-stat-value" id="teacherCompletedClasses">0</div>
-                                                <div class="dsb-stat-label">Clases completadas</div>
+                                                <div class="dsb-stat-value" id="teacherAcceptedClasses">0</div>
+                                                <div class="dsb-stat-label">Clases aceptadas</div>
                                             </div>
                                             <div class="dsb-stat-item">
                                                 <div class="dsb-stat-value" id="teacherCanceledClasses">0</div>
@@ -554,10 +554,6 @@ class DSB_Dashboard_View extends DSB_Base_View
                                     <div class="dsb-stat-item">
                                         <div class="dsb-stat-value dsb-status-accepted" id="studentAcceptedClasses">0</div>
                                         <div class="dsb-stat-label">Aceptadas</div>
-                                    </div>
-                                    <div class="dsb-stat-item">
-                                        <div class="dsb-stat-value dsb-status-completed" id="studentCompletedClasses">0</div>
-                                        <div class="dsb-stat-label">Completadas</div>
                                     </div>
                                     <div class="dsb-stat-item">
                                         <div class="dsb-stat-value dsb-status-pending" id="studentPendingClasses">0</div>

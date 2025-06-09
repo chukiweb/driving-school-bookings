@@ -44,6 +44,7 @@ class DSB_Teacher_Service
                 'id' => $user->ID,
                 'username' => $user->user_login,
                 'email' => $user->user_email,
+                'phone' => get_user_meta($user->ID, 'phone', true),
                 'first_name' => $first_name,
                 'last_name' => $last_name,
                 'display_name' => $user->display_name,
@@ -276,7 +277,7 @@ class DSB_Teacher_Service
         $bookings_query = new WP_Query($args);
         $bookings = [];
         $total_count = 0;
-        $completed_count = 0;
+        $accepted_count = 0;
         $canceled_count = 0;
 
         // Preparar array para contar clases por día
@@ -300,8 +301,8 @@ class DSB_Teacher_Service
 
                 // Contar por estado
                 $total_count++;
-                if ($status === 'completed') {
-                    $completed_count++;
+                if ($status === 'accepted') {
+                    $accepted_count++;
 
                     // Añadir al conteo por día
                     if (isset($days[$date])) {
@@ -325,7 +326,7 @@ class DSB_Teacher_Service
             'success' => true,
             'data' => [
                 'total' => $total_count,
-                'completed' => $completed_count,
+                'accepted' => $accepted_count,
                 'canceled' => $canceled_count,
                 'period' => $period,
                 'start_date' => $start_date->format('Y-m-d'),

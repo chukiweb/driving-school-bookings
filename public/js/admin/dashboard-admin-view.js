@@ -556,7 +556,7 @@ jQuery(document).ready(function ($) {
         displayTeacherStats(stats) {
             // Actualizar contadores
             document.getElementById('teacherTotalClasses').textContent = stats.total || 0;
-            document.getElementById('teacherCompletedClasses').textContent = stats.completed || 0;
+            document.getElementById('teacherAcceptedClasses').textContent = stats.accepted || 0;
             document.getElementById('teacherCanceledClasses').textContent = stats.canceled || 0;
 
             // Si hay una gráfica existente, destruirla antes de crear una nueva
@@ -571,7 +571,7 @@ jQuery(document).ready(function ($) {
                 data: {
                     labels: stats.days.map(day => day.date),
                     datasets: [{
-                        label: 'Clases completadas',
+                        label: 'Clases aceptadas',
                         data: stats.days.map(day => day.count),
                         backgroundColor: '#2980b9',
                         borderColor: '#2980b9',
@@ -597,7 +597,7 @@ jQuery(document).ready(function ($) {
             // Actualizar contadores
             document.getElementById('studentTotalClasses').textContent = stats.total || 0;
             document.getElementById('studentAcceptedClasses').textContent = stats.accepted || 0;
-            document.getElementById('studentCompletedClasses').textContent = stats.completed || 0;
+            // document.getElementById('studentCompletedClasses').textContent = stats.completed || 0;
             document.getElementById('studentPendingClasses').textContent = stats.pending || 0;
             document.getElementById('studentCancelledClasses').textContent = stats.cancelled || 0;
 
