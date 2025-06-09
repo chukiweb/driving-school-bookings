@@ -241,6 +241,10 @@ class DSB_Booking_Service
 
         // Obtener el estado actual de la reserva
         $booking_status = get_post_meta($booking_id, 'status', true);
+        if ($booking_status === 'cancelled') {
+            return new WP_Error('booking_already_cancelled', 'La reserva ya ha sido cancelada', ['status' => 400]);
+        }
+        
         // Verificar si la cancelación es con tiempo suficiente para reembolso
         $booking_date = get_post_meta($booking_id, 'date', true);
         $booking_time = get_post_meta($booking_id, 'time', true);

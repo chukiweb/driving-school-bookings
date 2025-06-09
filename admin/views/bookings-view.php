@@ -243,6 +243,13 @@ class DSB_Bookings_View extends DSB_Base_View
             return;
         }
 
+        // Verificar que la reserva no esté ya cancelada
+        $current_status = get_post_meta($booking_id, 'status', true);
+        if ($current_status === 'cancelled') {
+            $this->render_notice('La reserva ya está cancelada', 'error');
+            return;
+        }
+
         // Verificar si ya pasó la clase
         $booking_date = get_post_meta($booking_id, 'date', true);
         $booking_time = get_post_meta($booking_id, 'time', true);
