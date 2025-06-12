@@ -98,6 +98,12 @@ $js_config = [
     'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
     'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
     'classDuration' => DSB_Settings::get('class_duration'),
+    'minAntelacion' => DSB_Settings::get('default_min_antelacion'), // en horas
+    'maxAntelacion' => DSB_Settings::get('default_max_antelacion'), // en días
+    'antelacionUnits' => [
+        'min' => 'horas',
+        'max' => 'días'
+    ]
 ];
 
 ?>
@@ -225,38 +231,106 @@ $js_config = [
                                 </button>
                             </h2>
                             <div id="infoCollapse" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
-                                <div class="accordion-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-primary text-white p-3 rounded-circle">
-                                                    <i class="bi bi-tag-fill"></i>
+                                <div class="accordion-body p-4">
+                                    <div class="row g-4">
+                                        <!-- Costos y Límites -->
+                                        <div class="col-12">
+                                            <h6 class="text-dark mb-3 fw-semibold">
+                                                <i class="bi bi-coin text-primary me-2"></i>Costos y Límites
+                                            </h6>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-body p-3 border-start border-4 border-primary">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                                                                    <i class="bi bi-tag-fill"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="text-muted d-block">Precio por clase</small>
+                                                                    <span class="h5 mb-0 text-dark"><?= $settings['class_cost'] ?></span>
+                                                                    <small class="text-muted"> puntos</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="ms-3">
-                                                    <small class="text-muted d-block">Precio por clase</small>
-                                                    <span id="precio-clase" class="fw-bold"><?= $settings['class_cost'] ?> puntos</span>
+                                                <div class="col-md-4">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-body p-3 border-start border-4 border-success">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="bg-success bg-opacity-10 p-2 rounded-circle me-3">
+                                                                    <i class="bi bi-calendar-check-fill"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="text-muted d-block">Máximo diario</small>
+                                                                    <span class="h5 mb-0 text-dark"><?= $settings['daily_limit'] ?></span>
+                                                                    <small class="text-muted"> clases</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-body p-3 border-start border-4 border-warning">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="bg-warning bg-opacity-10 p-2 rounded-circle me-3">
+                                                                    <i class="bi bi-clock-fill"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="text-muted d-block">Cancelación gratuita</small>
+                                                                    <span class="h5 mb-0 text-dark"><?= $settings['cancelation_time_hours'] ?>h</span>
+                                                                    <small class="text-muted"> antes</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-warning text-white p-3 rounded-circle">
-                                                    <i class="bi bi-clock-fill"></i>
+
+                                        <!-- Antelación -->
+                                        <div class="col-12">
+                                            <h6 class="text-dark mb-3 fw-semibold">
+                                                <i class="bi bi-clock text-primary me-2"></i>Tiempos de Antelación
+                                            </h6>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-body p-3 border-start border-4 border-info">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="bg-info bg-opacity-10 p-2 rounded-circle me-3">
+                                                                    <i class="bi bi-hourglass-split"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="text-muted d-block">Antelación mínima</small>
+                                                                    <span class="h5 mb-0 text-dark"><?= DSB_Settings::get('default_min_antelacion') ?></span>
+                                                                    <small class="text-muted"> <?= DSB_Settings::get('default_min_antelacion') == 1 ? 'hora' : 'horas' ?></small>
+                                                                    <div class="small text-muted mt-1">Tiempo mínimo para reservar</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="ms-3">
-                                                    <small class="text-muted d-block">Cancelación gratuita</small>
-                                                    <span id="horas-cancelacion" class="fw-bold"><?= $settings['cancelation_time_hours'] ?> h. antes</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-success text-white p-3 rounded-circle">
-                                                    <i class="bi bi-calendar-check-fill"></i>
-                                                </div>
-                                                <div class="ms-3">
-                                                    <small class="text-muted d-block">Máximo diario</small>
-                                                    <span id="max-bookings" class="fw-bold"><?= $settings['daily_limit'] ?> clases</span>
+                                                <div class="col-md-6">
+                                                    <div class="card border-0 shadow-sm h-100">
+                                                        <div class="card-body p-3 border-start border-4 border-secondary">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="bg-secondary bg-opacity-10 p-2 rounded-circle me-3">
+                                                                    <i class="bi bi-calendar-range"></i>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="text-muted d-block">Antelación máxima</small>
+                                                                    <span class="h5 mb-0 text-dark"><?= DSB_Settings::get('default_max_antelacion') ?></span>
+                                                                    <small class="text-muted"> <?= DSB_Settings::get('default_max_antelacion') == 1 ? 'día' : 'días' ?></small>
+                                                                    <div class="small text-muted mt-1">Máximo tiempo de antelación</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -825,7 +899,7 @@ $js_config = [
     <script src="<?= $lib_base_url ?>fullcalendar.min.js"></script>
     <script src="<?= $lib_base_url ?>fullcalendar.js"></script>
 
-        <script>
+    <script>
         // Pasar datos desde PHP a JavaScript
         const studentData = <?= json_encode(dsb_get_student_data()); ?>;
         const bookingsData = <?= json_encode(dsb_get_bookings_data()); ?>;
@@ -836,7 +910,7 @@ $js_config = [
             instanceId: '02609d94-0e91-4039-baf6-7d9d04b1fb6e'
         };
     </script>
-    
+
     <!-- Nuestros scripts -->
     <script src="<?= $js_base_url; ?>pusher-init.js"></script>
     <script src="<?= $js_base_url; ?>alumno.js"></script>

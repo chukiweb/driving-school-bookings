@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const studentCalendar = new FullCalendar.Calendar(calendarElement, {
                 height: 'auto',
-                
+
                 allDaySlot: false,
                 locale: 'es',
                 nowIndicator: true,
@@ -670,8 +670,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const now = new Date();
                     const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
 
-                    if (startDateTime < oneHourFromNow) {
-                        window.mostrarNotificacion('No permitido', 'Debe reservar con al menos 1 hora de antelación', 'warning');
+                    if (!AlumnoView.validateAntelacion(startDateTime)) {
                         return;
                     }
 
@@ -748,6 +747,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
             AlumnoView.calendar = studentCalendar;
             studentCalendar.render();
+        }
+
+        static validateAntelacion(startDateTime) {
+            const now = new Date();
+
+            // Antelación mínima (en horas)
+            const minAntelacionHours = parseInt(DSB_CONFIG.minAntelacion) || 1;
+            const minAllowedTime = new Date(now.getTime() + (minAntelacionHours * 60 * 60 * 1000));
+
+            if (startDateTime < minAllowedTime) {
+                const formatTime = minAllowedTime.toLocaleString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                window.mostrarNotificacion(
+                    'Antelación insuficiente',
+                    `Debe reservar con al menos ${minAntelacionHours} ${minAntelacionHours === 1 ? 'hora' : 'horas'} de antelación. Hora más próxima: ${formatTime}`,
+                    'warning'
+                );
+                return false;
+            }
+
+            // Antelación máxima (en días)
+            const maxAntelacionDays = parseInt(DSB_CONFIG.maxAntelacion) || 30;
+            const maxAllowedTime = new Date(now.getTime() + (maxAntelacionDays * 24 * 60 * 60 * 1000));
+
+            if (startDateTime > maxAllowedTime) {
+                const formatDate = maxAllowedTime.toLocaleDateString('es-ES');
+
+                window.mostrarNotificacion(
+                    'Antelación excesiva',
+                    `No es posible reservar con más de ${maxAntelacionDays} ${maxAntelacionDays === 1 ? 'día' : 'días'} de antelación. Fecha límite: ${formatDate}`,
+                    'warning'
+                );
+                return false;
+            }
+
+            return true;
         }
     }
 

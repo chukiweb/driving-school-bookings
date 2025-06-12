@@ -26,6 +26,12 @@ class DSB_Booking_Service
             );
         }
 
+        // 1.5. NUEVA VALIDACIÓN: Verificar antelación mínima y máxima
+        $antelacion_validation = self::validate_booking_antelacion($date, $start_time);
+        if (is_wp_error($antelacion_validation)) {
+            return $antelacion_validation;
+        }
+
         // 2. Obtener configuración del profesor y duración esperada
         $teacher_config = get_user_meta($teacher_id, 'dsb_clases_config', true);
         $expected_duration = !empty($teacher_config['duracion'])
@@ -96,7 +102,7 @@ class DSB_Booking_Service
         if (is_wp_error($slot_validation)) {
             return $slot_validation;
         }
-        
+
         // 5. Validar horarios de descanso del profesor
         $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
 
@@ -582,4 +588,54 @@ class DSB_Booking_Service
 
         return true;
     }
+
+    /**
+     * Valida que la reserva cumpla con la antelación mínima y máxima configurada
+     */
+    private static function validate_booking_antelacion($date, $start_time)
+    {
+        $now = new DateTime();
+        $booking_datetime = new DateTime("{$date} {$start_time}");
+
+        // Obtener configuración
+        $min_antelacion_hours = intval(DSB_Settings::get('default_min_antelacion')) ?: 1;
+        $max_antelacion_days = intval(DSB_Settings::get('default_max_antelacion')) ?: 30;
+
+        // Validar antelación mínima
+        $min_allowed_time = clone $now;
+        $min_allowed_time->modify("+{$min_antelacion_hours} hours");
+
+        if ($booking_datetime < $min_allowed_time) {
+            return new WP_Error(
+                'insufficient_antelacion',
+                sprintf(
+                    'Debe reservar con al menos %d %s de antelación. Hora más próxima disponible: %s',
+                    $min_antelacion_hours,
+                    $min_antelacion_hours == 1 ? 'hora' : 'horas',
+                    $min_allowed_time->format('d/m/Y H:i')
+                ),
+                ['status' => 400]
+            );
+        }
+
+        // Validar antelación máxima
+        $max_allowed_time = clone $now;
+        $max_allowed_time->modify("+{$max_antelacion_days} days");
+
+        if ($booking_datetime > $max_allowed_time) {
+            return new WP_Error(
+                'excessive_antelacion',
+                sprintf(
+                    'No es posible reservar con más de %d %s de antelación. Fecha límite: %s',
+                    $max_antelacion_days,
+                    $max_antelacion_days == 1 ? 'día' : 'días',
+                    $max_allowed_time->format('d/m/Y')
+                ),
+                ['status' => 400]
+            );
+        }
+
+        return true;
+    }
+
 }

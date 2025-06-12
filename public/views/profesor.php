@@ -137,6 +137,12 @@ $plugin_url = plugin_dir_url(__FILE__);
 $js_config = [
     'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
     'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
+    'minAntelacion' => DSB_Settings::get('default_min_antelacion'), // en horas
+    'maxAntelacion' => DSB_Settings::get('default_max_antelacion'), // en días
+    'antelacionUnits' => [
+        'min' => 'horas',
+        'max' => 'días'
+    ]
 ];
 ?>
 <!DOCTYPE html>
