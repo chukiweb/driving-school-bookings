@@ -38,27 +38,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Añadir las reservas del profesor como no disponibles
             AlumnoView.teacherEvents = teacherBookingsData
-            .filter(event => event.status !== 'cancelled')
-            .filter(event => {
-                // Filtramos las reservas que son del alumno actual para no duplicar
-                const isCurrentStudentBooking = AlumnoView.events.some(
-                    e => e.start === event.start && e.end === event.end
-                );
-                return !isCurrentStudentBooking;
-            }).map(event => {
-                // Formato especial para reservas de otros alumnos
-                return {
-                    id: `teacher-${event.id}`,
-                    title: 'No disponible',
-                    start: event.start,
-                    end: event.end,
-                    backgroundColor: '#dc3545', // Rojo para no disponible
-                    borderColor: '#dc3545',
-                    classNames: ['unavailable-event'],
-                    display: 'background', // Esto muestra el evento como bloque de fondo
-                    interactive: false // No permitir interacción
-                };
-            });
+                .filter(event => event.status !== 'cancelled')
+                .filter(event => {
+                    // Filtramos las reservas que son del alumno actual para no duplicar
+                    const isCurrentStudentBooking = AlumnoView.events.some(
+                        e => e.start === event.start && e.end === event.end
+                    );
+                    return !isCurrentStudentBooking;
+                }).map(event => {
+                    // Formato especial para reservas de otros alumnos
+                    return {
+                        id: `teacher-${event.id}`,
+                        title: 'No disponible',
+                        start: event.start,
+                        end: event.end,
+                        backgroundColor: '#dc3545', // Rojo para no disponible
+                        borderColor: '#dc3545',
+                        classNames: ['unavailable-event'],
+                        display: 'background', // Esto muestra el evento como bloque de fondo
+                        interactive: false // No permitir interacción
+                    };
+                });
 
             // Initialize the calendar
             AlumnoView.initializeCalendar();
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            console.log('Slots generados:', slots);
+            console.log('Slots generados:', slots.length > 0 ? slots : 'No se generaron slots');
             return slots;
         }
 
@@ -600,9 +600,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const calendarElement = document.getElementById('calendar');
             const teacherConfig = AlumnoView.alumnoData.teacher.config;
 
-            // Configuración básica
-            const globalDuration = DSB_CONFIG.classDuration || 45;
-            const classDuration = teacherConfig.duracion ? parseInt(teacherConfig.duracion) : globalDuration;
+            const classDuration = teacherConfig.duracion || DSB_CONFIG.classDuration || 45;
+            const duracionClase = `00:${String(classDuration).padStart(2, '0')}:00`;
 
             // GENERAR Y CACHEAR SLOTS DEL PROFESOR
             AlumnoView.teacherSlots = AlumnoView.generateTeacherSlots(teacherConfig);
@@ -638,6 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     minute: '2-digit',
                     hour12: false
                 },
+                slotLabelInterval: duracionClase,
 
                 slotDuration: '00:15:00',
                 slotMinTime: teacherConfig.hora_inicio || '08:00:00',

@@ -744,9 +744,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 : { dias: [], hora_inicio: '08:00:00', hora_fin: '20:00:00', duracion: 45, descansos: [] };
 
             // 3. Duración de la clase (formato HH:mm:ss)
-            const duracionClase = config.duracion
-                ? `00:${String(config.duracion).padStart(2, '0')}:00`
-                : '00:45:00';
+            const classDuration = config.duracion || DSB_CONFIG.classDuration || 45;
+            const duracionClase = `00:${String(classDuration).padStart(2, '0')}:00`;
 
             // 4. Calcular días no disponibles (hiddenDays)
             const diasDisponibles = config.dias || [];
@@ -824,6 +823,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
 
                 slotDuration: '00:15:00',
+                slotLabelInterval: duracionClase,
+
                 allDaySlot: false,
                 scrollTime: '08:00:00',
 
