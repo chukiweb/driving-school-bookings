@@ -110,22 +110,6 @@ class DSB_Booking_Service
             return $is_valid;
         }
 
-        // 4. Verificar tiempo mínimo de antelación (1 hora)
-        $current_datetime = new DateTime();
-        $class_datetime = new DateTime("{$date} {$start_time}");
-        $time_diff_seconds = $class_datetime->getTimestamp() - $current_datetime->getTimestamp();
-        $time_diff_hours = $time_diff_seconds / 3600;
-
-        $min_booking_hours = 1; // Mínimo 1 hora de antelación
-
-        if ($time_diff_hours < $min_booking_hours) {
-            return new WP_Error(
-                'insufficient_notice',
-                sprintf('Debes reservar las clases con al menos %d hora(s) de antelación', $min_booking_hours),
-                ['status' => 400]
-            );
-        }
-
         // 5. Verificar límite de clases por fecha de la reserva
         $daily_limit = DSB_Settings::get('daily_limit');
 

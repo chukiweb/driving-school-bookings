@@ -667,9 +667,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     const startDateTime = new Date(`${dateStr}T${matchedSlot.start}:00`);
                     const endDateTime = new Date(`${dateStr}T${matchedSlot.end}:00`);
 
-                    const now = new Date();
-                    const oneHourFromNow = new Date(now.getTime() + (60 * 60 * 1000));
-
                     if (!AlumnoView.validateAntelacion(startDateTime)) {
                         return;
                     }
