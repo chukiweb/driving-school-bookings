@@ -249,7 +249,7 @@ $js_config = [
                                                                 </div>
                                                                 <div>
                                                                     <small class="text-muted d-block">Precio por clase</small>
-                                                                    <span class="h5 mb-0 text-dark"><?= $settings['class_cost'] ?></span>
+                                                                    <span class="h5 mb-0 text-dark" id="precio-clase"><?= $settings['class_cost'] ?></span>
                                                                     <small class="text-muted"> puntos</small>
                                                                 </div>
                                                             </div>

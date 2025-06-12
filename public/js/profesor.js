@@ -763,47 +763,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 7. Preparar el array de eventos (tomamos booking.start / booking.end directamente)
             const bookings = ProfesorView.bookings || [];
-            const events = bookings.map(booking => {
-                // Determinar clase CSS según estado
-                let eventClass = '';
-                switch (booking.status) {
-                    case 'pending':
-                        eventClass = 'pending-event';
-                        break;
-                    case 'accepted':
-                        eventClass = 'accepted-event';
-                        break;
-                    case 'cancelled':
-                        eventClass = 'cancelled-event';
-                        break;
-                    case 'blocked':
-                        eventClass = 'blocked-event';
-                        break;
-                    default:
-                        // Si la fecha ya pasó y no es ninguno de los anteriores:
-                        if (new Date(booking.date) < new Date()) {
-                            eventClass = 'past-event';
-                        }
-                        break;
-                }
-
-                return {
-                    id: booking.id,
-                    title: booking.title || `Clase con ${booking.student_name || 'Alumno'}`,
-                    start: booking.start,        // p.ej. "2025-06-16T10:30"
-                    end: booking.end,            // p.ej. "2025-06-16T11:15"
-                    className: eventClass,
-                    extendedProps: {
-                        status: booking.status,
-                        studentName: booking.student_name,
-                        studentId: booking.student_id,
-                        vehicle: booking.vehicle,
-                        date: booking.date,
-                        time: booking.time,
-                        endTime: booking.end_time
+            const events = bookings
+                .filter(booking => booking.status !== 'cancelled')
+                .map(booking => {
+                    let eventClass = '';
+                    switch (booking.status) {
+                        case 'pending':
+                            eventClass = 'pending-event';
+                            break;
+                        case 'accepted':
+                            eventClass = 'accepted-event';
+                            break;
+                        case 'blocked':
+                            eventClass = 'blocked-event';
+                            break;
+                        default:
+                            if (new Date(booking.date) < new Date()) {
+                                eventClass = 'past-event';
+                            }
+                            break;
                     }
-                };
-            });
+
+                    return {
+                        id: booking.id,
+                        title: booking.title || `Clase con ${booking.student_name || 'Alumno'}`,
+                        start: booking.start,
+                        end: booking.end,
+                        className: eventClass,
+                        extendedProps: {
+                            status: booking.status,
+                            studentName: booking.student_name,
+                            studentId: booking.student_id,
+                            vehicle: booking.vehicle,
+                            date: booking.date,
+                            time: booking.time,
+                            endTime: booking.end_time
+                        }
+                    };
+                });
 
             // 8. Construir opciones avanzadas del calendario
             const calendarOptions = {
@@ -923,12 +920,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     const event = info.event;
                     const element = info.el;
                     const status = event.extendedProps.status;
-
-                    // 1) Si está cancelado, ocultarlo
-                    if (status === 'cancelled') {
-                        element.style.display = 'none';
-                        return;
-                    }
 
                     // 2) Estilo especial para eventos bloqueados
                     if (status === 'blocked') {

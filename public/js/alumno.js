@@ -37,7 +37,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             // Añadir las reservas del profesor como no disponibles
-            AlumnoView.teacherEvents = teacherBookingsData.filter(event => {
+            AlumnoView.teacherEvents = teacherBookingsData
+            .filter(event => event.status !== 'cancelled')
+            .filter(event => {
                 // Filtramos las reservas que son del alumno actual para no duplicar
                 const isCurrentStudentBooking = AlumnoView.events.some(
                     e => e.start === event.start && e.end === event.end
