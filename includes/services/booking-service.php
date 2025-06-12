@@ -91,6 +91,12 @@ class DSB_Booking_Service
             }
         }
 
+        // 4.5. NUEVA VALIDACIÓN: Verificar que la reserva coincida con un slot válido
+        $slot_validation = self::validate_booking_slot($teacher_id, $date, $start_time, $end_time);
+        if (is_wp_error($slot_validation)) {
+            return $slot_validation;
+        }
+        
         // 5. Validar horarios de descanso del profesor
         $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
 
@@ -535,6 +541,43 @@ class DSB_Booking_Service
                     $descanso['fin']
                 ));
             }
+        }
+
+        return true;
+    }
+
+    /**
+     * Valida que la reserva coincida exactamente con un slot válido del profesor
+     */
+    private static function validate_booking_slot($teacher_id, $date, $start_time, $end_time)
+    {
+        // Usar el nuevo servicio centralizado
+        $available_slots = DSB_Teacher_Slots_Service::get_slots_for_date($teacher_id, $date);
+
+        if (empty($available_slots)) {
+            return new WP_Error(
+                'no_slots_available',
+                'No hay slots disponibles para este día',
+                ['status' => 400]
+            );
+        }
+
+        // Verificar si existe un slot que coincida exactamente
+        $matching_slot = DSB_Teacher_Slots_Service::find_matching_slot($available_slots, $start_time, $end_time);
+
+        if (!$matching_slot) {
+            return new WP_Error(
+                'invalid_slot',
+                sprintf(
+                    'El horario %s-%s no corresponde a un slot válido. Slots disponibles: %s',
+                    $start_time,
+                    $end_time,
+                    implode(', ', array_map(function ($s) {
+                        return $s['start'] . '-' . $s['end'];
+                    }, $available_slots))
+                ),
+                ['status' => 400]
+            );
         }
 
         return true;

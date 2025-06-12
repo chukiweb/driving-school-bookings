@@ -9,6 +9,7 @@ require_once DSB_PLUGIN_DIR . 'services/calendar-service.php';
 require_once DSB_PLUGIN_DIR . 'services/vehicle-service.php';
 require_once DSB_PLUGIN_DIR . 'services/booking-service.php';
 require_once DSB_PLUGIN_DIR . 'services/user-service.php';
+require_once DSB_PLUGIN_DIR . 'services/teacher-slots-service.php';
 
 class DSB_API
 {
