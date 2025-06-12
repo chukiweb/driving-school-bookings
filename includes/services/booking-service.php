@@ -5,6 +5,7 @@ if (!defined('ABSPATH')) {
 
 class DSB_Booking_Service
 {
+
     public static function create_booking($request)
     {
         // 1. Recoger y sanitizar parámetros del cuerpo
@@ -25,13 +26,79 @@ class DSB_Booking_Service
             );
         }
 
+        // 2. Obtener configuración del profesor y duración esperada
+        $teacher_config = get_user_meta($teacher_id, 'dsb_clases_config', true);
+        $expected_duration = !empty($teacher_config['duracion'])
+            ? intval($teacher_config['duracion'])
+            : DSB_Settings::get('class_duration');
+
+        // 3. Calcular hora de fin ANTES de las validaciones
+        if (! empty($end_time)) {
+            $end_time = sanitize_text_field($end_time);
+
+            // NUEVA VALIDACIÓN: Verificar que la duración coincida con la configuración del profesor
+            $start_timestamp = strtotime($start_time);
+            $end_timestamp = strtotime($end_time);
+            $actual_duration = ($end_timestamp - $start_timestamp) / 60; // Duración en minutos
+
+            if ($actual_duration != $expected_duration) {
+                return new WP_Error(
+                    'invalid_duration',
+                    sprintf(
+                        'La duración de la clase debe ser de %d minutos. Duración recibida: %d minutos.',
+                        $expected_duration,
+                        $actual_duration
+                    ),
+                    ['status' => 400]
+                );
+            }
+        } else {
+            // Calcular end_time basado en la configuración del profesor
+            $dt_inicio = new DateTime("{$date} {$start_time}");
+            $dt_fin    = clone $dt_inicio;
+            $dt_fin->modify('+' . $expected_duration . ' minutes');
+            $end_time = $dt_fin->format('H:i');
+        }
+
+        // 4. NUEVA VALIDACIÓN: Verificar que la hora de inicio sea válida según la configuración del profesor
+        if (!empty($teacher_config)) {
+            $hora_inicio_profesor = $teacher_config['hora_inicio'] ?? '08:00';
+            $hora_fin_profesor = $teacher_config['hora_fin'] ?? '20:00';
+
+            if ($start_time < $hora_inicio_profesor || $start_time >= $hora_fin_profesor) {
+                return new WP_Error(
+                    'invalid_time_range',
+                    sprintf(
+                        'La hora seleccionada (%s) está fuera del horario de trabajo del profesor (%s - %s)',
+                        $start_time,
+                        $hora_inicio_profesor,
+                        $hora_fin_profesor
+                    ),
+                    ['status' => 400]
+                );
+            }
+
+            if ($end_time > $hora_fin_profesor) {
+                return new WP_Error(
+                    'class_exceeds_working_hours',
+                    sprintf(
+                        'La clase terminaría fuera del horario de trabajo del profesor. Hora de fin: %s, Límite: %s',
+                        $end_time,
+                        $hora_fin_profesor
+                    ),
+                    ['status' => 400]
+                );
+            }
+        }
+
+        // 5. Validar horarios de descanso del profesor
         $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
 
         if (is_wp_error($is_valid)) {
             return $is_valid;
         }
 
-        // 2. Verificar tiempo mínimo de antelación (1 hora)
+        // 4. Verificar tiempo mínimo de antelación (1 hora)
         $current_datetime = new DateTime();
         $class_datetime = new DateTime("{$date} {$start_time}");
         $time_diff_seconds = $class_datetime->getTimestamp() - $current_datetime->getTimestamp();
@@ -47,7 +114,7 @@ class DSB_Booking_Service
             );
         }
 
-        // Verificar límite de clases por fecha de la reserva
+        // 5. Verificar límite de clases por fecha de la reserva
         $daily_limit = DSB_Settings::get('daily_limit');
 
         // Contar cuántas clases activas tiene el estudiante en la fecha de la clase
@@ -70,32 +137,61 @@ class DSB_Booking_Service
             );
         }
 
-        // Verificar que no existan reservas para el mismo profesor en la misma fecha y hora
+        // 6. NUEVA VALIDACIÓN: Verificar solapamientos con reservas del profesor
         $existing_teacher_bookings = get_posts([
             'post_type' => 'dsb_booking',
             'meta_query' => [
                 'relation' => 'AND',
                 ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '='],
                 ['key' => 'date', 'value' => $date, 'compare' => '='],
-                ['key' => 'time', 'value' => $start_time, 'compare' => '='],
                 ['key' => 'status', 'value' => 'cancelled', 'compare' => '!=']
             ],
             'posts_per_page' => -1
         ]);
 
-        if (!empty($existing_teacher_bookings)) {
-            return new WP_Error(
-                'slot_not_available',
-                sprintf(
-                    'El horario seleccionado (%s %s) ya no está disponible. Por favor, seleccione otro horario.',
-                    date('d/m/Y', strtotime($date)),
-                    $start_time
-                ),
-                ['status' => 400]
-            );
+        // Verificar solapamientos
+        foreach ($existing_teacher_bookings as $booking) {
+            $booking_start = get_post_meta($booking->ID, 'time', true);
+            $booking_end = get_post_meta($booking->ID, 'end_time', true);
+
+            // Verificar si hay solapamiento
+            if (self::time_ranges_overlap($start_time, $end_time, $booking_start, $booking_end)) {
+                return new WP_Error(
+                    'slot_not_available',
+                    sprintf(
+                        'El horario seleccionado (%s %s-%s) se solapa con una reserva existente (%s-%s). Por favor, seleccione otro horario.',
+                        date('d/m/Y', strtotime($date)),
+                        $start_time,
+                        $end_time,
+                        $booking_start,
+                        $booking_end
+                    ),
+                    ['status' => 400]
+                );
+            }
         }
 
-        // 2. Verificar saldo de tokens del alumno
+        // 7. NUEVA VALIDACIÓN: Verificar solapamientos con reservas del estudiante
+        foreach ($existing_bookings as $booking) {
+            $booking_start = get_post_meta($booking->ID, 'time', true);
+            $booking_end = get_post_meta($booking->ID, 'end_time', true);
+
+            // Verificar si hay solapamiento
+            if (self::time_ranges_overlap($start_time, $end_time, $booking_start, $booking_end)) {
+                return new WP_Error(
+                    'student_slot_conflict',
+                    sprintf(
+                        'Ya tienes una clase reservada en un horario que se solapa (%s-%s) para el día %s. No puedes tener clases simultáneas.',
+                        $booking_start,
+                        $booking_end,
+                        date('d/m/Y', strtotime($date))
+                    ),
+                    ['status' => 400]
+                );
+            }
+        }
+
+        // 8. Verificar saldo de tokens del alumno
         $class_cost = DSB_Settings::get('class_cost');
         $student_tokens = intval(get_user_meta($student_id, 'class_points', true));
 
@@ -112,25 +208,7 @@ class DSB_Booking_Service
             );
         }
 
-        // 3. Calcular hora de fin si no viene en el request
-        if (! empty($end_time)) {
-            $end_time = sanitize_text_field($end_time);
-        } else {
-            // Obtener la duración de clase desde la configuración del profesor
-            $teacher_config = get_user_meta($teacher_id, 'dsb_clases_config', true);
-
-            // Si el profesor tiene configuración de duración, usarla; si no, usar el valor global
-            $class_duration = !empty($teacher_config['duracion'])
-                ? intval($teacher_config['duracion'])
-                : DSB_Settings::get('class_duration');
-
-            $dt_inicio = new DateTime("{$date} {$start_time}");
-            $dt_fin    = clone $dt_inicio;
-            $dt_fin->modify('+' . $class_duration . ' minutes');
-            $end_time = $dt_fin->format('H:i');
-        }
-
-        // 4. Preparar datos del post
+        // 9. Preparar datos del post
         $post_data = [
             'post_type' => 'dsb_booking',
             'post_title' => sprintf('Reserva %s - %s | %s', $date, $start_time, $student_id),
@@ -147,20 +225,20 @@ class DSB_Booking_Service
             ],
         ];
 
-        // 5. Insertar el post y manejar errores
+        // 10. Insertar el post y manejar errores
         $post_id = wp_insert_post($post_data);
         if (is_wp_error($post_id)) {
             return $post_id;
         }
 
-        // 6. Restar tokens al estudiante
+        // 11. Restar tokens al estudiante
         $new_balance = $student_tokens - $class_cost;
         update_user_meta($student_id, 'class_points', $new_balance);
 
-        // 7. Disparar acción de reserva creada
+        // 12. Disparar acción de reserva creada
         do_action('dsb_booking_created', $post_id);
 
-        // 8. Devolver respuesta con ID y datos de la reserva
+        // 13. Devolver respuesta con ID y datos de la reserva
         return rest_ensure_response([
             'success'   => true,
             'id'        => $post_id,
@@ -171,6 +249,23 @@ class DSB_Booking_Service
             'newBalance' => $new_balance,
             'status'    => $status
         ]);
+    }
+
+    /**
+     * Verificar si dos rangos de tiempo se solapan
+     */
+    private static function time_ranges_overlap($start1, $end1, $start2, $end2)
+    {
+        // Convertir strings de tiempo a timestamps para comparación
+        $start1_ts = strtotime($start1);
+        $end1_ts = strtotime($end1);
+        $start2_ts = strtotime($start2);
+        $end2_ts = strtotime($end2);
+
+        // Dos rangos se solapan si:
+        // - El inicio del rango 1 está antes del fin del rango 2 Y
+        // - El fin del rango 1 está después del inicio del rango 2
+        return ($start1_ts < $end2_ts && $end1_ts > $start2_ts);
     }
 
     public static function accept_booking($request)
@@ -244,7 +339,7 @@ class DSB_Booking_Service
         if ($booking_status === 'cancelled') {
             return new WP_Error('booking_already_cancelled', 'La reserva ya ha sido cancelada', ['status' => 400]);
         }
-        
+
         // Verificar si la cancelación es con tiempo suficiente para reembolso
         $booking_date = get_post_meta($booking_id, 'date', true);
         $booking_time = get_post_meta($booking_id, 'time', true);
@@ -397,12 +492,26 @@ class DSB_Booking_Service
             return new WP_Error('config_error', 'Configuración de horarios no encontrada');
         }
 
-        // Si no se proporciona end_time, calcularlo
-        if (empty($end_time)) {
-            $class_duration = !empty($config['duracion']) ? intval($config['duracion']) : 45;
+        // NUEVA VALIDACIÓN: Verificar duración de la clase
+        $expected_duration = !empty($config['duracion']) ? intval($config['duracion']) : DSB_Settings::get('class_duration');
+
+        if (!empty($end_time)) {
+            $start_timestamp = strtotime($start_time);
+            $end_timestamp = strtotime($end_time);
+            $actual_duration = ($end_timestamp - $start_timestamp) / 60;
+
+            if ($actual_duration != $expected_duration) {
+                return new WP_Error('invalid_class_duration', sprintf(
+                    'La duración de la clase debe ser exactamente %d minutos, recibida: %d minutos',
+                    $expected_duration,
+                    $actual_duration
+                ));
+            }
+        } else {
+            // Si no se proporciona end_time, calcularlo
             $dt_inicio = new DateTime("{$date} {$start_time}");
             $dt_fin = clone $dt_inicio;
-            $dt_fin->modify('+' . $class_duration . ' minutes');
+            $dt_fin->modify('+' . $expected_duration . ' minutes');
             $end_time = $dt_fin->format('H:i');
         }
 
