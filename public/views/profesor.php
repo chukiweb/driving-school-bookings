@@ -457,7 +457,7 @@ $js_config = [
                             $alumno_ids_hoy = [];
                             $today = date('Y-m-d');
                             foreach ($bookings as $booking) {
-                                if ($booking['date'] === $today && $booking['status'] !== 'cancelled' && !in_array($booking['student_id'], $alumno_ids_hoy)) {
+                                if ($booking['date'] === $today && $booking['status'] !== 'cancelled' && $booking['status'] !== 'blocked' && !in_array($booking['student_id'], $alumno_ids_hoy)) {
                                     $alumno_ids_hoy[] = $booking['student_id'];
                                     $alumnos_hoy++;
                                 }

@@ -412,12 +412,6 @@ class DSB_Booking_Service
             );
         }
 
-        $is_valid = DSB_Booking_Service::validate_booking_time($teacher_id, $date, $start_time, $end_time);
-
-        if (is_wp_error($is_valid)) {
-            return $is_valid;
-        }
-
         // Verificar que no existan reservas para el profesor en la misma fecha y durante la franja horaria
         $existing_teacher_bookings = get_posts([
             'post_type' => 'dsb_booking',
