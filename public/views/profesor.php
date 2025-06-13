@@ -154,7 +154,7 @@ $js_config = [
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="<?= $css_base_url ?>profesor.css">
+    <link rel="stylesheet" href="<?= $css_base_url ?>profesor.css?ver=<?= DSB_VERSION ?>">
 </head>
 
 <body class="bg-light">
@@ -1039,8 +1039,8 @@ $js_config = [
     </script>
 
     <!-- Nuestros scritps -->
-    <script src="<?= $js_base_url; ?>pusher-init.js"></script>
-    <script src="<?= $js_base_url; ?>profesor.js"></script>
+    <script src="<?= $js_base_url; ?>pusher-init.js?ver=<?= DSB_VERSION ?>"></script>
+    <script src="<?= $js_base_url; ?>profesor.js?ver=<?= DSB_VERSION ?>"></script>
 </body>
 
 </html>

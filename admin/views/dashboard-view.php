@@ -156,7 +156,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             'dashboard-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/dashboard-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
         wp_enqueue_script(
@@ -171,7 +171,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             'dashboard-admin-js',
             DSB_PLUGIN_URL . '../public/js/admin/dashboard-admin-view.js',
             ['jquery', 'wp-api', 'chartjs'],
-            '1.0.0',
+            DSB_VERSION,
             true
         );
 

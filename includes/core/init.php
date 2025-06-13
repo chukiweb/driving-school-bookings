@@ -43,7 +43,7 @@ class DSB_Init
 
     private function defineConstants()
     {
-        define('DSB_VERSION', '1.0.0');
+        define('DSB_VERSION', '0.1.0-rc.1');
         define('DSB_PLUGIN_DIR', plugin_dir_path(dirname(__FILE__)));
         define('DSB_PLUGIN_DIR_PATH', plugin_dir_path(dirname(__DIR__, 1)));
         define('DSB_PLUGIN_URL', plugin_dir_url(dirname(__FILE__)));

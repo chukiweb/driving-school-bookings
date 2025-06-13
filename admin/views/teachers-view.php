@@ -555,10 +555,10 @@ class DSB_Teachers_View extends DSB_Base_View
             'teacher-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/teacher-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
-        wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], '1.0.0', true);
+        wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], DSB_VERSION, true);
 
         wp_localize_script('profesor-js', 'allStudentData', $this->get_students_data());
 
