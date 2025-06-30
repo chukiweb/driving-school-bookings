@@ -354,25 +354,19 @@ class DSB_Booking_Service
         $hours_diff = ($class_datetime->getTimestamp() - $now->getTimestamp()) / 3600;
         $cancel_hours_limit = DSB_Settings::get('cancelation_time_hours');
 
-        // Reembolsar tokens si cancela con tiempo
+        
         $refund = false;
-        if ($hours_diff >= $cancel_hours_limit) {
-            $cost = get_post_meta($booking_id, 'cost', true);
-            if ($cost) {
-                $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
-                update_user_meta($student_id, 'class_points', $current_tokens + $cost);
-                $refund = true;
-            }
+        $cost = get_post_meta($booking_id, 'cost', true);
+
+        // Determinar si hay que reembolsar (por tiempo O por ser profesor)
+        if ($hours_diff >= $cancel_hours_limit || intval($current_user_id) === intval($teacher_id)) {
+            $refund = true;
         }
 
-        // Si la cancela un profesor, reembolsar siempre
-        if (intval($current_user_id) === intval($teacher_id)) {
-            $cost = get_post_meta($booking_id, 'cost', true);
-            if ($cost) {
-                $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
-                update_user_meta($student_id, 'class_points', $current_tokens + $cost);
-                $refund = true;
-            }
+        // Hacer UN SOLO reembolso si corresponde
+        if ($refund && $cost) {
+            $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
+            update_user_meta($student_id, 'class_points', $current_tokens + $cost);
         }
 
         // Actualizar el estado de la reserva
@@ -615,5 +609,4 @@ class DSB_Booking_Service
 
         return true;
     }
-
 }
