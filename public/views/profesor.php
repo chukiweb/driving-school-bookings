@@ -108,7 +108,6 @@ if (!isset($teacher['config']) || !is_array($teacher['config'])) {
 $bookings = dsb_get_teacher_bookings();
 
 // Contadores para estadísticas
-$pending_count = 0;
 $today_count = 0;
 $total_count = 0;
 $today = date('Y-m-d');
@@ -116,9 +115,6 @@ $today = date('Y-m-d');
 foreach ($bookings as $booking) {
     if ($booking['status'] === 'blocked') {
         continue; // Ignorar reservas bloqueadas
-    }
-    if ($booking['status'] === 'pending') {
-        $pending_count++;
     }
     if ($booking['date'] === $today && $booking['status'] !== 'cancelled') {
         $today_count++;
@@ -232,6 +228,7 @@ $js_config = [
                             <div id="profileDetails" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
                                 <div class="accordion-body">
                                     <div class="row g-3">
+
                                         <div class="col-md-6">
                                             <div class="d-flex">
                                                 <div class="me-3 text-primary">
@@ -242,7 +239,9 @@ $js_config = [
                                                     <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']['b']['name']) ?></p>
                                                 </div>
                                             </div>
+                                        </div>
 
+                                        <div class="col-md-6">
                                             <div class="d-flex">
                                                 <div class="me-3 text-primary">
                                                     <i class="bi bi-bicycle"></i>
@@ -250,6 +249,18 @@ $js_config = [
                                                 <div>
                                                     <small class="text-muted d-block">Moto</small>
                                                     <p id="assigned-car" class="mb-0"><?= esc_html($teacher['vehicle']['a']['name']) ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-geo-alt"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Ubicación de recogida</small>
+                                                    <p id="pickup-location" class="mb-0"><?= esc_html(DSB_Settings::get('pickup_location') ?? 'No configurada') ?></p>
                                                 </div>
                                             </div>
                                         </div>
@@ -262,18 +273,6 @@ $js_config = [
                                                 <div>
                                                     <small class="text-muted d-block">Clases hoy</small>
                                                     <p class="mb-0"><?= $today_count ?> clases</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="d-flex">
-                                                <div class="me-3 text-primary">
-                                                    <i class="bi bi-hourglass-split"></i>
-                                                </div>
-                                                <div>
-                                                    <small class="text-muted d-block">Pendientes</small>
-                                                    <p class="mb-0"><?= $pending_count ?> reservas</p>
                                                 </div>
                                             </div>
                                         </div>

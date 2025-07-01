@@ -192,7 +192,7 @@ $js_config = [
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#profileDetails">
-                                    <i class="bi bi-info-circle me-2"></i> Detalles del perfil
+                                    <i class="bi bi-info-circle me-2"></i> Detalles de las clases
                                 </button>
                             </h2>
                             <div id="profileDetails" class="accordion-collapse collapse" data-bs-parent="#profileAccordion">
@@ -217,6 +217,18 @@ $js_config = [
                                                 <div>
                                                     <small class="text-muted d-block">Vehículo</small>
                                                     <p id="assigned-car" class="mb-0"><?= $user['teacher']['vehicle_name'] ?></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="d-flex">
+                                                <div class="me-3 text-primary">
+                                                    <i class="bi bi-geo-alt-fill"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Punto de recogida</small>
+                                                    <p id="pickup-location" class="mb-0"><?= DSB_Settings::get('pickup_location') ?? 'No asignado' ?></p>
+                                                    <small class="text-muted">Tu profesor te recogerá en este punto</small>
                                                 </div>
                                             </div>
                                         </div>
