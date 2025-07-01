@@ -23,7 +23,7 @@
 		.content { padding:30px 20px }
 		.content h1 { font-size:24px; margin-bottom:10px }
 		.content p { font-size:16px; line-height:1.5; margin:15px 0 }
-		.btn { display:inline-block; padding:12px 20px; margin:20px 0; background:#0073e6; color:#fff; text-decoration:none; border-radius:4px; font-weight:bold }
+		.btn { display:inline-block; padding:12px 20px; margin:20px 0; background:#fff; color: #0073e6 !important; text-decoration:none; border-radius:4px; font-weight:bold }
 		.footer { padding:15px 20px; font-size:12px; color:#777; text-align:center; background:#f0f0f0 }
 		.footer a { color:#0073e6; text-decoration:none }
 	</style>
@@ -46,7 +46,7 @@
 			</p>
 		</div>
 		<div class="footer">
-			<p>Autoescuela Universitaria · Calle Ejemplo 123, Ciudad · <a href="<?php echo esc_url(home_url()); ?>">www.autoescuelauniversitaria.es</a></p>
+			<p>Autoescuela Universitaria · C/ Eduardo García Triviño 13 Bajo, Jaén · <a href="<?php echo esc_url(home_url()); ?>">www.autoescuelauniversitaria.es</a></p>
 			<p>Si no solicitaste este correo, ignóralo.</p>
 		</div>
 	</div>

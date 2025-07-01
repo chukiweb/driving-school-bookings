@@ -3,9 +3,12 @@
 /**
  * Plugin Name: Driving School Bookings
  * Description: Sistema de gestión de reservas para autoescuela
- * Version: 1.0.0
- * Author: Tu Nombre
- * Text Domain: driving-school-bookings
+ * Version: 0.1.0-rc.1
+ * Author: Cubetic Consultores
+ * Author URI: https://cubetic.com
+ * Text Domain: driving-school-bookings 
+ * Requires at least: 6.8.1
+ * Requires PHP: 8.2.23
  */
 
 if (!defined('ABSPATH')) exit;
@@ -27,6 +30,7 @@ register_deactivation_hook(__FILE__, 'dsb_deactivate_plugin');
 
 function dsb_activate_plugin()
 {
+    require_once plugin_dir_path(__FILE__) . 'includes/core/service-worker.php';
     dsb_create_root_service_worker();
 }
 

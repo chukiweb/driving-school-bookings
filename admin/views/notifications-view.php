@@ -244,7 +244,7 @@ class DSB_Notifications_View extends DSB_Base_View
             'notification-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/notification-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
     }
 }

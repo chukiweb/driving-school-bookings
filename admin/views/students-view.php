@@ -299,22 +299,14 @@ class DSB_Students_View extends DSB_Base_View
     {
         wp_enqueue_script('jquery');
 
-        // wp_enqueue_script(
-        //     'fullcalendar-js',
-        //     DSB_PLUGIN_FULLCALENDAR_URL,
-        //     ['jquery'],
-        //     '5.11.3',
-        //     true
-        // );
-
         wp_enqueue_style(
             'student-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/student-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
-        wp_enqueue_script('student-js', DSB_PLUGIN_URL . '../public/js/admin/students-admin-view.js', ['jquery'], '1.0.0', true);
+        wp_enqueue_script('student-js', DSB_PLUGIN_URL . '../public/js/admin/students-admin-view.js', ['jquery'], DSB_VERSION, true);
 
         wp_localize_script('student-js', 'allStudentData', $this->get_students_data());
 

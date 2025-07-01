@@ -17,21 +17,24 @@ function dsb_get_teacher_data()
     $teacher = $result->get_data()['data'];
 
     // Obtener configuración de clases
-    $teacher['config'] = get_user_meta($user_id, 'dsb_clases_config', true) ?: [
+    $config = get_user_meta($user_id, 'dsb_clases_config', true);
+
+    // Configuración por defecto con descansos vacíos
+    $default_config = [
         'dias' => [],
         'hora_inicio' => '08:00',
         'hora_fin' => '20:00',
-        'duracion' => 45
+        'duracion' => 45,
+        'descansos' => []
     ];
 
-    // Obtener nombre del vehículo
-    // $vehicle_id = $teacher['vehicle_id'];
-    // if ($vehicle_id) {
-    //     $vehicle = get_post($vehicle_id);
-    //     $teacher['vehicle'] = $vehicle ? $vehicle->post_title : 'Sin vehículo asignado';
-    // } else {
-    //     $teacher['vehicle'] = 'Sin vehículo asignado';
-    // }
+    // Merge con configuración existente
+    $teacher['config'] = is_array($config) ? array_merge($default_config, $config) : $default_config;
+
+    // Asegurar que descansos es un array
+    if (!isset($teacher['config']['descansos']) || !is_array($teacher['config']['descansos'])) {
+        $teacher['config']['descansos'] = [];
+    }
 
     return $teacher;
 }
@@ -134,6 +137,12 @@ $plugin_url = plugin_dir_url(__FILE__);
 $js_config = [
     'jwtToken' => isset($_SESSION['jwt_token']) ? $_SESSION['jwt_token'] : '',
     'apiBaseUrl' => esc_url(rest_url('driving-school/v1')),
+    'minAntelacion' => DSB_Settings::get('default_min_antelacion'), // en horas
+    'maxAntelacion' => DSB_Settings::get('default_max_antelacion'), // en días
+    'antelacionUnits' => [
+        'min' => 'horas',
+        'max' => 'días'
+    ]
 ];
 ?>
 <!DOCTYPE html>
@@ -144,9 +153,8 @@ $js_config = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="<?= $css_base_url ?>profesor.css">
+    <link rel="stylesheet" href="<?= $css_base_url ?>profesor.css?ver=<?= DSB_VERSION ?>">
 </head>
 
 <body class="bg-light">
@@ -344,6 +352,50 @@ $js_config = [
                                             </div>
                                         </div>
 
+                                        <!-- Nueva sección de descansos -->
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                <label class="form-label">Descansos</label>
+                                                <div id="descansos-container" class="mb-3">
+                                                    <?php
+                                                    $descansos_config = $teacher['config']['descansos'] ?? [];
+                                                    if (!empty($descansos_config) && is_array($descansos_config)):
+                                                        foreach ($descansos_config as $index => $descanso):
+                                                            if (isset($descanso['inicio']) && isset($descanso['fin'])):
+                                                    ?>
+                                                                <div class="descanso-item mb-2 p-3 border rounded bg-light" data-descanso-id="<?= $index + 1 ?>">
+                                                                    <div class="row align-items-center">
+                                                                        <div class="col-md-4">
+                                                                            <label class="form-label small">Hora inicio</label>
+                                                                            <input type="time" class="form-control form-control-sm"
+                                                                                name="descansos[<?= $index + 1 ?>][inicio]"
+                                                                                value="<?= esc_attr($descanso['inicio']) ?>" required>
+                                                                        </div>
+                                                                        <div class="col-md-4">
+                                                                            <label class="form-label small">Hora fin</label>
+                                                                            <input type="time" class="form-control form-control-sm"
+                                                                                name="descansos[<?= $index + 1 ?>][fin]"
+                                                                                value="<?= esc_attr($descanso['fin']) ?>" required>
+                                                                        </div>
+                                                                        <div class="col-md-4 d-flex align-items-end">
+                                                                            <button type="button" class="btn btn-sm btn-outline-danger remove-descanso-btn">
+                                                                                <i class="bi bi-trash"></i> Eliminar
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                    <?php
+                                                            endif;
+                                                        endforeach;
+                                                    endif;
+                                                    ?>
+                                                </div>
+                                                <button type="button" id="add-descanso-btn" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-plus-circle"></i> Añadir Descanso
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         <div class="mt-3">
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="bi bi-save me-1"></i> Guardar configuración
@@ -405,7 +457,7 @@ $js_config = [
                             $alumno_ids_hoy = [];
                             $today = date('Y-m-d');
                             foreach ($bookings as $booking) {
-                                if ($booking['date'] === $today && $booking['status'] !== 'cancelled' && !in_array($booking['student_id'], $alumno_ids_hoy)) {
+                                if ($booking['date'] === $today && $booking['status'] !== 'cancelled' && $booking['status'] !== 'blocked' && !in_array($booking['student_id'], $alumno_ids_hoy)) {
                                     $alumno_ids_hoy[] = $booking['student_id'];
                                     $alumnos_hoy++;
                                 }
@@ -645,21 +697,6 @@ $js_config = [
         <section id="calendario" class="mb-5">
             <div class="calendar-header d-flex flex-wrap justify-content-between align-items-center mb-3">
                 <h3 class="mb-0 me-3"><i class="bi bi-calendar-check me-2"></i>Calendario de Clases</h3>
-                <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0">
-                    <div class="calendar-filter-wrapper me-2">
-                        <div class="btn-group btn-group-sm" role="group">
-                            <input type="checkbox" class="btn-check" id="showPendingOnly" autocomplete="off">
-                            <label class="btn btn-outline-warning" for="showPendingOnly">
-                                <i class="bi bi-hourglass me-1"></i>Pendientes
-                            </label>
-
-                            <input type="checkbox" class="btn-check" id="showAcceptedOnly" autocomplete="off">
-                            <label class="btn btn-outline-success" for="showAcceptedOnly">
-                                <i class="bi bi-check-circle me-1"></i>Aceptadas
-                            </label>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div class="card border-0 shadow-sm overflow-hidden">
@@ -690,13 +727,6 @@ $js_config = [
                         <i class="bi bi-info-circle me-1"></i> Haz clic en una reserva para ver detalles
                     </div>
                     <div class="calendar-controls order-1 order-md-2 d-flex gap-2">
-                        <button id="refreshCalendar" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
-                        </button>
-                        <button id="goToToday" class="btn btn-sm btn-primary">
-                            <i class="bi bi-calendar-check me-1"></i>Hoy
-                        </button>
-
                         <div class="btn-group" role="group">
                             <button id="blockTimeBtn" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Bloquear horario">
                                 <i class="bi bi-lock-fill"></i> Bloquear horario
@@ -798,6 +828,22 @@ $js_config = [
                         <img id="modal-student-avatar" src="" alt="Avatar del alumno" class="rounded-circle mb-3" width="100">
                         <h5 id="modal-student-name" class="mb-0"></h5>
                         <p id="modal-student-email" class="text-muted"></p>
+                        <div class="d-flex justify-content-center ms-auto text-center">
+                            <div class="bg-success text-white rounded-3 px-3 py-2 w-25">
+                                <span class="saldo-actual fs-6 fw-bold" id="modal-student-saldo"></span>
+                                <div><small>Saldo</small></div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de contacto -->
+                        <div class="d-flex justify-content-center gap-2 mt-3">
+                            <a id="modal-student-call-btn" href="#" class="btn btn-success btn-sm">
+                                <i class="bi bi-telephone-fill me-1"></i>Llamar
+                            </a>
+                            <a id="modal-student-whatsapp-btn" href="#" target="_blank" class="btn btn-success btn-sm">
+                                <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                            </a>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -823,13 +869,13 @@ $js_config = [
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 mb-3">
+                        <div class="col-md-6 mb-3">
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3 text-primary">
                                     <i class="bi bi-calendar-check fs-4"></i>
                                 </div>
                                 <div>
-                                    <small class="text-muted d-block">Clases completadas</small>
+                                    <small class="text-muted d-block">Clases aceptadas</small>
                                     <p id="modal-student-classes" class="mb-0 fw-medium"></p>
                                 </div>
                             </div>
@@ -905,7 +951,7 @@ $js_config = [
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="saveBlockBtn">Bloquear horario</button>
+                    <button type="button" id="saveBlockBtn" class="btn btn-danger">Bloquear horario</button>
                 </div>
             </div>
         </div>
@@ -956,7 +1002,7 @@ $js_config = [
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="saveBookingBtn">Crear reserva</button>
+                    <button type="button" id="saveBookingBtn" class="btn btn-primary">Crear reserva</button>
                 </div>
             </div>
         </div>
@@ -993,8 +1039,8 @@ $js_config = [
     </script>
 
     <!-- Nuestros scritps -->
-    <script src="<?= $js_base_url; ?>pusher-init.js"></script>
-    <script src="<?= $js_base_url; ?>profesor.js"></script>
+    <script src="<?= $js_base_url; ?>pusher-init.js?ver=<?= DSB_VERSION ?>"></script>
+    <script src="<?= $js_base_url; ?>profesor.js?ver=<?= DSB_VERSION ?>"></script>
 </body>
 
 </html>

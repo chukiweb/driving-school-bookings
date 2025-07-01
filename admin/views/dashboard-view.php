@@ -156,7 +156,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             'dashboard-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/dashboard-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
         wp_enqueue_script(
@@ -171,7 +171,7 @@ class DSB_Dashboard_View extends DSB_Base_View
             'dashboard-admin-js',
             DSB_PLUGIN_URL . '../public/js/admin/dashboard-admin-view.js',
             ['jquery', 'wp-api', 'chartjs'],
-            '1.0.0',
+            DSB_VERSION,
             true
         );
 
@@ -442,8 +442,8 @@ class DSB_Dashboard_View extends DSB_Base_View
                                                 <div class="dsb-stat-label">Clases totales</div>
                                             </div>
                                             <div class="dsb-stat-item">
-                                                <div class="dsb-stat-value" id="teacherCompletedClasses">0</div>
-                                                <div class="dsb-stat-label">Clases completadas</div>
+                                                <div class="dsb-stat-value" id="teacherAcceptedClasses">0</div>
+                                                <div class="dsb-stat-label">Clases aceptadas</div>
                                             </div>
                                             <div class="dsb-stat-item">
                                                 <div class="dsb-stat-value" id="teacherCanceledClasses">0</div>
@@ -554,10 +554,6 @@ class DSB_Dashboard_View extends DSB_Base_View
                                     <div class="dsb-stat-item">
                                         <div class="dsb-stat-value dsb-status-accepted" id="studentAcceptedClasses">0</div>
                                         <div class="dsb-stat-label">Aceptadas</div>
-                                    </div>
-                                    <div class="dsb-stat-item">
-                                        <div class="dsb-stat-value dsb-status-completed" id="studentCompletedClasses">0</div>
-                                        <div class="dsb-stat-label">Completadas</div>
                                     </div>
                                     <div class="dsb-stat-item">
                                         <div class="dsb-stat-value dsb-status-pending" id="studentPendingClasses">0</div>

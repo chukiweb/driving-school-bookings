@@ -191,25 +191,98 @@ class DSB_Bookings_View extends DSB_Base_View
 
     protected function handle_accept_booking_form()
     {
-        if (isset($_POST['booking_id'])) {
-            $booking_id = intval($_POST['booking_id']);
-            update_post_meta($booking_id, 'status', 'accepted');
-
-            $this->render_notice('Reserva aceptada exitosamente');
+        if (!isset($_POST['booking_id'])) {
+            return;
         }
+
+        $booking_id = intval($_POST['booking_id']);
+
+        // Validar reserva
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            $this->render_notice('Reserva inválida', 'error');
+            return;
+        }
+
+        // Verificar que la reserva esté en estado pendiente
+        $current_status = get_post_meta($booking_id, 'status', true);
+        if ($current_status !== 'pending') {
+            $this->render_notice('Solo se pueden aceptar reservas en estado pendiente', 'error');
+            return;
+        }
+
+        // Verificar si ya pasó la clase
+        $booking_date = get_post_meta($booking_id, 'date', true);
+        $booking_time = get_post_meta($booking_id, 'time', true);
+        $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
+
+        if ($class_datetime < new DateTime()) {
+            $this->render_notice('No se puede aceptar una reserva que ya ha pasado', 'error');
+            return;
+        }
+
+        // Actualizar el estado de la reserva
+        update_post_meta($booking_id, 'status', 'accepted');
+
+        // Disparar acción de aceptación
+        do_action('dsb_booking_status_changed', $booking_id, 'accepted', $current_status);
+
+        $this->render_notice('Reserva aceptada exitosamente');
     }
 
     protected function handle_cancel_booking_form()
     {
-        if (isset($_POST['booking_id'])) {
-            $booking_id = intval($_POST['booking_id']);
-            update_post_meta($booking_id, 'status', 'cancelled');
-            do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', get_post_meta($booking_id, 'status', true));
-
-            $this->render_notice('Reserva cancelada exitosamente');
+        if (!isset($_POST['booking_id'])) {
+            return;
         }
-    }
 
+        $booking_id = intval($_POST['booking_id']);
+
+        // Validar reserva
+        if (!$booking_id || get_post_type($booking_id) !== 'dsb_booking') {
+            $this->render_notice('Reserva inválida', 'error');
+            return;
+        }
+
+        // Verificar que la reserva no esté ya cancelada
+        $current_status = get_post_meta($booking_id, 'status', true);
+        if ($current_status === 'cancelled') {
+            $this->render_notice('La reserva ya está cancelada', 'error');
+            return;
+        }
+
+        // Verificar si ya pasó la clase
+        $booking_date = get_post_meta($booking_id, 'date', true);
+        $booking_time = get_post_meta($booking_id, 'time', true);
+        $class_datetime = new DateTime($booking_date . ' ' . $booking_time);
+
+        if ($class_datetime < new DateTime()) {
+            $this->render_notice('No se puede cancelar una reserva que ya ha pasado', 'error');
+            return;
+        }
+
+        // Adminsitrador siempre reembolsa
+        $refund = current_user_can('manage_options');
+
+        if ($refund) {
+            $cost = get_post_meta($booking_id, 'cost', true);
+            $student_id = get_post_meta($booking_id, 'student_id', true);
+            $current_tokens = intval(get_user_meta($student_id, 'class_points', true));
+            update_user_meta($student_id, 'class_points', $current_tokens + $cost);
+        }
+
+        // Cancelar reserva
+        $old_status = get_post_meta($booking_id, 'status', true);
+        update_post_meta($booking_id, 'status', 'cancelled');
+        do_action('dsb_booking_status_cancelled', $booking_id, 'cancelled', $old_status);
+
+        // Mensaje de éxito
+        $message = 'Reserva cancelada exitosamente';
+        if ($refund) {
+            $message .= sprintf('. Se reembolsaron %s créditos', floatval($cost));
+        }
+
+        $this->render_notice($message);
+    }
     protected function render_forms()
     {
         $this->render_create_booking_form();
@@ -357,10 +430,10 @@ class DSB_Bookings_View extends DSB_Base_View
             'booking-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/booking-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
-        wp_enqueue_script('booking-js', DSB_PLUGIN_URL . '../public/js/admin/booking-admin-view.js', ['jquery'], '1.0.0', true);
+        wp_enqueue_script('booking-js', DSB_PLUGIN_URL . '../public/js/admin/booking-admin-view.js', ['jquery'], DSB_VERSION, true);
 
         wp_localize_script('booking-js', 'allStudentData', $this->get_students_data());
 

@@ -1,4 +1,4 @@
-jQuery(document).ready(function ($) {
+document.addEventListener('DOMContentLoaded', function () {
 
     class ProfesorView {
         static profesorData = {};
@@ -7,11 +7,17 @@ jQuery(document).ready(function ($) {
         static bookingDetailModal = null;
         static studentDetailModal = null;
         static rejectConfirmModal = null;
+        static blockTimeModal = null;
+        static createBookingModal = null;
         static apiUrl = DSB_CONFIG.apiBaseUrl;
         static jwtToken = DSB_CONFIG.jwtToken;
         static selectedBookingId = null;
         static blockModeActive = false;
         static createBookingModeActive = false;
+        static descansosCounter = 0;
+        static currentMode = null;
+        static originalButtonStates = new Map();
+        static teacherSlots = [];
 
         static init() {
             // Inicializar datos
@@ -36,6 +42,29 @@ jQuery(document).ready(function ($) {
 
             // Configurar filtros de estudiantes
             ProfesorView.setupStudentFilters();
+
+            // Inicializar listeners para descansos
+            ProfesorView.initDescansosListeners();
+
+            // **LISTENERS PARA CANCELAR MODALES**
+            // Cuando se cierra el modal de bloqueo sin guardar, mantener el modo
+            document.getElementById('blockTimeModal')?.addEventListener('hidden.bs.modal', function () {
+                // Solo desactivar si no se guardó (se puede añadir una flag si es necesario)
+                // Por ahora, mantener el modo activo para que el usuario pueda seguir seleccionando
+            });
+
+            document.getElementById('createBookingModal')?.addEventListener('hidden.bs.modal', function () {
+                // Solo desactivar si no se guardó
+            });
+
+            // **AÑADIR BOTÓN DE CANCELAR EN MODALES PARA DESACTIVAR MODO**
+            document.querySelector('#blockTimeModal .btn-secondary')?.addEventListener('click', function () {
+                ProfesorView.clearMode(); // ✅ CAMBIO
+            });
+
+            document.querySelector('#createBookingModal .btn-secondary')?.addEventListener('click', function () {
+                ProfesorView.clearMode(); // ✅ CAMBIO
+            });
         }
 
         static checkSession() {
@@ -140,19 +169,14 @@ jQuery(document).ready(function ($) {
                 });
             });
 
-            // Evento para activar el modo de bloqueo de horario
-            document.getElementById('blockTimeBtn')?.addEventListener('click', function () {
+            document.getElementById('blockTimeBtn')?.addEventListener('click', function (e) {
+                e.preventDefault();
                 ProfesorView.activateBlockMode();
             });
 
-            // Guardar bloqueo de horario
-            document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
-                ProfesorView.saveTimeBlock();
-            });
-
-            // Crear reserva para alumno
-            document.getElementById('createBookingBtn')?.addEventListener('click', function () {
-                ProfesorView.showCreateBookingForm();
+            document.getElementById('createBookingBtn')?.addEventListener('click', function (e) {
+                e.preventDefault();
+                ProfesorView.activateCreateMode();
             });
 
             // Guardar reserva para alumno
@@ -170,38 +194,236 @@ jQuery(document).ready(function ($) {
                     inputLicense.value = studentLicense;
                 }
             });
+
+            document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
+                ProfesorView.saveTimeBlock();
+            });
+        }
+
+        // Nuevo método para inicializar listeners de descansos:
+        static initDescansosListeners() {
+            // Inicializar contador con descansos existentes
+            const existingItems = document.querySelectorAll('.descanso-item[data-descanso-id]');
+            if (existingItems.length > 0) {
+                const maxId = Math.max(...Array.from(existingItems).map(item =>
+                    parseInt(item.dataset.descansoId) || 0
+                ));
+                ProfesorView.descansosCounter = maxId;
+            } else {
+                ProfesorView.descansosCounter = 0;
+            }
+
+            // Listener para añadir descanso
+            const addBtn = document.getElementById('add-descanso-btn');
+            if (addBtn) {
+                addBtn.addEventListener('click', function () {
+                    ProfesorView.addDescansoField();
+                });
+            }
+
+            // Delegación de eventos para los botones de eliminar
+            const container = document.getElementById('descansos-container');
+            if (container) {
+                container.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-descanso-btn') ||
+                        e.target.closest('.remove-descanso-btn')) {
+                        const button = e.target.classList.contains('remove-descanso-btn') ?
+                            e.target : e.target.closest('.remove-descanso-btn');
+                        ProfesorView.removeDescansoField(button);
+                    }
+                });
+            }
+        }
+
+        static addDescansoField() {
+            const container = document.getElementById('descansos-container');
+            const descansoId = ++ProfesorView.descansosCounter;
+
+            const descansoDiv = document.createElement('div');
+            descansoDiv.className = 'descanso-item mb-2 p-3 border rounded bg-light';
+            descansoDiv.dataset.descansoId = descansoId;
+
+            descansoDiv.innerHTML = `
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label class="form-label small">Hora inicio</label>
+                        <input type="time" class="form-control form-control-sm" 
+                            name="descansos[${descansoId}][inicio]" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Hora fin</label>
+                        <input type="time" class="form-control form-control-sm" 
+                            name="descansos[${descansoId}][fin]" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-descanso-btn">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(descansoDiv);
+        }
+
+        static removeDescansoField(button) {
+            const descansoItem = button.closest('.descanso-item');
+            if (descansoItem) {
+                descansoItem.remove();
+            }
+        }
+
+        static setMode(mode) {
+            // Limpiar modo anterior si existe
+            if (ProfesorView.currentMode) {
+                ProfesorView.clearMode();
+            }
+
+            ProfesorView.currentMode = mode;
+            ProfesorView.blockModeActive = (mode === 'block');
+            ProfesorView.createBookingModeActive = (mode === 'create');
+
+            // Aplicar estado visual del calendario
+            const calendar = document.getElementById('calendar');
+            calendar.classList.remove('block-mode', 'create-mode');
+
+            if (mode) {
+                calendar.classList.add(`${mode}-mode`);
+            }
+
+            // Configurar botones según el modo
+            ProfesorView.updateButtonStates(mode);
+
+            // Mostrar notificación correspondiente
+            ProfesorView.showModeNotification(mode);
+        }
+
+        static clearMode() {
+            ProfesorView.currentMode = null;
+            ProfesorView.blockModeActive = false;
+            ProfesorView.createBookingModeActive = false;
+
+            const calendar = document.getElementById('calendar');
+            if (calendar) {
+                calendar.classList.remove('block-mode', 'create-mode');
+            }
+
+            ProfesorView.restoreButtonStates();
+        }
+
+        static updateButtonStates(mode) {
+            const blockBtn = document.getElementById('blockTimeBtn');
+            const createBtn = document.getElementById('createBookingBtn');
+
+            if (!blockBtn || !createBtn) return;
+
+            // Guardar estados originales si no se han guardado
+            if (!ProfesorView.originalButtonStates.has('block')) {
+                ProfesorView.originalButtonStates.set('block', {
+                    classes: blockBtn.className,
+                    innerHTML: blockBtn.innerHTML
+                });
+            }
+            if (!ProfesorView.originalButtonStates.has('create')) {
+                ProfesorView.originalButtonStates.set('create', {
+                    classes: createBtn.className,
+                    innerHTML: createBtn.innerHTML
+                });
+            }
+
+            switch (mode) {
+                case 'block':
+                    // Activar modo bloqueo
+                    blockBtn.className = 'btn btn-danger';
+                    blockBtn.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar bloqueo';
+
+                    // Desactivar botón crear
+                    createBtn.className = 'btn btn-outline-primary';
+                    createBtn.innerHTML = '<i class="bi bi-calendar-plus"></i> Crear reserva';
+                    createBtn.disabled = true;
+                    break;
+
+                case 'create':
+                    // Activar modo crear
+                    createBtn.className = 'btn btn-primary';
+                    createBtn.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar reserva';
+
+                    // Desactivar botón bloquear
+                    blockBtn.className = 'btn btn-outline-danger';
+                    blockBtn.innerHTML = '<i class="bi bi-lock-fill"></i> Bloquear horario';
+                    blockBtn.disabled = true;
+                    break;
+
+                default:
+                    // Modo neutral - restaurar estados originales
+                    ProfesorView.restoreButtonStates();
+                    break;
+            }
+        }
+
+        static restoreButtonStates() {
+            const blockBtn = document.getElementById('blockTimeBtn');
+            const createBtn = document.getElementById('createBookingBtn');
+
+            if (blockBtn && ProfesorView.originalButtonStates.has('block')) {
+                const originalBlock = ProfesorView.originalButtonStates.get('block');
+                blockBtn.className = originalBlock.classes;
+                blockBtn.innerHTML = originalBlock.innerHTML;
+                blockBtn.disabled = false;
+            }
+
+            if (createBtn && ProfesorView.originalButtonStates.has('create')) {
+                const originalCreate = ProfesorView.originalButtonStates.get('create');
+                createBtn.className = originalCreate.classes;
+                createBtn.innerHTML = originalCreate.innerHTML;
+                createBtn.disabled = false;
+            }
+        }
+
+        static showModeNotification(mode) {
+            switch (mode) {
+                case 'block':
+                    window.mostrarNotificacion(
+                        'Modo Bloqueo Activado',
+                        'Haga clic en un slot o arrastre para seleccionar el período a bloquear', // ✅ CAMBIO
+                        'info'
+                    );
+                    break;
+                case 'create':
+                    window.mostrarNotificacion(
+                        'Modo Reserva Activado',
+                        'Haga clic en un slot para crear una nueva reserva', // ✅ CAMBIO
+                        'info'
+                    );
+                    break;
+                case null:
+                    window.mostrarNotificacion(
+                        '',
+                        'Modo desactivado',
+                        'success'
+                    );
+                    break;
+            }
         }
 
         static activateBlockMode() {
-            ProfesorView.blockModeActive = true;
-            ProfesorView.createBookingModeActive = false;
-
-            // Cambiar cursor para indicar modo de bloqueo
-            document.getElementById('calendar').classList.add('block-mode');
-
-            // Mostrar notificación
-            window.mostrarNotificacion('', 'Modo de bloqueo activado. Seleccione una franja horaria para bloquear.', 'info');
-
-            // Cambiar estado visual del botón
-            document.getElementById('blockTimeBtn').classList.remove('btn-outline-danger');
-            document.getElementById('blockTimeBtn').classList.add('btn-danger');
+            if (ProfesorView.currentMode === 'block') {
+                // Si ya está en modo bloqueo, desactivar
+                ProfesorView.setMode(null);
+            } else {
+                // Activar modo bloqueo
+                ProfesorView.setMode('block');
+            }
         }
 
-        static handleTimeBlockSelection(info) {
-            // Desactivar modo bloqueo
-            ProfesorView.blockModeActive = false;
-            document.getElementById('calendar').classList.remove('block-mode');
-            document.getElementById('blockTimeBtn').classList.remove('btn-danger');
-            document.getElementById('blockTimeBtn').classList.add('btn-outline-danger');
-
-            // Llenar modal con información de la selección
-            document.getElementById('block_start_date').value = info.startStr.substring(0, 10);
-            document.getElementById('block_start_time').value = info.startStr.substring(11, 16);
-            document.getElementById('block_end_date').value = info.endStr.substring(0, 10);
-            document.getElementById('block_end_time').value = info.endStr.substring(11, 16);
-
-            // Mostrar modal de bloqueo
-            ProfesorView.blockTimeModal.show();
+        static activateCreateMode() {
+            if (ProfesorView.currentMode === 'create') {
+                // Si ya está en modo crear, desactivar
+                ProfesorView.setMode(null);
+            } else {
+                // Activar modo crear
+                ProfesorView.setMode('create');
+            }
         }
 
         static async saveTimeBlock() {
@@ -253,50 +475,13 @@ jQuery(document).ready(function ($) {
                 ProfesorView.blockTimeModal.hide();
                 window.mostrarNotificacion('', 'Horario bloqueado correctamente', 'success');
 
+                ProfesorView.clearMode();
             } catch (error) {
                 console.error('Error al bloquear horario:', error);
                 window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
         }
 
-        static showCreateBookingForm() {
-            ProfesorView.createBookingModeActive = true;
-            ProfesorView.blockModeActive = false;
-
-            // Cambiar cursor para indicar modo de creación
-            document.getElementById('calendar').classList.add('create-mode');
-
-            // Mostrar notificación
-            window.mostrarNotificacion('', 'Seleccione la franja horaria para la nueva clase', 'info');
-        }
-
-        static async handleBookingSelection(info) {
-            // Desactivar modo creación
-            ProfesorView.createBookingModeActive = false;
-            document.getElementById('calendar').classList.remove('create-mode');
-
-            // Verificar si la franja está bloqueada
-            const events = ProfesorView.calendar.getEvents();
-            for (const event of events) {
-                if (event.extendedProps.status === 'blocked' && ((info.start >= event.start && info.start < event.end) || (info.end > event.start && info.end <= event.end))) {
-
-                    window.mostrarNotificacion('No permitido', 'La franja horaria seleccionada está bloqueada', 'error');
-                    return;
-                }
-            }
-
-            // Llenar modal con información de la selección
-            document.getElementById('new_booking_date').value = info.startStr.substring(0, 10);
-            document.getElementById('new_booking_start_time').value = info.startStr.substring(11, 16);
-            document.getElementById('new_booking_end_time').value = info.endStr.substring(11, 16);
-
-            // Mostrar modal de creación de reserva
-            ProfesorView.createBookingModal.show();
-        }
-
-        /**
-         * Guarda una reserva para un alumno
-         */
         static async createBookingForStudent() {
             const date = document.getElementById('new_booking_date').value;
             const startTime = document.getElementById('new_booking_start_time').value;
@@ -509,83 +694,152 @@ jQuery(document).ready(function ($) {
             }
         }
 
+        static showBookingDetails(booking) {
+            // Actualizar el modal con los datos de la reserva
+            document.getElementById('booking_id').value = booking.id;
+            document.getElementById('student_name').value = booking.student_name;
+            document.getElementById('booking_status').value = ProfesorView.formatStatus(booking.status);
+            document.getElementById('booking_date').value = booking.date;
+            document.getElementById('booking_time').value = `${booking.start_time} - ${booking.end_time}`;
+            document.getElementById('booking_vehicle').value = booking.vehicle || 'No especificado';
+
+            // Mostrar/ocultar botones según el estado
+            const acceptBtn = document.getElementById('acceptBookingBtn');
+            const rejectBtn = document.getElementById('rejectBookingBtn');
+
+            if (booking.status === 'pending') {
+                acceptBtn.style.display = 'inline-block';
+                rejectBtn.style.display = 'inline-block';
+                rejectBtn.textContent = 'Rechazar';
+            } else if (booking.status === 'accepted') {
+                acceptBtn.style.display = 'none';
+                rejectBtn.style.display = 'inline-block';
+                rejectBtn.textContent = 'Cancelar';
+            } else {
+                acceptBtn.style.display = 'none';
+                rejectBtn.style.display = 'none';
+            }
+
+            // Mostrar el modal
+            ProfesorView.bookingDetailModal.show();
+        }
+
         static initializeCalendar() {
-            const calendarElement = document.getElementById('calendar');
-            if (!calendarElement) {
-                console.error("No se encontró el elemento del calendario");
+            const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) {
+                console.error('No se encontró el elemento del calendario');
                 return;
             }
 
-            // Verificar si profesorData está definido y tiene la estructura esperada
+            // 1. Validar que profesorData esté definido
             if (!ProfesorView.profesorData) {
-                console.error("Datos del profesor no encontrados");
+                console.error('Datos del profesor no encontrados');
+                // Inicializar por defecto para evitar errores
                 ProfesorView.profesorData = { config: {}, id: 0 };
             }
 
-            // Obtener configuración del profesor con valores por defecto
-            const config = (ProfesorView.profesorData && ProfesorView.profesorData.config) ?
-                ProfesorView.profesorData.config :
-                { dias: [], hora_inicio: '08:00:00', hora_fin: '20:00:00', duracion: 45 };
+            // 2. Obtener configuración (con valores por defecto)
+            const config = (ProfesorView.profesorData.config)
+                ? ProfesorView.profesorData.config
+                : { dias: [], hora_inicio: '08:00:00', hora_fin: '20:00:00', duracion: 45, descansos: [] };
 
-            // Duración de las clases
-            const duracion = config.duracion ? `00:${config.duracion}:00` : '00:45:00';
+            // 3. Duración de la clase (formato HH:mm:ss)
+            const classDuration = config.duracion || DSB_CONFIG.classDuration || 45;
+            const duracionClase = `00:${String(classDuration).padStart(2, '0')}:00`;
 
-            // Configurar días no disponibles
+            // 4. Calcular días no disponibles (hiddenDays)
             const diasDisponibles = config.dias || [];
-            const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
-                const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dia];
-                return !diasDisponibles.includes(diaNombre);
+            const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(diaIdx => {
+                const nombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaIdx];
+                return !diasDisponibles.includes(nombre);
             });
 
-            // Obtener eventos activos
+            // 5. Generar businessHours (incluyendo descansos)
+            const businessHours = ProfesorView.generateBusinessHours(config);
+
+            // 6. Generar “slots” del profesor (para modo crear / bloquear)
+            ProfesorView.teacherSlots = ProfesorView.generateTeacherSlots(config);
+
+            // 7. Preparar el array de eventos (tomamos booking.start / booking.end directamente)
             const bookings = ProfesorView.bookings || [];
+            const events = bookings
+                .filter(booking => booking.status !== 'cancelled')
+                .map(booking => {
+                    let eventClass = '';
+                    switch (booking.status) {
+                        case 'pending':
+                            eventClass = 'pending-event';
+                            break;
+                        case 'accepted':
+                            eventClass = 'accepted-event';
+                            break;
+                        case 'blocked':
+                            eventClass = 'blocked-event';
+                            break;
+                        default:
+                            if (new Date(booking.date) < new Date()) {
+                                eventClass = 'past-event';
+                            }
+                            break;
+                    }
 
-            // Configurar eventos con información visual mejorada
-            const events = bookings.map(booking => {
-                const eventClass = booking.status === 'pending' ? 'pending-event' :
-                    booking.status === 'accepted' ? 'accepted-event' :
-                        booking.status === 'cancelled' ? 'cancelled-event' :
-                            booking.status === 'blocked' ? 'blocked-event' :
-                                new Date(booking.date) < new Date() ? 'past-event' : '';
+                    return {
+                        id: booking.id,
+                        title: booking.title || `Clase con ${booking.student_name || 'Alumno'}`,
+                        start: booking.start,
+                        end: booking.end,
+                        className: eventClass,
+                        extendedProps: {
+                            status: booking.status,
+                            studentName: booking.student_name,
+                            studentId: booking.student_id,
+                            vehicle: booking.vehicle,
+                            date: booking.date,
+                            time: booking.time,
+                            endTime: booking.end_time
+                        }
+                    };
+                });
 
-                return {
-                    id: booking.id,
-                    title: booking.title || `Clase con ${booking.student_name || 'Alumno'}`,
-                    start: booking.start,
-                    end: booking.end,
-                    extendedProps: {
-                        status: booking.status,
-                        studentName: booking.student_name,
-                        studentId: booking.student_id,
-                        vehicle: booking.vehicle,
-                        date: booking.date,
-                        time: booking.time,
-                        endTime: booking.end_time
-                    },
-                    className: eventClass
-                };
-            });
-
-            // Opciones avanzadas del calendario
+            // 8. Construir opciones avanzadas del calendario
             const calendarOptions = {
+                // Vista inicial: Day en móvil, Week en escritorio
                 initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+
+                height: 'auto', // Ajuste automático de altura
+
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana',
+                    day: 'Día'
+                },
+
+                // Cabecera superior
                 headerToolbar: {
-                    left: 'prev,next',
+                    left: 'prev,next today',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
-                slotDuration: duracion,
+
+                slotDuration: '00:15:00',
+                slotLabelInterval: duracionClase,
+
                 allDaySlot: false,
                 scrollTime: '08:00:00',
+
                 slotMinTime: config.hora_inicio || '08:00:00',
                 slotMaxTime: config.hora_fin || '20:00:00',
+
                 hiddenDays: diasNoDisponibles,
                 expandRows: true,
                 locale: 'es',
-                events: events,
+                businessHours: businessHours,
                 nowIndicator: true,
-                navLinks: true,
-                dayMaxEvents: true,
+                navLinks: true,     // permite click en cabeceras para navegar
+                dayMaxEvents: true, // muestra “+X” si hay muchos eventos
+
+                // Formatos de hora
                 eventTimeFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -596,151 +850,177 @@ jQuery(document).ready(function ($) {
                     minute: '2-digit',
                     hour12: false
                 },
+
+                // Personalización específica de vista “timeGridWeek”
                 views: {
                     timeGridWeek: {
                         dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'numeric' }
                     }
                 },
-                selectable: true,
-                selectAllow: function (selectInfo) {
-                    // Obtiene el día de inicio y fin de la selección
-                    var startDay = selectInfo.start.getDate();
-                    var endDay = selectInfo.end.getDate();
-                    var startMonth = selectInfo.start.getMonth();
-                    var endMonth = selectInfo.end.getMonth();
-                    var startYear = selectInfo.start.getFullYear();
-                    var endYear = selectInfo.end.getFullYear();
 
-                    // Permite la selección solo si el día, mes y año son iguales
-                    return (startDay === endDay) && (startMonth === endMonth) && (startYear === endYear);
+                // Habilitar selección de rangos
+                selectable: true,
+
+                // Validar que la selección esté en el mismo día
+                selectAllow: function (selectInfo) {
+                    const s = selectInfo.start;
+                    const e = selectInfo.end;
+                    return (
+                        s.getDate() === e.getDate() &&
+                        s.getMonth() === e.getMonth() &&
+                        s.getFullYear() === e.getFullYear()
+                    );
                 },
+
+                // Cuando el usuario arrastre o seleccione con el ratón
                 select: function (info) {
-                    // Verificar si estamos en modo bloqueo
                     if (ProfesorView.blockModeActive) {
-                        ProfesorView.handleTimeBlockSelection(info);
+                        // Modo bloqueo de horario
+                        ProfesorView.handleBlockModeSelect(info);
                     } else if (ProfesorView.createBookingModeActive) {
-                        ProfesorView.handleBookingSelection(info);
+                        // Modo creación de reserva
+                        ProfesorView.handleCreateModeSelect(info);
+                    } else {
+                        // Si no está en modo alguno
+                        ProfesorView.calendar.unselect();
+                        window.mostrarNotificacion(
+                            'Información',
+                            'Activa el modo Bloqueo o Crear antes de seleccionar',
+                            'info'
+                        );
                     }
                 },
 
-                // Mejora de visualización de eventos
+                // Cuando el usuario hace clic sobre un slot vacío
+                dateClick: function (info) {
+                    // Solo funciona fuera de vista “dayGridMonth”
+                    if (info.view.type === 'dayGridMonth') return;
+
+                    if (ProfesorView.createBookingModeActive) {
+                        // Calcular hora clicada (solo HH:mm)
+                        const clickTime = info.date.toTimeString().substring(0, 5);
+                        const matchedSlot = ProfesorView.findSlotForClick(
+                            clickTime,
+                            ProfesorView.teacherSlots
+                        );
+                        if (!matchedSlot) {
+                            window.mostrarNotificacion(
+                                'No disponible',
+                                'No hay slot válido en este intervalo',
+                                'warning'
+                            );
+                            return;
+                        }
+                        ProfesorView.handleCreateModeClick(info, matchedSlot);
+                    }
+                    // En “modo bloqueo” (drag & drop), se maneja en selectAllow / select
+                },
+
+                // Mouse sobre cada evento: dibujamos tooltip, iconos, etc.
                 eventDidMount: function (info) {
                     const event = info.event;
                     const element = info.el;
                     const status = event.extendedProps.status;
 
-                    if (status === 'cancelled') {
-                        element.style.display = 'none';
-                        return;
-                    }
-
-                    // Estilo especial para eventos de bloqueo
+                    // 2) Estilo especial para eventos bloqueados
                     if (status === 'blocked') {
                         element.classList.add('blocked-event');
                         element.style.backgroundColor = '#dc3545';
                         element.style.borderColor = '#b02a37';
 
-                        // Añadir ícono de bloqueo
+                        // Añadir icono de candado delante de la hora
                         const timeText = element.querySelector('.fc-event-time');
                         if (timeText) {
                             timeText.innerHTML = '<i class="bi bi-lock-fill"></i> ' + timeText.innerHTML;
                         }
-
                         return;
                     }
 
-                    // Añadir atributos para accesibilidad
-                    element.setAttribute('aria-label', `Clase con ${event.extendedProps.studentName} - ${event.extendedProps.date} a las ${event.extendedProps.time}`);
+                    // 3) Atributo para accesibilidad
+                    element.setAttribute(
+                        'aria-label',
+                        `Clase con ${event.extendedProps.studentName} - ${event.extendedProps.date} a las ${event.extendedProps.time}`
+                    );
 
-                    // Aplicar clases específicas para estados
+                    // 4) Color/Clase según estado
                     if (status === 'pending') {
                         element.classList.add('pending-event');
                     } else if (status === 'accepted') {
                         element.classList.add('accepted-event');
-                    } else if (status === 'blocked') {
-                        element.classList.add('blocked-event');
                     }
 
-                    // Agregar tooltip personalizado con información detallada
+                    // 5) Tooltip personalizado
                     const tooltip = document.createElement('div');
                     tooltip.classList.add('event-tooltip');
                     tooltip.innerHTML = `
-                        <div class="event-tooltip-header">
-                            ${event.title}
-                            <span class="event-tooltip-status ${status}">
-                              ${{
-                            'pending': 'Pendiente',
-                            'accepted': 'Aceptada',
-                            'cancelled': 'Cancelada',
-                            'blocked': 'Bloqueada'
-                        }[status] || 'N/A'
-                        }
-                            </span>
-                        </div>
-                        <div class="event-tooltip-content">
-                            <div class="event-tooltip-detail">
-                                <i class="bi bi-person"></i> ${event.extendedProps.studentName}
-                            </div>
-                            <div class="event-tooltip-detail">
-                                <i class="bi bi-calendar"></i> ${event.extendedProps.date}
-                            </div>
-                            <div class="event-tooltip-detail">
-                                <i class="bi bi-clock"></i> ${event.extendedProps.time} - ${event.extendedProps.endTime}
-                            </div>
-                            <div class="event-tooltip-detail">
-                                <i class="bi bi-car-front"></i> ${event.extendedProps.vehicle || 'No especificado'}
-                            </div>
-                        </div>`;
-
-                    // Mostrar tooltip al hover
-                    element.addEventListener('mouseenter', function () {
+                <div class="event-tooltip-header">
+                    ${event.title}
+                    <span class="event-tooltip-status ${status}">
+                        ${{
+                            pending: 'Pendiente',
+                            accepted: 'Aceptada',
+                            cancelled: 'Cancelada',
+                            blocked: 'Bloqueada'
+                        }[status] || 'N/A'}
+                    </span>
+                </div>
+                <div class="event-tooltip-content">
+                    <div class="event-tooltip-detail">
+                        <i class="bi bi-person"></i> ${event.extendedProps.studentName}
+                    </div>
+                    <div class="event-tooltip-detail">
+                        <i class="bi bi-calendar"></i> ${event.extendedProps.date}
+                    </div>
+                    <div class="event-tooltip-detail">
+                        <i class="bi bi-clock"></i> ${event.extendedProps.time} - ${event.extendedProps.endTime}
+                    </div>
+                    <div class="event-tooltip-detail">
+                        <i class="bi bi-car-front"></i> ${event.extendedProps.vehicle || 'No especificado'}
+                    </div>
+                </div>
+            `;
+                    // Mostrar/ocultar tooltip
+                    element.addEventListener('mouseenter', () => {
                         document.body.appendChild(tooltip);
                         const rect = element.getBoundingClientRect();
                         tooltip.style.left = rect.left + window.scrollX + 'px';
                         tooltip.style.top = rect.top + window.scrollY - tooltip.offsetHeight - 10 + 'px';
 
-                        // Ajustar posición si se sale de la pantalla
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        if (tooltipRect.left < 0) {
+                        // Ajustes si se sale de pantalla
+                        const tRect = tooltip.getBoundingClientRect();
+                        if (tRect.left < 0) {
                             tooltip.style.left = '10px';
                         }
-                        if (tooltipRect.right > window.innerWidth) {
-                            tooltip.style.left = (window.innerWidth - tooltipRect.width - 10) + 'px';
+                        if (tRect.right > window.innerWidth) {
+                            tooltip.style.left = (window.innerWidth - tRect.width - 10) + 'px';
                         }
-                        if (tooltipRect.top < 0) {
+                        if (tRect.top < 0) {
                             tooltip.style.top = rect.bottom + window.scrollY + 10 + 'px';
                         }
                     });
-
-                    element.addEventListener('mouseleave', function () {
+                    element.addEventListener('mouseleave', () => {
                         if (document.body.contains(tooltip)) {
                             document.body.removeChild(tooltip);
                         }
                     });
                 },
 
-                // Manejo de clics en eventos
+                // Manejo de clics sobre eventos
                 eventClick: function (info) {
-                    // Código para mostrar el modal con detalles del evento
                     const event = info.event;
-                    const bookingId = event.id;
                     const status = event.extendedProps.status;
 
-                    // Completar el modal con la información del evento
-                    document.getElementById('booking_id').value = bookingId;
+                    // Rellenar modal con datos
+                    document.getElementById('booking_id').value = event.id;
                     document.getElementById('student_name').value = event.extendedProps.studentName;
-                    document.getElementById('booking_status').value = status === 'pending' ? 'Pendiente' :
-                        status === 'accepted' ? 'Aceptada' :
-                            status === 'cancelled' ? 'Cancelada' :
-                                status === 'blocked' ? 'Bloqueada' : 'Desconocido';
                     document.getElementById('booking_date').value = event.extendedProps.date;
                     document.getElementById('booking_time').value = `${event.extendedProps.time} - ${event.extendedProps.endTime}`;
                     document.getElementById('booking_vehicle').value = event.extendedProps.vehicle || 'No especificado';
 
-                    // Controles específicos según el estado
                     const acceptBtn = document.getElementById('acceptBookingBtn');
                     const rejectBtn = document.getElementById('rejectBookingBtn');
 
+                    // Mostrar/ocultar botones según estado
                     if (status === 'pending') {
                         acceptBtn.style.display = 'inline-block';
                         rejectBtn.style.display = 'inline-block';
@@ -756,32 +1036,233 @@ jQuery(document).ready(function ($) {
                         rejectBtn.style.display = 'none';
                     }
 
-                    // Mostrar el modal
-                    const bookingModal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
-                    bookingModal.show();
+                    // Mostrar el modal (ya instanciado en init)
+                    ProfesorView.bookingDetailModal.show();
                 },
-                // Ajustes responsivos
+
+                // Cuando la ventana se redimensiona: vista “day” en móvil
                 windowResize: function (view) {
                     if (window.innerWidth < 768) {
                         ProfesorView.calendar.changeView('timeGridDay');
                     }
                 },
+
+                // Marcar días pasados
                 dayCellDidMount: function (info) {
-                    var today = new Date();
-                    if (info.date < today.setHours(0, 0, 0, 0)) {
+                    const hoy = new Date();
+                    if (info.date < hoy.setHours(0, 0, 0, 0)) {
                         info.el.classList.add('fc-day-past');
                     }
                 },
+
+                // Asignamos los eventos que preparamos arriba
+                events: events
             };
 
-            // Inicializar el calendario
-            ProfesorView.calendar = new FullCalendar.Calendar(calendarElement, calendarOptions);
+            // 9. Instalar el calendario con todas las opciones
+            ProfesorView.calendar = new FullCalendar.Calendar(calendarEl, calendarOptions);
             ProfesorView.calendar.render();
 
-            // Añadir eventListeners para los filtros
-            document.getElementById('showPendingOnly')?.addEventListener('change', ProfesorView.applyFilters);
-            document.getElementById('showAcceptedOnly')?.addEventListener('change', ProfesorView.applyFilters);
-            document.getElementById('refreshCalendar')?.addEventListener('click', () => ProfesorView.calendar.refetchEvents());
+            // 10. Mostrar cuántos eventos se han cargado
+            console.log(
+                'Calendario renderizado. Eventos en calendario:',
+                ProfesorView.calendar.getEvents().length
+            );
+
+        }
+
+
+        static generateBusinessHours(config) {
+            const dias = config.dias || [];
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const descansos = config.descansos || [];
+
+            // Convertir nombres de días a números (FullCalendar usa 0=domingo, 1=lunes, etc.)
+            const daysOfWeek = dias.map(dia => {
+                const diasMap = {
+                    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3,
+                    'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+                };
+                return diasMap[dia];
+            }).filter(day => day !== undefined);
+
+            if (daysOfWeek.length === 0) {
+                return false; // No hay días laborales
+            }
+
+            // Si no hay descansos, retornar horario simple
+            if (descansos.length === 0) {
+                return [{
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaInicio,
+                    endTime: horaFin
+                }];
+            }
+
+            // Ordenar descansos por hora de inicio
+            const descansosOrdenados = descansos.sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+            const businessHours = [];
+            let horaActual = horaInicio;
+
+            // Crear segmentos entre descansos
+            descansosOrdenados.forEach(descanso => {
+                if (horaActual < descanso.inicio) {
+                    businessHours.push({
+                        daysOfWeek: daysOfWeek,
+                        startTime: horaActual,
+                        endTime: descanso.inicio
+                    });
+                }
+                horaActual = descanso.fin;
+            });
+
+            // Añadir segmento final si queda tiempo después del último descanso
+            if (horaActual < horaFin) {
+                businessHours.push({
+                    daysOfWeek: daysOfWeek,
+                    startTime: horaActual,
+                    endTime: horaFin
+                });
+            }
+
+            return businessHours;
+        }
+
+        static generateTeacherSlots(config) {
+            const horaInicio = config.hora_inicio || '08:00';
+            const horaFin = config.hora_fin || '20:00';
+            const duracionClase = parseInt(config.duracion) || 45;
+            const descansos = config.descansos || [];
+
+            const timeToMinutes = (time) => {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+
+            const minutesToTime = (minutes) => {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            };
+
+            const inicioMinutos = timeToMinutes(horaInicio);
+            const finMinutos = timeToMinutes(horaFin);
+
+            // Crear períodos laborales excluyendo descansos
+            const periodosLaborales = [];
+            const descansosOrdenados = descansos
+                .map(d => ({ inicio: timeToMinutes(d.inicio), fin: timeToMinutes(d.fin) }))
+                .sort((a, b) => a.inicio - b.inicio);
+
+            let horaActual = inicioMinutos;
+            descansosOrdenados.forEach(descanso => {
+                if (horaActual < descanso.inicio) {
+                    periodosLaborales.push({ inicio: horaActual, fin: descanso.inicio });
+                }
+                horaActual = Math.max(horaActual, descanso.fin);
+            });
+
+            if (horaActual < finMinutos) {
+                periodosLaborales.push({ inicio: horaActual, fin: finMinutos });
+            }
+
+            // Generar slots
+            const slots = [];
+            periodosLaborales.forEach(periodo => {
+                const duracionPeriodo = periodo.fin - periodo.inicio;
+                const numClases = Math.floor(duracionPeriodo / duracionClase);
+
+                for (let i = 0; i < numClases; i++) {
+                    const inicioSlot = periodo.inicio + (i * duracionClase);
+                    const finSlot = inicioSlot + duracionClase;
+
+                    slots.push({
+                        start: minutesToTime(inicioSlot),
+                        end: minutesToTime(finSlot),
+                        startMinutes: inicioSlot,
+                        endMinutes: finSlot
+                    });
+                }
+            });
+
+            return slots;
+        }
+
+        static findSlotForClick(clickTime, slots) {
+            const timeToMinutes = (time) => {
+                const [hours, minutes] = time.split(':').map(Number);
+                return hours * 60 + minutes;
+            };
+
+            const clickMinutes = timeToMinutes(clickTime);
+
+            return slots.find(slot =>
+                clickMinutes >= slot.startMinutes && clickMinutes < slot.endMinutes
+            );
+        }
+
+        static handleBlockModeClick(info, matchedSlot) {
+            const dateStr = info.date.toISOString().substring(0, 10);
+            document.getElementById('block_start_date').value = dateStr;
+            document.getElementById('block_start_time').value = matchedSlot.start;
+            document.getElementById('block_end_date').value = dateStr;
+            document.getElementById('block_end_time').value = matchedSlot.end;
+            ProfesorView.blockTimeModal.show();
+        }
+
+        static handleCreateModeClick(info, matchedSlot) {
+            const dateStr = info.date.toISOString().substring(0, 10);
+            document.getElementById('new_booking_date').value = dateStr;
+            document.getElementById('new_booking_start_time').value = matchedSlot.start;
+            document.getElementById('new_booking_end_time').value = matchedSlot.end;
+            ProfesorView.createBookingModal.show();
+        }
+
+        static handleBlockModeSelect(info) {
+            document.getElementById('block_start_date').value = info.startStr.substring(0, 10);
+            document.getElementById('block_start_time').value = info.startStr.substring(11, 16);
+            document.getElementById('block_end_date').value = info.endStr.substring(0, 10);
+            document.getElementById('block_end_time').value = info.endStr.substring(11, 16);
+            ProfesorView.calendar.unselect();
+            ProfesorView.blockTimeModal.show();
+        }
+
+        static handleCreateModeSelect(info) {
+            const hasConflict = ProfesorView.calendar.getEvents().some(event => {
+                if (event.extendedProps.status === 'cancelled') return false;
+                return (info.start < event.end && info.end > event.start);
+            });
+
+            if (hasConflict) {
+                window.mostrarNotificacion('No permitido', 'Ya hay una clase programada en este horario', 'warning');
+                ProfesorView.calendar.unselect();
+                return;
+            }
+
+            const config = ProfesorView.profesorData.config;
+            const descansos = config.descansos || [];
+            const startTime = info.start.toTimeString().substring(0, 5);
+            const endTime = info.end.toTimeString().substring(0, 5);
+
+            const isInBreak = descansos.some(descanso => {
+                return (startTime >= descanso.inicio && startTime < descanso.fin) ||
+                    (endTime > descanso.inicio && endTime <= descanso.fin) ||
+                    (startTime <= descanso.inicio && endTime >= descanso.fin);
+            });
+
+            if (isInBreak) {
+                window.mostrarNotificacion('No permitido', 'No puedes crear reservas durante los descansos', 'warning');
+                ProfesorView.calendar.unselect();
+                return;
+            }
+
+            document.getElementById('new_booking_date').value = info.startStr.substring(0, 10);
+            document.getElementById('new_booking_start_time').value = info.startStr.substring(11, 16);
+            document.getElementById('new_booking_end_time').value = info.endStr.substring(11, 16);
+            ProfesorView.calendar.unselect();
+            ProfesorView.createBookingModal.show();
         }
 
         static applyFilters() {
@@ -1063,26 +1544,61 @@ jQuery(document).ready(function ($) {
         }
 
         static async handleTeacherConfigSubmit(form) {
-            // Recolectar datos del formulario
             const formData = new FormData(form);
             const dias = formData.getAll('dias[]');
             const hora_inicio = formData.get('hora_inicio');
             const hora_fin = formData.get('hora_fin');
             const duracion = formData.get('duracion');
 
-            // Validar campos
+            // Procesar descansos
+            const descansos = [];
+            const descansosData = {};
+
+            // Agrupar los datos de descansos
+            for (let [key, value] of formData.entries()) {
+                if (key.startsWith('descansos[')) {
+                    const matches = key.match(/descansos\[(\d+)\]\[(\w+)\]/);
+                    if (matches) {
+                        const id = matches[1];
+                        const field = matches[2];
+
+                        if (!descansosData[id]) {
+                            descansosData[id] = {};
+                        }
+                        descansosData[id][field] = value;
+                    }
+                }
+            }
+
+            // Convertir a array y filtrar descansos válidos
+            Object.values(descansosData).forEach(descanso => {
+                if (descanso.inicio && descanso.fin) {
+                    descansos.push({
+                        inicio: descanso.inicio,
+                        fin: descanso.fin
+                    });
+                }
+            });
+
+            // Validar campos obligatorios
             if (!dias.length || !hora_inicio || !hora_fin || !duracion) {
-                window.mostrarNotificacion('Error', 'Todos los campos son obligatorios');
+                window.mostrarNotificacion('Error', 'Todos los campos son obligatorios', 'error');
                 return;
             }
 
-            // Preparar payload
             const payload = {
                 dias,
                 hora_inicio,
                 hora_fin,
-                duracion
+                duracion,
+                descansos
             };
+
+            // Mostrar indicador de carga
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Guardando...';
+            submitBtn.disabled = true;
 
             try {
                 const response = await fetch(`${ProfesorView.apiUrl}/teachers/${ProfesorView.profesorData.id}/config`, {
@@ -1110,26 +1626,38 @@ jQuery(document).ready(function ($) {
                     accordion.hide();
                 }
 
-                // Mostrar notificación
-                window.mostrarNotificacion('', 'Configuración de horario guardada correctamente', 'success');
+                // Mostrar notificación de éxito
+                window.mostrarNotificacion('', 'Configuración guardada correctamente', 'success');
 
-                // Recargar el calendario para aplicar los nuevos cambios
-                ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
-                ProfesorView.calendar.setOption('slotMaxTime', hora_fin);
-                ProfesorView.calendar.setOption('slotDuration', `00:${duracion}:00`);
+                // Actualizar calendario con nueva configuración
+                if (ProfesorView.calendar) {
+                    ProfesorView.calendar.setOption('slotMinTime', hora_inicio);
+                    ProfesorView.calendar.setOption('slotMaxTime', hora_fin);
+                    ProfesorView.calendar.setOption('snapDuration', `00:${duracion}:00`);
 
-                // Actualizar días no disponibles
-                const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
-                    const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dia];
-                    return !dias.includes(diaNombre);
-                });
-                ProfesorView.calendar.setOption('hiddenDays', diasNoDisponibles);
+                    // Actualizar días no disponibles
+                    const diasNoDisponibles = [0, 1, 2, 3, 4, 5, 6].filter(dia => {
+                        const diaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dia];
+                        return !dias.includes(diaNombre);
+                    });
+                    ProfesorView.calendar.setOption('hiddenDays', diasNoDisponibles);
 
-                ProfesorView.calendar.render();
+                    // REGENERAR BUSINESS HOURS CON NUEVOS DESCANSOS
+                    const newBusinessHours = ProfesorView.generateBusinessHours(payload);
+                    ProfesorView.calendar.setOption('businessHours', newBusinessHours);
+
+                    ProfesorView.calendar.render();
+
+                    ProfesorView.teacherSlots = ProfesorView.generateTeacherSlots(payload);
+                }
 
             } catch (error) {
                 console.error('Error al guardar la configuración:', error);
                 window.mostrarNotificacion('Error', `${error.message}`, 'error');
+            } finally {
+                // Restaurar botón
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         }
 
@@ -1158,6 +1686,9 @@ jQuery(document).ready(function ($) {
                 document.getElementById('modal-student-email').textContent = studentData.email;
                 document.getElementById('modal-student-license').textContent = studentData.license_type || 'No especificado';
                 document.getElementById('modal-student-phone').textContent = studentData.phone || 'No especificado';
+                document.getElementById('modal-student-call-btn').href = `tel:${studentData.phone || ''}`;
+                document.getElementById('modal-student-whatsapp-btn').href = `https://wa.me/${studentData.phone || ''}`;
+                document.getElementById('modal-student-saldo').textContent = studentData.balance ? `${studentData.balance}` : 'No disponible';
 
                 // Filtrar las clases de este alumno
                 const studentClasses = ProfesorView.bookings.filter(booking =>
@@ -1238,6 +1769,4 @@ jQuery(document).ready(function ($) {
 
     // Inicializar la vista
     ProfesorView.init();
-
-    console.log('ProfesorData', ProfesorView.profesorData);
 });

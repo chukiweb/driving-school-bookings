@@ -183,8 +183,7 @@ section {
 }
 
 .calendar-responsive {
-    min-height: 1000px;
-    height: calc(80vh - 150px);
+    min-height: 120vh;
 }
 
 /* Contenedores y estructura del calendario */
@@ -415,8 +414,7 @@ div[class*='slot-cell-'].recent-time {
     }
     
     .calendar-responsive {
-        height: auto;
-        min-height: 800px;
+        min-height: 150vh;
     }
     
     .avatar-wrapper {
@@ -456,6 +454,10 @@ div[class*='slot-cell-'].recent-time {
     
     .fc-daygrid-day-events {
         min-height: 20px;
+    }
+
+    .fc-dayGridMonth-button, .fc-timeGridWeek-button, .fc-timeGridDay-button {
+        display: none !important;
     }
 }
 
@@ -548,4 +550,26 @@ div[class*='slot-cell-'].recent-time {
         background-color: rgba(220, 53, 69, 0.1);
         border-radius: 4px;
     }
+}
+
+/* Business hours más sutil */
+.fc-non-business {
+    background: repeating-linear-gradient(
+        45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px
+    ) !important;
+    opacity: 0.6;
+    border-top: 1px solid red;
+    border-bottom: 1px solid red;
+}
+
+.fc-business-hours {
+    background-color: #ffffff !important;
+}
+
+.fc-event {
+    cursor: pointer;
 }

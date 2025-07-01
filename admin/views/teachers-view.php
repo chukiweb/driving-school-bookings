@@ -161,29 +161,7 @@ class DSB_Teachers_View extends DSB_Base_View
 
     public function handle_config_lesson_form()
     {
-
-        $teacher_id = intval($_POST['user_id']);
-
-        $dias = array_map('sanitize_text_field', $_POST['dias'] ?? []);
-        $hora_inicio = sanitize_text_field($_POST['hora_inicio'] ?? '');
-        $hora_fin = sanitize_text_field($_POST['hora_fin'] ?? '');
-        $duracion = intval($_POST['duracion'] ?? 0);
-
-        if (empty($dias) || empty($hora_inicio) || empty($hora_fin) || $duracion <= 0) {
-            $this->render_notice('Faltan datos obligatorios para guardar las clases.', 'error');
-            return;
-        }
-
-        $config = [
-            'dias' => $dias,
-            'hora_inicio' => $hora_inicio,
-            'hora_fin' => $hora_fin,
-            'duracion' => $duracion,
-        ];
-
-        update_user_meta($teacher_id, 'dsb_clases_config', $config);
-
-        $this->render_notice('Datos de clases guardados correctamente.');
+        $this->render_response(DSB()->user_manager->update_teacher_config());
     }
 
     public function handle_delete_teacher_form(): void
@@ -431,6 +409,17 @@ class DSB_Teachers_View extends DSB_Base_View
                         <th><label for="duracion">Duración de la clase (min)</label></th>
                         <td><input type="number" name="duracion" min="15" step="5" required></td>
                     </tr>
+                    <tr>
+                        <th><label>Descansos</label></th>
+                        <td>
+                            <div id="descansos-container">
+                                <!-- Los descansos se añadirán aquí dinámicamente -->
+                            </div>
+                            <button type="button" id="add-descanso-btn" class="button-secondary" style="margin-top: 10px;">
+                                Añadir Descanso
+                            </button>
+                        </td>
+                    </tr>
                 </table>
 
                 <input type="hidden" name="form_action" value="config_teacher" />
@@ -566,10 +555,10 @@ class DSB_Teachers_View extends DSB_Base_View
             'teacher-admin-css',
             DSB_PLUGIN_URL . '../public/css/admin/teacher-view.css',
             [],
-            '1.0.0'
+            DSB_VERSION
         );
 
-        wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], '1.0.0', true);
+        wp_enqueue_script('profesor-js', DSB_PLUGIN_URL . '../public/js/admin/teacher-admin-view.js', ['jquery'], DSB_VERSION, true);
 
         wp_localize_script('profesor-js', 'allStudentData', $this->get_students_data());
 

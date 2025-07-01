@@ -54,6 +54,7 @@ class DSB_Student_Service
                 'id' => $vehicle_id
             ],
             'class_points' => get_user_meta($student_id, 'class_points', true),
+            'balance' => get_user_meta($student_id, 'class_points', true),
         ];
 
         // Obtener las reservas del estudiante
