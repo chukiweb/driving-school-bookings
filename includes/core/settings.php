@@ -15,6 +15,7 @@ class DSB_Settings
                 'default_booking_status' => 'accepted',
                 'default_min_antelacion' => 1, // Horas
                 'default_max_antelacion' => 15, // Días
+                'pickup_location' => '',
                 'pusher_beams_instance_id' => '',
                 'pusher_beams_secret_key' => '',
             ]

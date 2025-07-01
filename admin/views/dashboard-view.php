@@ -31,6 +31,7 @@ class DSB_Dashboard_View extends DSB_Base_View
     private function handle_save_settings_form()
     {
         if (current_user_can('administrator')) {
+            DSB_Settings::update('pickup_location', sanitize_text_field($_POST['pickup_location']));
             DSB_Settings::update('cancelation_time_hours', intval($_POST['cancelation_time_hours']));
             DSB_Settings::update('daily_limit', intval($_POST['daily_limit']));
             DSB_Settings::update('class_cost', floatval($_POST['class_cost']));
@@ -74,6 +75,13 @@ class DSB_Dashboard_View extends DSB_Base_View
                 <input type="hidden" name="form_action" value="save_settings" />
 
                 <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="pickup_location">Ubicación de recogida</label></th>
+                        <td>
+                            <input type="text" id="pickup_location" name="pickup_location" value="<?= esc_attr(DSB_Settings::get('pickup_location')); ?>" class="regular-text">
+                            <p class="description">Introduce la ubicación de recogida para las clases.</p>
+                        </td>
+                    </tr>
                     <tr>
                         <th scope="row"><label for="cancelation_time_hours">Tiempo de cancelación (horas)</label></th>
                         <td><input type="number" id="cancelation_time_hours" name="cancelation_time_hours" value="<?= esc_attr(DSB_Settings::get('cancelation_time_hours')); ?>" class="regular-text"></td>
