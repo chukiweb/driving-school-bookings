@@ -63,7 +63,7 @@ class DSB_Init
         require_once DSB_PLUGIN_DIR . 'core/class-users.php';
         require_once DSB_PLUGIN_DIR . 'core/auth.php';
         require_once DSB_PLUGIN_DIR . 'core/service-worker.php';
-        require_once DSB_PLUGIN_DIR . 'core/hooks.php';
+        require_once DSB_PLUGIN_DIR . 'core/password-reset.php';
 
         require_once DSB_PLUGIN_DIR_PATH . 'admin/admin.php';
         require_once DSB_PLUGIN_DIR_PATH . 'admin/views/base-view.php';
@@ -98,6 +98,8 @@ class DSB_Init
 
     private function initHooks()
     {
+        require_once DSB_PLUGIN_DIR . 'core/hooks.php';
+
         register_activation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'activate']);
         register_deactivation_hook(DSB_PLUGIN_DIR . 'driving-school-bookings.php', [$this, 'deactivate']);
         add_filter('theme_page_templates', [$this, 'dsb_register_templates']);

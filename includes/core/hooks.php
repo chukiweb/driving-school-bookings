@@ -4,6 +4,14 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
+add_action(
+    'plugins_loaded',
+    static function () {
+        DSB_Password_Reset::init();
+        error_log('DSB_Password_Reset hooks initialized.');
+    }
+);
+
 /**
  * Hooks para cambiar la configuración del correo electrónico
  */
