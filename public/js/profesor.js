@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
         static bookingDetailModal = null;
         static studentDetailModal = null;
         static rejectConfirmModal = null;
+        static completedClassesModal = null;
+        static currentCompletedPage = 1;
         static blockTimeModal = null;
         static createBookingModal = null;
         static apiUrl = DSB_CONFIG.apiBaseUrl;
@@ -45,6 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Inicializar listeners para descansos
             ProfesorView.initDescansosListeners();
+
+            // Inicializar modal de clases completadas
+            ProfesorView.completedClassesModal = new bootstrap.Modal(document.getElementById('completedClassesModal'));
+
+            // Cargar estadísticas de clases completadas
+            ProfesorView.loadCompletedClassesStats();
 
             // **LISTENERS PARA CANCELAR MODALES**
             // Cuando se cierra el modal de bloqueo sin guardar, mantener el modo
@@ -197,6 +205,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.getElementById('saveBlockBtn')?.addEventListener('click', function () {
                 ProfesorView.saveTimeBlock();
+            });
+
+            // Botón para abrir historial de clases completadas
+            document.getElementById('openCompletedHistoryBtn')?.addEventListener('click', function () {
+                ProfesorView.openCompletedClassesModal();
+            });
+
+            // Filtrar historial por fechas
+            document.getElementById('filterCompletedBtn')?.addEventListener('click', function () {
+                ProfesorView.filterCompletedClasses();
+            });
+
+            // Limpiar filtros de historial
+            document.getElementById('clearFiltersBtn')?.addEventListener('click', function () {
+                ProfesorView.clearCompletedFilters();
+            });
+
+            // Event delegation para paginación de historial de clases completadas
+            document.addEventListener('click', function (e) {
+                // Manejar clics en paginación de historial completado
+                if (e.target.closest('#completedHistoryPagination .page-link')) {
+                    e.preventDefault();
+
+                    const link = e.target.closest('.page-link');
+                    const pageItem = link.closest('.page-item');
+
+                    // Evitar clics en páginas deshabilitadas o activas
+                    if (pageItem.classList.contains('disabled') || pageItem.classList.contains('active')) {
+                        return;
+                    }
+
+                    const page = parseInt(link.dataset.page);
+                    if (page && page > 0) {
+                        ProfesorView.loadCompletedHistory(page);
+                    }
+                }
             });
         }
 
@@ -1062,13 +1106,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // 9. Instalar el calendario con todas las opciones
             ProfesorView.calendar = new FullCalendar.Calendar(calendarEl, calendarOptions);
             ProfesorView.calendar.render();
-
-            // 10. Mostrar cuántos eventos se han cargado
-            console.log(
-                'Calendario renderizado. Eventos en calendario:',
-                ProfesorView.calendar.getEvents().length
-            );
-
         }
 
 
@@ -1764,6 +1801,497 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.error('Error al obtener datos del alumno:', error);
                 window.mostrarNotificacion('Error', `${error.message}`, 'error');
             }
+        }
+
+        /**
+         * Cargar estadísticas de clases completadas (siguiendo patrón existente)
+         */
+        static async loadCompletedClassesStats() {
+            const teacherId = ProfesorView.profesorData.id;
+
+            try {
+                const response = await fetch(`${ProfesorView.apiUrl}/teachers/${teacherId}?include_completed_stats=true`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar estadísticas');
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.data.completed_stats) {
+                    ProfesorView.updateCompletedStatsUI(data.data.completed_stats);
+                }
+            } catch (error) {
+                console.error('Error loading completed stats:', error);
+            }
+        }
+
+        /**
+         * Actualizar UI de estadísticas (similar a showBookingDetails)
+         */
+        static updateCompletedStatsUI(stats) {
+            document.getElementById('completedToday').textContent = stats.completed_today || 0;
+            document.getElementById('completedWeek').textContent = stats.completed_week || 0;
+            document.getElementById('completedMonth').textContent = stats.completed_month || 0;
+        }
+
+        /**
+         * Abrir modal de historial (siguiendo patrón de studentDetailModal)
+         */
+        static openCompletedClassesModal() {
+            ProfesorView.completedClassesModal.show();
+
+            // Establecer fechas por defecto (último mes)
+            const today = new Date();
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+
+            document.getElementById('filterDateFrom').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+
+            // Cargar con filtros por defecto
+            ProfesorView.loadCompletedHistory(1);
+        }
+
+        /**
+         * Cargar historial paginado - mejorado con indicador de carga
+         */
+        static async loadCompletedHistory(page = 1, dateFrom = null, dateTo = null) {
+            const teacherId = ProfesorView.profesorData.id;
+            ProfesorView.currentCompletedPage = page;
+
+            // Obtener fechas de filtros si no se pasaron como parámetros
+            if (dateFrom === null) {
+                dateFrom = document.getElementById('filterDateFrom')?.value || null;
+            }
+            if (dateTo === null) {
+                dateTo = document.getElementById('filterDateTo')?.value || null;
+            }
+
+            let url = `${ProfesorView.apiUrl}/teachers/${teacherId}/completed-history?page=${page}&per_page=10`;
+            if (dateFrom) url += `&date_from=${dateFrom}`;
+            if (dateTo) url += `&date_to=${dateTo}`;
+
+            // Mostrar indicador de carga
+            const container = document.getElementById('completedHistoryList');
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando historial...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Para los contadores, necesitamos también obtener TODAS las clases del periodo
+                    // no solo las de la página actual
+                    if (page === 1) {
+                        // Solo en la primera página, obtener estadísticas completas
+                        await ProfesorView.loadPeriodCompleteStats(teacherId, dateFrom, dateTo, data);
+                    } else {
+                        // En otras páginas, solo renderizar la lista
+                        ProfesorView.renderCompletedHistory(data.data);
+                    }
+                } else {
+                    throw new Error(data.message || 'Error en la respuesta del servidor');
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                ProfesorView.showErrorInHistory(`Error al cargar el historial: ${error.message}`);
+            }
+        }
+
+        /**
+         * Renderizar historial (siguiendo patrón de dashboard-admin-view.js) - MEJORADO
+         */
+        static renderCompletedHistory(data) {
+            const container = document.getElementById('completedHistoryList');
+
+            // NUEVO: Actualizar contadores del periodo
+            ProfesorView.updatePeriodStats(data);
+
+            if (!data.classes || data.classes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                        <p>No se encontraron clases completadas en este periodo</p>
+                    </div>
+                `;
+                ProfesorView.renderHistoryPagination(data.pagination);
+                return;
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+
+            data.classes.forEach(clase => {
+                const fecha = new Date(clase.date).toLocaleDateString('es-ES');
+
+                // Calcular duración de la clase
+                const startTime = clase.time || clase.start_time;
+                const endTime = clase.end_time;
+                const duration = ProfesorView.calculateClassDuration(startTime, endTime);
+
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-user text-primary me-1"></i>
+                                    ${clase.student_name}
+                                </h6>
+                                <p class="mb-1 text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    ${fecha} • ${startTime} - ${endTime}
+                                    <span class="badge bg-light text-dark ms-2">
+                                        <i class="fas fa-clock me-1"></i>${duration}
+                                    </span>
+                                </p>
+                                ${clase.vehicle ? `<small class="text-muted">
+                                    <i class="fas fa-car me-1"></i>
+                                    ${clase.vehicle}
+                                </small>` : ''}
+                            </div>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> Completada
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            ProfesorView.renderHistoryPagination(data.pagination);
+        }
+
+        /**
+         * Renderizar paginación (SIN onclick - usando data attributes)
+         */
+        static renderHistoryPagination(pagination) {
+            const container = document.getElementById('completedHistoryPagination');
+
+            if (!pagination || pagination.pages <= 1) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            let html = '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+            // Botón anterior
+            const prevDisabled = pagination.current_page <= 1 ? 'disabled' : '';
+            const prevPage = pagination.current_page - 1;
+            html += `<li class="page-item ${prevDisabled}">
+                <a class="page-link" href="#" data-page="${prevPage}" ${prevDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="sr-only">Anterior</span>
+                </a>
+            </li>`;
+
+            // Páginas numéricas (con lógica de truncamiento para muchas páginas)
+            const startPage = Math.max(1, pagination.current_page - 2);
+            const endPage = Math.min(pagination.pages, pagination.current_page + 2);
+
+            // Primera página si no está en el rango visible
+            if (startPage > 1) {
+                html += `<li class="page-item">
+                    <a class="page-link" href="#" data-page="1">1</a>
+                </li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>`;
+                }
+            }
+
+            // Páginas en el rango visible
+            for (let i = startPage; i <= endPage; i++) {
+                const active = i === pagination.current_page ? 'active' : '';
+                html += `<li class="page-item ${active}">
+                    <a class="page-link" href="#" data-page="${i}" ${active ? 'aria-current="page"' : ''}>
+                        ${i}
+                    </a>
+                </li>`;
+            }
+
+            // Última página si no está en el rango visible
+            if (endPage < pagination.pages) {
+                if (endPage < pagination.pages - 1) {
+                    html += `<li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>`;
+                }
+                html += `<li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.pages}">${pagination.pages}</a>
+                </li>`;
+            }
+
+            // Botón siguiente
+            const nextDisabled = pagination.current_page >= pagination.pages ? 'disabled' : '';
+            const nextPage = pagination.current_page + 1;
+            html += `<li class="page-item ${nextDisabled}">
+                <a class="page-link" href="#" data-page="${nextPage}" ${nextDisabled ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <i class="fas fa-chevron-right"></i>
+                    <span class="sr-only">Siguiente</span>
+                </a>
+            </li>`;
+
+            html += '</ul></nav>';
+            container.innerHTML = html;
+        }
+
+        /**
+         * Filtrar clases por fecha - mejorado
+         */
+        static filterCompletedClasses() {
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+
+            // Validar fechas si se proporcionan ambas
+            if (dateFrom && dateTo && dateFrom > dateTo) {
+                window.mostrarNotificacion(
+                    'Fechas inválidas',
+                    'La fecha "Desde" no puede ser posterior a la fecha "Hasta"',
+                    'warning'
+                );
+                return;
+            }
+
+            // Resetear a página 1 cuando se aplican filtros
+            ProfesorView.loadCompletedHistory(1, dateFrom, dateTo);
+        }
+
+        /**
+         * Mostrar error en historial
+         */
+        static showErrorInHistory(message) {
+            const container = document.getElementById('completedHistoryList');
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        /**
+         * NUEVO: Actualizar estadísticas del periodo
+         */
+        static updatePeriodStats(data) {
+            const totalClasses = data.pagination?.total || 0;
+
+                        // Determinar rango de fechas
+            const dateFrom = document.getElementById('filterDateFrom')?.value;
+            const dateTo = document.getElementById('filterDateTo')?.value;
+            let dateRange = 'Todas las fechas';
+
+            if (dateFrom && dateTo) {
+                const fromDate = new Date(dateFrom).toLocaleDateString('es-ES');
+                const toDate = new Date(dateTo).toLocaleDateString('es-ES');
+                dateRange = `${fromDate} - ${toDate}`;
+            } else if (dateFrom) {
+                const fromDate = new Date(dateFrom).toLocaleDateString('es-ES');
+                dateRange = `Desde ${fromDate}`;
+            } else if (dateTo) {
+                const toDate = new Date(dateTo).toLocaleDateString('es-ES');
+                dateRange = `Hasta ${toDate}`;
+            }
+
+            // Actualizar UI
+            document.getElementById('periodClassesCount').textContent = totalClasses;
+            document.getElementById('periodDateRange').textContent = dateRange;
+        }
+
+        /**
+         * NUEVO: Calcular duración de clase en formato legible
+         */
+        static calculateClassDuration(startTime, endTime) {
+            const minutes = ProfesorView.getClassDurationInMinutes(startTime, endTime);
+
+            if (minutes >= 60) {
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+
+        /**
+         * NUEVO: Calcular duración en minutos
+         */
+        static getClassDurationInMinutes(startTime, endTime) {
+            if (!startTime || !endTime) return 0;
+
+            const start = ProfesorView.timeToMinutes(startTime);
+            const end = ProfesorView.timeToMinutes(endTime);
+
+            return Math.max(0, end - start);
+        }
+
+        /**
+         * NUEVO: Convertir hora a minutos
+         */
+        static timeToMinutes(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            return (hours * 60) + (minutes || 0);
+        }
+
+        /**
+         * NUEVO: Limpiar filtros de fechas
+         */
+        static clearCompletedFilters() {
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+
+            // Recargar historial sin filtros
+            ProfesorView.loadCompletedHistory(1);
+
+            window.mostrarNotificacion('', 'Filtros eliminados', 'success');
+        }
+
+        /**
+         * NUEVO: Cargar estadísticas completas del periodo (todas las páginas)
+         */
+        static async loadPeriodCompleteStats(teacherId, dateFrom, dateTo, currentPageData) {
+            try {
+                // Obtener TODAS las clases del periodo para estadísticas
+                let statsUrl = `${ProfesorView.apiUrl}/teachers/${teacherId}/completed-history?page=1&per_page=999`;
+                if (dateFrom) statsUrl += `&date_from=${dateFrom}`;
+                if (dateTo) statsUrl += `&date_to=${dateTo}`;
+
+                const statsResponse = await fetch(statsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${ProfesorView.jwtToken}`
+                    }
+                });
+
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    if (statsData.success) {
+                        // Combinar datos: estadísticas completas + datos paginados actuales
+                        const combinedData = {
+                            ...currentPageData.data,
+                            all_classes: statsData.data.classes // Todas las clases para estadísticas
+                        };
+                        ProfesorView.renderCompletedHistoryWithStats(combinedData);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn('Error loading complete stats, using current page data:', error);
+            }
+
+            // Fallback: usar solo datos de la página actual
+            ProfesorView.renderCompletedHistory(currentPageData.data);
+        }
+
+        /**
+         * NUEVO: Renderizar historial con estadísticas completas
+         */
+        static renderCompletedHistoryWithStats(data) {
+            // Calcular estadísticas usando TODAS las clases
+            const allClasses = data.all_classes || data.classes || [];
+            const totalClasses = allClasses.length;
+
+            const dateFrom = document.getElementById('filterDateFrom')?.value;
+            const dateTo = document.getElementById('filterDateTo')?.value;
+            let dateRange = 'Todas las fechas';
+
+            if (dateFrom && dateTo) {
+                const fromDate = new Date(dateFrom).toLocaleDateString('es-ES');
+                const toDate = new Date(dateTo).toLocaleDateString('es-ES');
+                dateRange = `${fromDate} - ${toDate}`;
+            } else if (dateFrom) {
+                const fromDate = new Date(dateFrom).toLocaleDateString('es-ES');
+                dateRange = `Desde ${fromDate}`;
+            } else if (dateTo) {
+                const toDate = new Date(dateTo).toLocaleDateString('es-ES');
+                dateRange = `Hasta ${toDate}`;
+            }
+
+            // Actualizar contadores
+            document.getElementById('periodClassesCount').textContent = totalClasses;
+            document.getElementById('periodDateRange').textContent = dateRange;
+
+            // Renderizar lista de la página actual
+            const container = document.getElementById('completedHistoryList');
+
+            if (!data.classes || data.classes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                        <p>No se encontraron clases completadas en este periodo</p>
+                    </div>
+                `;
+                ProfesorView.renderHistoryPagination(data.pagination);
+                return;
+            }
+
+            let html = '<div class="list-group list-group-flush">';
+
+            data.classes.forEach(clase => {
+                const fecha = new Date(clase.date).toLocaleDateString('es-ES');
+                const startTime = clase.time || clase.start_time;
+                const endTime = clase.end_time;
+                const duration = ProfesorView.calculateClassDuration(startTime, endTime);
+
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-user text-primary me-1"></i>
+                                    ${clase.student_name}
+                                </h6>
+                                <p class="mb-1 text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    ${fecha} • ${startTime} - ${endTime}
+                                    <span class="badge bg-light text-dark ms-2">
+                                        <i class="fas fa-clock me-1"></i>${duration}
+                                    </span>
+                                </p>
+                                ${clase.vehicle ? `<small class="text-muted">
+                                    <i class="fas fa-car me-1"></i>
+                                    ${clase.vehicle}
+                                </small>` : ''}
+                            </div>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> Completada
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            ProfesorView.renderHistoryPagination(data.pagination);
         }
     }
 

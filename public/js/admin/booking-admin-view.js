@@ -133,6 +133,4 @@ jQuery(document).ready(function ($) {
 
     bookingAdminView.init();
 
-    console.log("Alumnos:",allStudentData);
-    console.log("Bookings:",allBookingsData);
 });

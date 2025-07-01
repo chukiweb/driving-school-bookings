@@ -116,6 +116,4 @@ jQuery(document).ready(function ($) {
     }
 
     studentAdminView.init();
-
-    console.log("STUDENT DATA", allStudentData);
 });

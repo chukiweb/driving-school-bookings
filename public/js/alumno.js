@@ -125,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            console.log('Slots generados:', slots.length > 0 ? slots : 'No se generaron slots');
             return slots;
         }
 
@@ -591,7 +590,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
 
-            console.log('Business hours generadas:', businessHours);
             return businessHours;
         }
 
@@ -654,7 +652,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     const clickTime = info.date.toTimeString().substring(0, 5);
-                    console.log('Clic en:', clickTime);
 
                     const matchedSlot = AlumnoView.findSlotForClick(clickTime, AlumnoView.teacherSlots);
 
@@ -662,8 +659,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         window.mostrarNotificacion('No disponible', 'No hay clases disponibles en este horario', 'warning');
                         return;
                     }
-
-                    console.log('Slot encontrado:', matchedSlot);
 
                     const dateStr = info.date.toISOString().substring(0, 10);
                     const startDateTime = new Date(`${dateStr}T${matchedSlot.start}:00`);
@@ -690,7 +685,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         end_time: matchedSlot.end
                     };
 
-                    console.log('Fecha seleccionada:', AlumnoView.selectedDate);
                     AlumnoView.calendarModal.show();
                 },
 

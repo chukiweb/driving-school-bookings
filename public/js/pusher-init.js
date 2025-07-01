@@ -30,8 +30,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Registrar el service worker desde la RAÍZ del sitio
         navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
-                console.log('Service Worker registrado correctamente:', registration.scope);
-
                 // Una vez registrado el Service Worker, inicializar Pusher Beams
                 initPusherBeams();
             })
@@ -56,7 +54,6 @@ function initPusherBeams() {
 
             // Solicitar permisos y empezar
             await beamsClient.start();
-            console.log('Pusher Beams inicializado correctamente');
 
             // Suscribirse al tema general para pruebas
             await beamsClient.addDeviceInterest('debug-general');
@@ -65,14 +62,12 @@ function initPusherBeams() {
             if (typeof studentData !== 'undefined') {
                 // Es un alumno
                 await beamsClient.addDeviceInterest(`debug-student-${studentData.id}`);
-                console.log(`Suscrito al tema "debug-student-${studentData.id}"`);
 
                 // Suscribirse a notificaciones de recordatorio de clase
                 await beamsClient.addDeviceInterest('class-reminders');
             } else if (typeof teacherData !== 'undefined') {
                 // Es un profesor
                 await beamsClient.addDeviceInterest(`debug-teacher-${teacherData.id}`);
-                console.log(`Suscrito al tema "debug-teacher-${teacherData.id}"`);
 
                 // Suscribirse a notificaciones de nuevas reservas
                 await beamsClient.addDeviceInterest('new-bookings');

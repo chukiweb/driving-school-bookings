@@ -137,6 +137,18 @@ class DSB_API
             'permission_callback'   => [$this, 'check_permission']
         ]);
 
+        register_rest_route($this->namespace, '/teachers/(?P<id>\d+)/completed-history', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [$this, 'get_teacher_completed_history'],
+            'permission_callback' => [$this, 'check_permission'],
+            'args' => [
+                'page' => ['default' => 1, 'sanitize_callback' => 'absint'],
+                'per_page' => ['default' => 10, 'sanitize_callback' => 'absint'],
+                'date_from' => ['sanitize_callback' => 'sanitize_text_field'],
+                'date_to' => ['sanitize_callback' => 'sanitize_text_field']
+            ]
+        ]);
+
         // register_rest_route($this->namespace, '/teachers-availability', [
         //     'methods'               => 'GET',
         //     'callback'              => 'get_professor_availability',
@@ -493,15 +505,23 @@ class DSB_API
 
     public function get_teacher($request)
     {
-        $teacher_id = intval($request['id']);
-        return DSB_Teacher_Service::get_teacher($teacher_id);
-    }
+        $user_id = intval($request['id']);
+        $include_completed_stats = $request->get_param('include_completed_stats');
 
-    // public function update_teacher($request)
-    // {
-    //     $teacher_id = intval($request['id']);
-    //     return DSB_Teacher_Service::get_professor_availability($teacher_id);
-    // }
+        $result = DSB_Teacher_Service::get_teacher($user_id);
+
+        // Extender con estadísticas de clases completadas si se solicita
+        if ($include_completed_stats && $result instanceof WP_REST_Response) {
+            $response_data = $result->get_data();
+            if ($response_data['success']) {
+                $completed_stats = DSB_Booking_Service::get_completed_classes_stats($user_id);
+                $response_data['data']['completed_stats'] = $completed_stats;
+                $result->set_data($response_data);
+            }
+        }
+
+        return $result;
+    }
 
     public function update_teacher_config($request)
     {
@@ -509,23 +529,47 @@ class DSB_API
         return DSB_Teacher_Service::update_teacher_config($request, $teacher_id);
     }
 
-    // public function get_teacher_availability($request)
-    // {
-    //     $teacher_id = intval($request['id']);
-    //     return DSB_Teacher_Service::get_teacher_availability($teacher_id);
-    // }
+    public function get_teacher_completed_history($request)
+    {
+        $teacher_id = $request['id'];
+        $page = $request['page'];
+        $per_page = $request['per_page'];
 
-    // public function save_teacher_availability($request)
-    // {
-    //     $teacher_id = intval($request['id']);
-    //     return DSB_Teacher_Service::save_teacher_availability($request, $teacher_id);
-    // }
+        $filters = [];
+        if ($request['date_from']) $filters['date_from'] = $request['date_from'];
+        if ($request['date_to']) $filters['date_to'] = $request['date_to'];
 
-    // public function save_teacher_classes($request)
-    // {
-    //     $teacher_id = intval($request['id']);
-    //     return DSB_Teacher_Service::save_teacher_classes($request, $teacher_id);
-    // }
+        $completed_response = DSB_Booking_Service::get_completed_classes_by_teacher($teacher_id, $filters);
+
+        if (!$completed_response['success']) {
+            return new WP_REST_Response($completed_response, 400);
+        }
+
+        $all_classes = $completed_response['data'];
+
+        // Ordenar por fecha descendente
+        usort($all_classes, function ($a, $b) {
+            return strcmp($b['date'] . $b['start_time'], $a['date'] . $a['start_time']);
+        });
+
+        // Paginar
+        $total = count($all_classes);
+        $offset = ($page - 1) * $per_page;
+        $paginated = array_slice($all_classes, $offset, $per_page);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data' => [
+                'classes' => $paginated,
+                'pagination' => [
+                    'total' => $total,
+                    'pages' => ceil($total / $per_page),
+                    'current_page' => $page,
+                    'per_page' => $per_page
+                ]
+            ]
+        ], 200);
+    }
 
     /**
      * STUDENT ENDPOINT

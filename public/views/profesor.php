@@ -740,6 +740,115 @@ $js_config = [
         </section>
     </div>
 
+    <!-- NUEVO: Widget de Clases Impartidas -->
+    <div class="container">
+        <div class="card shadow h-100">
+            <div class="card-header bg-success text-white">
+                <h6 class="m-0"><i class="fas fa-check-circle"></i> Clases Impartidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <h4 class="text-success mb-0" id="completedToday">-</h4>
+                            <small class="text-muted">Hoy</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <h4 class="text-success mb-0" id="completedWeek">-</h4>
+                            <small class="text-muted">Semana</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="mb-2">
+                            <h4 class="text-success mb-0" id="completedMonth">-</h4>
+                            <small class="text-muted">Mes</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <button class="btn btn-outline-success btn-sm w-100" id="openCompletedHistoryBtn">
+                    <i class="fas fa-history"></i> Ver Historial
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NUEVO: Modal de Historial de Clases Impartidas -->
+    <div class="modal fade" id="completedClassesModal" tabindex="-1" aria-labelledby="completedClassesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="completedClassesModalLabel">
+                        <i class="fas fa-history"></i> Historial de Clases Impartidas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- NUEVO: Contador de clases del periodo -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-0">
+                                <div class="card-body py-3">
+                                    <div class="row text-center">
+                                        <div class="col">
+                                            <div class="d-flex flex-column">
+                                                <span class="h4 mb-0 text-success" id="periodClassesCount">0</span>
+                                                <small class="text-muted">Clases en periodo</small>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="d-flex flex-column">
+                                                <span class="h4 mb-0 text-info" id="periodDateRange">-</span>
+                                                <small class="text-muted">Periodo</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Desde:</label>
+                            <input type="date" class="form-control" id="filterDateFrom">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hasta:</label>
+                            <input type="date" class="form-control" id="filterDateTo">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" id="filterCompletedBtn">
+                                    <i class="fas fa-filter"></i> Filtrar
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" id="clearFiltersBtn">
+                                    <i class="fas fa-times"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de clases -->
+                    <div id="completedHistoryList">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div id="completedHistoryPagination" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal para detalles y aceptación de reserva -->
     <div class="modal fade" id="bookingDetailModal">
         <div class="modal-dialog modal-dialog-centered">

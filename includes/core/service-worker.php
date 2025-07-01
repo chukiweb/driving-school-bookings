@@ -16,13 +16,11 @@ importScripts("https://js.pusher.com/beams/service-worker.js");
 
 // Evento de instalación
 self.addEventListener('install', event => {
-  console.log('Service Worker instalado en raíz');
   self.skipWaiting();
 });
 
 // Evento de activación
 self.addEventListener('activate', event => {
-  console.log('Service Worker activado en raíz');
   return self.clients.claim();
 });
 

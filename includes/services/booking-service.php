@@ -354,7 +354,7 @@ class DSB_Booking_Service
         $hours_diff = ($class_datetime->getTimestamp() - $now->getTimestamp()) / 3600;
         $cancel_hours_limit = DSB_Settings::get('cancelation_time_hours');
 
-        
+
         $refund = false;
         $cost = get_post_meta($booking_id, 'cost', true);
 
@@ -608,5 +608,137 @@ class DSB_Booking_Service
         }
 
         return true;
+    }
+
+    /**
+     * Obtener todas las reservas de un profesor
+     */
+    public static function get_bookings_by_teacher($teacher_id)
+    {
+        if (!$teacher_id) {
+            return [
+                'success' => false,
+                'message' => 'ID de profesor requerido'
+            ];
+        }
+
+        // Obtener todas las reservas del profesor usando get_posts (patrón del proyecto)
+        $bookings = get_posts([
+            'post_type' => 'dsb_booking',
+            'meta_query' => [
+                ['key' => 'teacher_id', 'value' => $teacher_id, 'compare' => '=']
+            ],
+            'posts_per_page' => -1,
+            'post_status' => 'publish'
+        ]);
+
+        $formatted_bookings = [];
+
+        foreach ($bookings as $booking) {
+            $student_id = get_post_meta($booking->ID, 'student_id', true);
+            $student = get_userdata($student_id);
+            $vehicle_id = get_post_meta($booking->ID, 'vehicle_id', true);
+            $vehicle = $vehicle_id ? get_post($vehicle_id) : null;
+
+            $formatted_bookings[] = [
+                'id' => $booking->ID,
+                'student_id' => $student_id,
+                'student_name' => $student ? $student->display_name : 'Usuario eliminado',
+                'teacher_id' => get_post_meta($booking->ID, 'teacher_id', true),
+                'vehicle_id' => $vehicle_id,
+                'vehicle_name' => $vehicle ? $vehicle->post_title : 'Vehículo no asignado',
+                'date' => get_post_meta($booking->ID, 'date', true),
+                'time' => get_post_meta($booking->ID, 'time', true),
+                'start_time' => get_post_meta($booking->ID, 'time', true), // Alias para consistencia
+                'end_time' => get_post_meta($booking->ID, 'end_time', true),
+                'status' => get_post_meta($booking->ID, 'status', true),
+                'cost' => get_post_meta($booking->ID, 'cost', true),
+                'reason' => get_post_meta($booking->ID, 'reason', true), // Para bloqueos
+                'created_at' => $booking->post_date
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data' => $formatted_bookings
+        ];
+    }
+
+    /**
+     * Obtener estadísticas de clases completadas
+     */
+    public static function get_completed_classes_stats($teacher_id)
+    {
+        $bookings_response = self::get_bookings_by_teacher($teacher_id);
+
+        if (!$bookings_response['success']) {
+            return ['completed_today' => 0, 'completed_week' => 0, 'completed_month' => 0];
+        }
+
+        $all_bookings = $bookings_response['data'];
+        $now = current_time('timestamp');
+        $today = current_time('Y-m-d');
+        $week_start = date('Y-m-d', strtotime('monday this week'));
+        $month_start = date('Y-m-01');
+
+        $stats = [
+            'completed_today' => 0,
+            'completed_week' => 0,
+            'completed_month' => 0
+        ];
+
+        foreach ($all_bookings as $booking) {
+            // Solo contar clases completadas (aceptadas + fecha pasada)
+            if ($booking['status'] === 'accepted') {
+                $class_end = strtotime($booking['date'] . ' ' . $booking['end_time']);
+
+                if ($class_end < $now) {
+                    // Clase completada
+                    if ($booking['date'] === $today) $stats['completed_today']++;
+                    if ($booking['date'] >= $week_start && $booking['date'] <= $today) $stats['completed_week']++;
+                    if ($booking['date'] >= $month_start && $booking['date'] <= $today) $stats['completed_month']++;
+                }
+            }
+        }
+
+        return $stats;
+    }
+
+    public static function get_completed_classes_by_teacher($teacher_id, $filters = [])
+    {
+        $bookings_response = self::get_bookings_by_teacher($teacher_id);
+
+        if (!$bookings_response['success']) {
+            return $bookings_response;
+        }
+
+        $all_bookings = $bookings_response['data'];
+        $now = current_time('timestamp');
+
+        // Filtrar solo clases completadas (aceptadas + fecha pasada)
+        $completed_classes = array_filter($all_bookings, function ($booking) use ($now) {
+            if ($booking['status'] !== 'accepted') return false;
+
+            $class_end = strtotime($booking['date'] . ' ' . $booking['end_time']);
+            return $class_end < $now;
+        });
+
+        // Aplicar filtros adicionales si existen
+        if (!empty($filters['date_from'])) {
+            $completed_classes = array_filter($completed_classes, function ($booking) use ($filters) {
+                return $booking['date'] >= $filters['date_from'];
+            });
+        }
+
+        if (!empty($filters['date_to'])) {
+            $completed_classes = array_filter($completed_classes, function ($booking) use ($filters) {
+                return $booking['date'] <= $filters['date_to'];
+            });
+        }
+
+        return [
+            'success' => true,
+            'data' => array_values($completed_classes)
+        ];
     }
 }

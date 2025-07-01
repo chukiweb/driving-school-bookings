@@ -105,5 +105,4 @@ jQuery(document).ready(function ($) {
 
     vehicleAdminView.init();
 
-    console.log("VehicleDATA", allVehicleData);
 });
