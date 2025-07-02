@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Driving School Bookings
  * Description: Sistema de gestión de reservas para autoescuela
- * Version: 0.1.0-rc.1
+ * Version: 0.1.0-rc.1.1
  * Author: Cubetic Consultores
  * Author URI: https://cubetic.com
  * Text Domain: driving-school-bookings 
